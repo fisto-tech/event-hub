@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="./src/assets/logo.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EventApp</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              crm: {
+                primary: '#990033',
+                primaryDark: '#7A0029',
+                primaryLight: '#BD003F',
+                primaryLighter: '#FFF2F5',
+                sidebarText: '#FFFFFF',
+                bg: '#FFFFFF',
+                cardBg: '#F9FAFB',
+                textDark: '#111827',
+                textMuted: '#6B7280',
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      /* Smooth custom animations */
+      @keyframes running-border {
+        0% { border-color: #990033; box-shadow: 0 0 0 2px rgba(153, 0, 51, 0.2); }
+        50% { border-color: #BD003F; box-shadow: 0 0 0 4px rgba(153, 0, 51, 0.4); }
+        100% { border-color: #990033; box-shadow: 0 0 0 2px rgba(153, 0, 51, 0.2); }
+      }
+      
+      .btn-running-border {
+        position: relative;
+        overflow: hidden;
+        border: 1px solid #000000 !important;
+        background: #000000 !important;
+        color: #FFFFFF !important;
+        transition: all 0.2s ease;
+      }
+      .btn-running-border:hover {
+        background: #333333 !important;
+        border-color: #333333 !important;
+      }
+      
+      /* Sidebar hover animations */
+      .sidebar-item {
+        position: relative;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .sidebar-item::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        top: 0;
+        width: 0;
+        background-color: #FFFFFF;
+        transition: all 0.3s ease;
+        opacity: 0;
+      }
+      .sidebar-item:hover::after {
+        width: 4px;
+        opacity: 1;
+      }
+      
+      /* Smooth fade for tabs */
+      .tab-content {
+        animation: fadeIn 0.4s ease-out;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      /* Hide scrollbars but keep functionality */
+      .scrollbar-none::-webkit-scrollbar {
+        display: none;
+      }
+      .scrollbar-none {
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+      }
+
+      /* Global inputs & select styling (Premium Black & White Theme) */
+      .crm-input {
+        background-color: #FFFFFF !important;
+        border: 1px solid #D1D5DB !important;
+        color: #111827 !important;
+        transition: all 0.2s ease;
+      }
+      .crm-input::placeholder {
+        color: #9CA3AF !important;
+      }
+      .crm-input:focus {
+        border-color: #990033 !important;
+        box-shadow: 0 0 0 3px rgba(153, 0, 51, 0.15) !important;
+      }
+    </style>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
