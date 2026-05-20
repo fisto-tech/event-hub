@@ -77,12 +77,12 @@ const WhatsappTemplates = () => {
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-        <h3 className="text-lg font-black text-crm-primary mb-4">
+        <h3 className="text-lg font-semibold text-crm-primary mb-4">
           <i className="ph-fill ph-whatsapp-logo text-crm-primary mr-2"></i> {isEditing ? 'Edit Template' : 'Add New Template'}
         </h3>
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-bold text-crm-primary">Linked Expo</label>
+            <label className="block text-sm font-normal text-crm-primary">Linked Expo</label>
             <select name="expoName" value={formData.expoName} onChange={handleChange} className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1">
               <option value="">-- Global Template --</option>
               {expos.map(expo => (
@@ -91,15 +91,15 @@ const WhatsappTemplates = () => {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-bold text-crm-primary">Industry Type</label>
+            <label className="block text-sm font-normal text-crm-primary">Industry Type</label>
             <input type="text" name="industryType" value={formData.industryType} onChange={handleChange} placeholder="e.g., Manufacturing" className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1" />
           </div>
           <div>
-            <label className="block text-sm font-bold text-crm-primary">Template Title *</label>
+            <label className="block text-sm font-normal text-crm-primary">Template Title *</label>
             <input type="text" name="templateTitle" required value={formData.templateTitle} onChange={handleChange} placeholder="e.g., Welcome Message" className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1" />
           </div>
           <div className="lg:col-span-3">
-            <label className="block text-sm font-bold text-crm-primary">Message Content *</label>
+            <label className="block text-sm font-normal text-crm-primary">Message Content *</label>
             <p className="text-xs text-gray-500 mb-1">Use {'{customer_name}'}, {'{company_name}'} as placeholders</p>
             <textarea name="messageContent" required value={formData.messageContent} onChange={handleChange} rows="4" className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1"></textarea>
           </div>
@@ -108,12 +108,12 @@ const WhatsappTemplates = () => {
               <button 
                 type="button" 
                 onClick={() => {setIsEditing(false); setFormData({ id: '', expoName: '', industryType: '', templateTitle: '', messageContent: '' });}} 
-                className="px-6 py-2 text-crm-primary font-bold hover:bg-crm-primaryLighter rounded-lg"
+                className="px-6 py-2 text-crm-primary font-normal hover:bg-crm-primaryLighter rounded-lg"
               >
                 Cancel
               </button>
             )}
-            <button type="submit" className="btn-running-border text-white px-8 py-2 rounded-lg font-black shadow-md">
+            <button type="submit" className="btn-running-border text-white px-8 py-2 rounded-lg font-normal shadow-md">
               {isEditing ? 'Update Template' : 'Save Template'}
             </button>
           </div>
@@ -124,20 +124,20 @@ const WhatsappTemplates = () => {
         <table className="w-full text-left border-collapse text-crm-textDark min-w-[600px]">
           <thead>
             <tr className="bg-gray-100 border-b border-gray-200">
-              <th className="px-4 py-3 text-crm-primary font-black">Title</th>
-              <th className="px-4 py-3 text-crm-primary font-black">Expo / Industry</th>
-              <th className="px-4 py-3 text-crm-primary font-black">Preview</th>
-              <th className="px-4 py-3 text-crm-primary font-black text-right">Actions</th>
+              <th className="px-4 py-3 text-crm-primary font-normal">Title</th>
+              <th className="px-4 py-3 text-crm-primary font-normal">Expo / Industry</th>
+              <th className="px-4 py-3 text-crm-primary font-normal">Preview</th>
+              <th className="px-4 py-3 text-crm-primary font-normal text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
             {templates.map(temp => (
               <tr key={temp.id} className="border-b border-gray-100 hover:bg-crm-primaryLighter transition-colors">
-                <td className="px-4 py-3 font-bold text-crm-primary">{temp.template_title}</td>
+                <td className="px-4 py-3 font-normal text-crm-primary">{temp.template_title}</td>
                 <td className="px-4 py-3 text-sm">
                   {temp.expo_name || 'All Expos'}
                   <br/>
-                  <span className="text-gray-500 text-xs font-bold">{temp.industry_type || 'All Industries'}</span>
+                  <span className="text-gray-500 text-xs font-normal">{temp.industry_type || 'All Industries'}</span>
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate" title={temp.message_content}>
                   {temp.message_content}

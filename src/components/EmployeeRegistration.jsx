@@ -106,48 +106,48 @@ const EmployeeRegistration = () => {
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-        <h3 className="text-lg font-black text-crm-primary mb-4">
+        <h3 className="text-lg font-semibold text-crm-primary mb-4">
           <i className="ph-fill ph-user-plus text-crm-primary mr-2"></i> {isEditing ? 'Edit Employee Details' : 'Register New Employee'}
         </h3>
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-bold text-crm-primary">Employee ID</label>
+            <label className="block text-sm font-normal text-crm-primary">Employee ID</label>
             <input type="text" name="employeeId" value={formData.employeeId} onChange={handleChange} placeholder="e.g. EMP02" className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1" />
           </div>
           <div>
-            <label className="block text-sm font-bold text-crm-primary">Full Name *</label>
+            <label className="block text-sm font-normal text-crm-primary">Full Name *</label>
             <input type="text" name="name" required value={formData.name} onChange={handleChange} placeholder="John Doe" className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1" />
           </div>
           <div>
-            <label className="block text-sm font-bold text-crm-primary">Email Address *</label>
+            <label className="block text-sm font-normal text-crm-primary">Email Address *</label>
             <input type="email" name="email" required value={formData.email} onChange={handleChange} placeholder="email@domain.com" className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1" />
           </div>
           <div>
-            <label className="block text-sm font-bold text-crm-primary">Phone Number</label>
+            <label className="block text-sm font-normal text-crm-primary">Phone Number</label>
             <input type="tel" name="phone" value={formData.phone} onChange={handleChange} placeholder="+12345678" className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1" />
           </div>
           <div>
-            <label className="block text-sm font-bold text-crm-primary">Department</label>
+            <label className="block text-sm font-normal text-crm-primary">Department</label>
             <input type="text" name="department" value={formData.department} onChange={handleChange} placeholder="e.g. Sales, Marketing" className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1" />
           </div>
           <div>
-            <label className="block text-sm font-bold text-crm-primary">Role</label>
+            <label className="block text-sm font-normal text-crm-primary">Role</label>
             <select name="role" value={formData.role} onChange={handleChange} className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1">
               <option value="employee">Employee / Staff</option>
               <option value="admin">Admin</option>
             </select>
           </div>
           <div>
-            <label className="block text-sm font-bold text-crm-primary">Username *</label>
+            <label className="block text-sm font-normal text-crm-primary">Username *</label>
             <input type="text" name="username" required value={formData.username} onChange={handleChange} placeholder="username123" className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1" />
           </div>
           <div>
-            <label className="block text-sm font-bold text-crm-primary">Password {isEditing ? '(leave blank to keep current)' : '*'}</label>
+            <label className="block text-sm font-normal text-crm-primary">Password {isEditing ? '(leave blank to keep current)' : '*'}</label>
             <input type="password" name="password" required={!isEditing} value={formData.password} onChange={handleChange} placeholder="••••••••" className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1" />
           </div>
           {isEditing && (
             <div>
-              <label className="block text-sm font-bold text-crm-primary">Status</label>
+              <label className="block text-sm font-normal text-crm-primary">Status</label>
               <select name="status" value={formData.status} onChange={handleChange} className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1">
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
@@ -156,8 +156,8 @@ const EmployeeRegistration = () => {
           )}
 
           <div className="lg:col-span-3 flex justify-end gap-3 mt-2">
-            <button type="button" onClick={resetForm} className="px-6 py-2 text-crm-primary font-bold hover:bg-crm-primaryLighter rounded-lg">Cancel</button>
-            <button type="submit" className="btn-running-border text-white px-8 py-2 rounded-lg font-black shadow-md">
+            <button type="button" onClick={resetForm} className="px-6 py-2 text-crm-primary font-normal hover:bg-crm-primaryLighter rounded-lg">Cancel</button>
+            <button type="submit" className="btn-running-border text-white px-8 py-2 rounded-lg font-normal shadow-md">
               {isEditing ? 'Update Employee' : 'Register Employee'}
             </button>
           </div>
@@ -168,29 +168,29 @@ const EmployeeRegistration = () => {
         <table className="w-full text-left border-collapse text-crm-textDark min-w-[800px]">
           <thead>
             <tr className="bg-gray-100 border-b border-gray-200">
-              <th className="px-4 py-3 text-crm-primary font-black">Employee ID</th>
-              <th className="px-4 py-3 text-crm-primary font-black">Name</th>
-              <th className="px-4 py-3 text-crm-primary font-black">Email / Phone</th>
-              <th className="px-4 py-3 text-crm-primary font-black">Department</th>
-              <th className="px-4 py-3 text-crm-primary font-black">Role</th>
-              <th className="px-4 py-3 text-crm-primary font-black">Status</th>
-              <th className="px-4 py-3 text-crm-primary font-black text-right">Actions</th>
+              <th className="px-4 py-3 text-crm-primary font-normal">Employee ID</th>
+              <th className="px-4 py-3 text-crm-primary font-normal">Name</th>
+              <th className="px-4 py-3 text-crm-primary font-normal">Email / Phone</th>
+              <th className="px-4 py-3 text-crm-primary font-normal">Department</th>
+              <th className="px-4 py-3 text-crm-primary font-normal">Role</th>
+              <th className="px-4 py-3 text-crm-primary font-normal">Status</th>
+              <th className="px-4 py-3 text-crm-primary font-normal text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
             {employees.map(emp => (
               <tr key={emp.id} className="border-b border-gray-100 hover:bg-crm-primaryLighter transition-colors">
-                <td className="px-4 py-3 font-bold text-sm">{emp.employee_id || '-'}</td>
-                <td className="px-4 py-3 font-black text-sm">{emp.name}</td>
+                <td className="px-4 py-3 font-normal text-sm">{emp.employee_id || '-'}</td>
+                <td className="px-4 py-3 font-normal text-sm">{emp.name}</td>
                 <td className="px-4 py-3 text-sm">
                   {emp.email}
                   <br/>
-                  <span className="text-gray-500 font-bold text-xs">{emp.phone || '-'}</span>
+                  <span className="text-gray-500 font-normal text-xs">{emp.phone || '-'}</span>
                 </td>
                 <td className="px-4 py-3 text-sm">{emp.department || '-'}</td>
-                <td className="px-4 py-3 capitalize text-sm font-bold text-crm-primary">{emp.role}</td>
+                <td className="px-4 py-3 capitalize text-sm font-normal text-crm-primary">{emp.role}</td>
                 <td className="px-4 py-3 capitalize text-sm">
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-black ${emp.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-800'}`}>
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-normal ${emp.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-800'}`}>
                     {emp.status}
                   </span>
                 </td>

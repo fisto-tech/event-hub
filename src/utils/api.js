@@ -1,4 +1,6 @@
-export const API_BASE_URL = 'http://localhost:8000/api'; // Update this to match your local PHP server URL
+export const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'https://www.fist-o.com/stall_event_app/backend/api'
+  : 'https://www.fist-o.com/stall_event_app/backend/api';
 
 export const fetchApi = async (endpoint, options = {}) => {
   const url = `${API_BASE_URL}/${endpoint}`;

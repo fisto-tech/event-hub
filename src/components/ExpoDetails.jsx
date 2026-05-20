@@ -90,24 +90,24 @@ const ExpoDetails = () => {
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-        <h3 className="text-lg font-black text-crm-primary mb-4">
+        <h3 className="text-lg font-semibold text-crm-primary mb-4">
           <i className="ph-fill ph-calendar-plus text-crm-primary mr-2"></i> {isEditing ? 'Edit Expo' : 'Add New Expo'}
         </h3>
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-bold text-crm-primary">Expo Name *</label>
+            <label className="block text-sm font-normal text-crm-primary">Expo Name *</label>
             <input type="text" name="expoName" required value={formData.expoName} onChange={handleChange} className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1" />
           </div>
           <div>
-            <label className="block text-sm font-bold text-crm-primary">Start Date *</label>
+            <label className="block text-sm font-normal text-crm-primary">Start Date *</label>
             <input type="date" name="startDate" required value={formData.startDate} onChange={handleChange} className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1" />
           </div>
           <div>
-            <label className="block text-sm font-bold text-crm-primary">End Date</label>
+            <label className="block text-sm font-normal text-crm-primary">End Date</label>
             <input type="date" name="endDate" value={formData.endDate} onChange={handleChange} className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1" />
           </div>
           <div>
-            <label className="block text-sm font-bold text-crm-primary">Status</label>
+            <label className="block text-sm font-normal text-crm-primary">Status</label>
             <select name="status" value={formData.status} onChange={handleChange} className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1">
               <option value="upcoming">Upcoming</option>
               <option value="ongoing">Ongoing</option>
@@ -116,7 +116,7 @@ const ExpoDetails = () => {
             </select>
           </div>
           <div className="lg:col-span-2">
-            <label className="block text-sm font-bold text-crm-primary">Remarks</label>
+            <label className="block text-sm font-normal text-crm-primary">Remarks</label>
             <input type="text" name="remarks" value={formData.remarks} onChange={handleChange} className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1" />
           </div>
           <div className="lg:col-span-3 flex justify-end gap-3 mt-2">
@@ -124,12 +124,12 @@ const ExpoDetails = () => {
               <button 
                 type="button" 
                 onClick={() => {setIsEditing(false); setFormData({ id: '', expoName: '', startDate: '', endDate: '', remarks: '', status: 'upcoming' });}} 
-                className="px-6 py-2 text-crm-primary font-bold hover:bg-crm-primaryLighter rounded-lg"
+                className="px-6 py-2 text-crm-primary font-normal hover:bg-crm-primaryLighter rounded-lg"
               >
                 Cancel
               </button>
             )}
-            <button type="submit" className="btn-running-border text-white px-8 py-2 rounded-lg font-black shadow-md">
+            <button type="submit" className="btn-running-border text-white px-8 py-2 rounded-lg font-normal shadow-md">
               {isEditing ? 'Update Expo' : 'Save Expo'}
             </button>
           </div>
@@ -145,21 +145,21 @@ const ExpoDetails = () => {
             <table className="w-full text-left border-collapse text-crm-textDark min-w-[600px]">
               <thead>
                 <tr className="bg-gray-100 border-b border-gray-200">
-                  <th className="px-4 py-3 text-crm-primary font-black">Expo Name</th>
-                  <th className="px-4 py-3 text-crm-primary font-black">Start Date</th>
-                  <th className="px-4 py-3 text-crm-primary font-black">End Date</th>
-                  <th className="px-4 py-3 text-crm-primary font-black">Status</th>
-                  <th className="px-4 py-3 text-crm-primary font-black text-right">Actions</th>
+                  <th className="px-4 py-3 text-crm-primary font-normal">Expo Name</th>
+                  <th className="px-4 py-3 text-crm-primary font-normal">Start Date</th>
+                  <th className="px-4 py-3 text-crm-primary font-normal">End Date</th>
+                  <th className="px-4 py-3 text-crm-primary font-normal">Status</th>
+                  <th className="px-4 py-3 text-crm-primary font-normal text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {expos.map(expo => (
                   <tr key={expo.id} className="border-b border-gray-100 hover:bg-crm-primaryLighter transition-colors">
-                    <td className="px-4 py-3 font-bold">{expo.expo_name}</td>
+                    <td className="px-4 py-3 font-normal">{expo.expo_name}</td>
                     <td className="px-4 py-3 text-sm">{expo.start_date}</td>
                     <td className="px-4 py-3 text-sm">{expo.end_date || '-'}</td>
                     <td className="px-4 py-3 capitalize text-sm">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-black ${
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-normal ${
                         expo.status === 'upcoming' ? 'bg-amber-100 text-amber-800' : 
                         expo.status === 'completed' ? 'bg-emerald-100 text-emerald-800' : 
                         'bg-crm-primaryLighter text-crm-primary'

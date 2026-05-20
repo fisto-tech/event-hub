@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { fetchApi } from '../utils/api';
+import { fetchApi, API_BASE_URL } from '../utils/api';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 
@@ -213,40 +213,40 @@ const CustomerReport = () => {
         <div className="flex bg-gray-100 p-1.5 rounded-xl border border-gray-200/30 overflow-x-auto scrollbar-none">
           <button
             onClick={() => setActiveTab('all')}
-            className={`px-4 py-2.5 text-sm font-black transition-all rounded-lg flex items-center gap-2 whitespace-nowrap ${
+            className={`px-4 py-2.5 text-sm font-semibold transition-all rounded-lg flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'all'
                 ? 'bg-crm-primary text-white shadow-md'
                 : 'text-gray-600 hover:text-crm-primary hover:bg-gray-200/50'
             }`}
           >
             <i className="ph-bold ph-list-bullets text-base"></i> All Leads
-            <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${activeTab === 'all' ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-700'}`}>
+            <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${activeTab === 'all' ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-700'}`}>
               {customers.length}
             </span>
           </button>
           <button
             onClick={() => setActiveTab('completed')}
-            className={`px-4 py-2.5 text-sm font-black transition-all rounded-lg flex items-center gap-2 whitespace-nowrap ${
+            className={`px-4 py-2.5 text-sm font-semibold transition-all rounded-lg flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'completed'
                 ? 'bg-emerald-600 text-white shadow-md'
                 : 'text-gray-600 hover:text-emerald-600 hover:bg-emerald-50/50'
             }`}
           >
             <i className="ph-bold ph-check-circle text-base"></i> Completed
-            <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${activeTab === 'completed' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'}`}>
+            <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${activeTab === 'completed' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'}`}>
               {customers.filter(c => c.status === 'completed').length}
             </span>
           </button>
           <button
             onClick={() => setActiveTab('pending')}
-            className={`px-4 py-2.5 text-sm font-black transition-all rounded-lg flex items-center gap-2 whitespace-nowrap ${
+            className={`px-4 py-2.5 text-sm font-semibold transition-all rounded-lg flex items-center gap-2 whitespace-nowrap ${
               activeTab === 'pending'
                 ? 'bg-amber-500 text-white shadow-md'
                 : 'text-gray-600 hover:text-amber-600 hover:bg-amber-50/50'
             }`}
           >
             <i className="ph-bold ph-clock text-base"></i> Pending
-            <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${activeTab === 'pending' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-800'}`}>
+            <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${activeTab === 'pending' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-800'}`}>
               {customers.filter(c => c.status !== 'completed').length}
             </span>
           </button>
@@ -256,7 +256,7 @@ const CustomerReport = () => {
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setIsExportDropdownOpen(!isExportDropdownOpen)}
-            className="w-full lg:w-auto bg-gradient-to-r from-crm-primary to-crm-primaryDark hover:from-crm-primaryDark hover:to-crm-primary text-white px-6 py-3 rounded-xl font-black shadow-lg flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-95"
+            className="w-full lg:w-auto bg-gradient-to-r from-crm-primary to-crm-primaryDark hover:from-crm-primaryDark hover:to-crm-primary text-white px-6 py-3 rounded-xl font-semibold shadow-lg flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-95"
           >
             <i className="ph-bold ph-download-simple text-lg"></i>
             Export Reports
@@ -267,21 +267,21 @@ const CustomerReport = () => {
             <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-100 rounded-xl shadow-2xl z-30 overflow-hidden divide-y divide-gray-100 animate-in fade-in slide-in-from-top-2 duration-200">
               <button
                 onClick={handleExportExcel}
-                className="w-full px-5 py-3.5 text-left text-sm font-bold text-gray-700 hover:bg-emerald-50/30 flex items-center gap-3 transition-colors group"
+                className="w-full px-5 py-3.5 text-left text-sm font-semibold text-gray-700 hover:bg-emerald-50/30 flex items-center gap-3 transition-colors group"
               >
                 <i className="ph-fill ph-file-xls text-emerald-600 text-xl group-hover:scale-110 transition-transform"></i>
                 Export to Excel (.csv)
               </button>
               <button
                 onClick={handleExportPDF}
-                className="w-full px-5 py-3.5 text-left text-sm font-bold text-gray-700 hover:bg-red-50/30 flex items-center gap-3 transition-colors group"
+                className="w-full px-5 py-3.5 text-left text-sm font-semibold text-gray-700 hover:bg-red-50/30 flex items-center gap-3 transition-colors group"
               >
                 <i className="ph-fill ph-file-pdf text-red-600 text-xl group-hover:scale-110 transition-transform"></i>
                 Export to PDF (.pdf)
               </button>
               <button
                 onClick={handleExportWord}
-                className="w-full px-5 py-3.5 text-left text-sm font-bold text-gray-700 hover:bg-blue-50/30 flex items-center gap-3 transition-colors group"
+                className="w-full px-5 py-3.5 text-left text-sm font-semibold text-gray-700 hover:bg-blue-50/30 flex items-center gap-3 transition-colors group"
               >
                 <i className="ph-fill ph-file-doc text-blue-600 text-xl group-hover:scale-110 transition-transform"></i>
                 Export to Word (.doc)
@@ -295,7 +295,7 @@ const CustomerReport = () => {
       <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 items-end">
         {/* Search */}
         <div className="w-full">
-          <label className="block text-sm font-bold text-crm-primary mb-1.5">Search Customer</label>
+          <label className="block text-sm font-semibold text-crm-primary mb-1.5">Search Customer</label>
           <div className="relative">
             <i className="ph ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-lg"></i>
             <input 
@@ -310,7 +310,7 @@ const CustomerReport = () => {
 
         {/* Filter by Expo */}
         <div className="w-full">
-          <label className="block text-sm font-bold text-crm-primary mb-1.5">Filter by Expo</label>
+          <label className="block text-sm font-semibold text-crm-primary mb-1.5">Filter by Expo</label>
           <select 
             value={filterExpo}
             onChange={(e) => setFilterExpo(e.target.value)}
@@ -326,7 +326,7 @@ const CustomerReport = () => {
         {/* Date Wise Filters */}
         <div className="w-full grid grid-cols-2 gap-3 lg:col-span-1">
           <div>
-            <label className="block text-sm font-bold text-crm-primary mb-1.5">Start Date</label>
+            <label className="block text-sm font-semibold text-crm-primary mb-1.5">Start Date</label>
             <input 
               type="date"
               value={startDate}
@@ -335,7 +335,7 @@ const CustomerReport = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-bold text-crm-primary mb-1.5">End Date</label>
+            <label className="block text-sm font-semibold text-crm-primary mb-1.5">End Date</label>
             <input 
               type="date"
               value={endDate}
@@ -347,7 +347,7 @@ const CustomerReport = () => {
 
         {/* Sorting options */}
         <div className="w-full">
-          <label className="block text-sm font-bold text-crm-primary mb-1.5">Order Options</label>
+          <label className="block text-sm font-semibold text-crm-primary mb-1.5">Order Options</label>
           <select 
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
@@ -366,27 +366,38 @@ const CustomerReport = () => {
         <table className="w-full text-left border-collapse whitespace-nowrap text-crm-textDark">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">
-              <th className="px-5 py-4 text-crm-primary font-black text-xs uppercase tracking-wider">Date</th>
-              <th className="px-5 py-4 text-crm-primary font-black text-xs uppercase tracking-wider">Expo</th>
-              <th className="px-5 py-4 text-crm-primary font-black text-xs uppercase tracking-wider">Company</th>
-              <th className="px-5 py-4 text-crm-primary font-black text-xs uppercase tracking-wider">Contact Person</th>
-              <th className="px-5 py-4 text-crm-primary font-black text-xs uppercase tracking-wider">Phone</th>
-              <th className="px-5 py-4 text-crm-primary font-black text-xs uppercase tracking-wider">City</th>
-              <th className="px-5 py-4 text-crm-primary font-black text-xs uppercase tracking-wider">Enquiry Type</th>
-              <th className="px-5 py-4 text-crm-primary font-black text-xs uppercase tracking-wider">Status</th>
+              <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider">Date</th>
+              <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider">Expo</th>
+              <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider">Company</th>
+              <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider">Contact Person</th>
+              <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider">Phone</th>
+              <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider">City</th>
+              <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider">Priority</th>
+              <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider">Enquiry Type</th>
+              <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider">Status</th>
+              <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider">Card</th>
             </tr>
           </thead>
           <tbody>
             {filteredCustomers.map(cust => (
               <tr key={cust.id} className="border-b border-gray-100 hover:bg-crm-primaryLighter/40 transition-colors duration-150">
                 <td className="px-5 py-3.5 text-sm text-gray-600">{cust.visit_date}</td>
-                <td className="px-5 py-3.5 font-bold text-crm-primary text-sm">{cust.linked_expo || cust.manual_expo_name || '-'}</td>
-                <td className="px-5 py-3.5 font-black text-sm text-gray-900">{cust.company_name}</td>
+                <td className="px-5 py-3.5 font-semibold text-crm-primary text-sm">{cust.linked_expo || cust.manual_expo_name || '-'}</td>
+                <td className="px-5 py-3.5 font-semibold text-sm text-gray-900">{cust.company_name}</td>
                 <td className="px-5 py-3.5 text-sm text-gray-700">{cust.customer_name}</td>
                 <td className="px-5 py-3.5 text-sm text-gray-600 font-mono">{cust.phone_1}</td>
                 <td className="px-5 py-3.5 text-sm text-gray-600">{cust.city || '-'}</td>
                 <td className="px-5 py-3.5 text-sm">
-                  <span className={`px-3 py-1 rounded-full text-xs font-black border ${
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${
+                    cust.priority === 'high' ? 'bg-red-50 text-red-700 border-red-200' :
+                    cust.priority === 'low' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                    'bg-amber-50 text-amber-700 border-amber-200'
+                  }`}>
+                    {cust.priority ? cust.priority.toUpperCase() : 'MEDIUM'}
+                  </span>
+                </td>
+                <td className="px-5 py-3.5 text-sm">
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${
                     cust.enquiry_type === 'Hot Lead' ? 'bg-red-50 text-red-700 border-red-200/50' :
                     cust.enquiry_type === 'Warm Lead' ? 'bg-amber-50 text-amber-700 border-amber-200/50' :
                     'bg-slate-50 text-slate-700 border-slate-200/50'
@@ -395,7 +406,7 @@ const CustomerReport = () => {
                   </span>
                 </td>
                 <td className="px-5 py-3.5 text-sm">
-                  <span className={`px-3 py-1 rounded-full text-xs font-black border ${
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${
                     cust.status === 'completed' 
                       ? 'bg-emerald-50 text-emerald-700 border-emerald-200/50' 
                       : 'bg-amber-50 text-amber-700 border-amber-200/50'
@@ -404,14 +415,28 @@ const CustomerReport = () => {
                     {cust.status === 'completed' ? 'Completed' : 'Pending'}
                   </span>
                 </td>
+                <td className="px-5 py-3.5 text-sm">
+                  {cust.image_path ? (
+                    <a 
+                      href={`${API_BASE_URL.replace('/api', '')}/${cust.image_path}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-crm-primary hover:text-crm-primaryDark font-semibold border border-crm-primary/20 px-2 py-1 rounded-lg bg-crm-primaryLighter hover:bg-crm-primaryLighter/80 transition-colors"
+                    >
+                      <i className="ph ph-image text-sm"></i> View
+                    </a>
+                  ) : (
+                    <span className="text-gray-400 text-xs font-semibold">-</span>
+                  )}
+                </td>
               </tr>
             ))}
             {filteredCustomers.length === 0 && (
               <tr>
-                <td colSpan="8" className="px-5 py-12 text-center text-gray-400">
+                <td colSpan="10" className="px-5 py-12 text-center text-gray-400">
                   <div className="flex flex-col items-center justify-center space-y-2">
                     <i className="ph-bold ph-tray text-4xl text-gray-300"></i>
-                    <p className="font-bold text-gray-500">No customers found matching these filters</p>
+                    <p className="font-semibold text-gray-500">No customers found matching these filters</p>
                     <p className="text-xs text-gray-400">Try adjusting your search query, status tabs, or date range.</p>
                   </div>
                 </td>

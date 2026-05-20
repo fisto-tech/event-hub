@@ -31,10 +31,10 @@ const App = () => {
       setActiveSubTab('expo-details');
     } else if (tabId === 'registration') {
       setActiveSubTab('customer-registration');
-    } else if (tabId === 'report') {
-      setActiveSubTab('customer-report');
     } else if (tabId === 'follow-up') {
-      setActiveSubTab('follow-up-daily');
+      setActiveSubTab('follow-up-missed');
+    } else if (tabId === 'date-wise-analyse') {
+      setActiveSubTab('today-analyse');
     } else {
       setActiveSubTab('');
     }
@@ -45,23 +45,24 @@ const App = () => {
       case 'master-data':
         return [
           { id: 'expo-details', label: 'Expo Details', icon: 'ph-calendar-star' },
-          { id: 'whatsapp-template', label: 'WhatsApp Templates', icon: 'ph-whatsapp-logo' }
+          { id: 'whatsapp-template', label: 'WhatsApp Templates', icon: 'ph-whatsapp-logo' },
+          { id: 'employee-registration', label: 'Add Employee', icon: 'ph-user-plus' },
+          { id: 'employee-report', label: 'Employee Management', icon: 'ph-users-three' }
         ];
       case 'registration':
         return [
           { id: 'customer-registration', label: 'Customer Registration', icon: 'ph-user-plus' },
-          { id: 'employee-registration', label: 'Employee Registration', icon: 'ph-users-three' }
-        ];
-      case 'report':
-        return [
-          { id: 'customer-report', label: 'Customer Report', icon: 'ph-chart-bar' },
-          { id: 'employee-report', label: 'Employee Report', icon: 'ph-users' }
+          { id: 'customer-report', label: 'Customer Report', icon: 'ph-chart-bar' }
         ];
       case 'follow-up':
         return [
-          { id: 'follow-up-daily', label: 'Date Wise Analyse (Daily)', icon: 'ph-calendar-blank' },
+          { id: 'follow-up-missed', label: 'Missed Followup', icon: 'ph-warning' },
           { id: 'follow-up-upcoming', label: 'Upcoming Followup', icon: 'ph-clock-counter-clockwise' },
-          { id: 'follow-up-missed', label: 'Missed Followup', icon: 'ph-warning' }
+          { id: 'follow-up-completed', label: 'Completed Followup', icon: 'ph-check-circle' }
+        ];
+      case 'date-wise-analyse':
+        return [
+          { id: 'today-analyse', label: 'Today Analysis', icon: 'ph-calendar-blank' }
         ];
       default:
         return [];
@@ -78,20 +79,22 @@ const App = () => {
         return <ExpoDetails />;
       case 'whatsapp-template':
         return <WhatsappTemplates />;
-      case 'customer-registration':
-        return <RegistrationForm />;
       case 'employee-registration':
         return <EmployeeRegistration />;
-      case 'customer-report':
-        return <CustomerReport />;
       case 'employee-report':
         return <EmployeeReport />;
-      case 'follow-up-daily':
-        return <FollowupManagement key="today" defaultFilter="today" />;
-      case 'follow-up-upcoming':
-        return <FollowupManagement key="upcoming" defaultFilter="upcoming" />;
+      case 'customer-registration':
+        return <RegistrationForm />;
+      case 'customer-report':
+        return <CustomerReport />;
       case 'follow-up-missed':
         return <FollowupManagement key="missed" defaultFilter="missed" />;
+      case 'follow-up-upcoming':
+        return <FollowupManagement key="upcoming" defaultFilter="upcoming" />;
+      case 'follow-up-completed':
+        return <FollowupManagement key="completed" defaultFilter="completed" />;
+      case 'today-analyse':
+        return <FollowupManagement key="today" defaultFilter="today" />;
       default:
         return (
           <div className="flex flex-col items-center justify-center h-full text-slate-400">
@@ -119,9 +122,9 @@ const App = () => {
         activeTab={activeTab} 
         setActiveTab={handleTabChange} 
         onLogout={() => {
-    setIsLoggedIn(false);
-    sessionStorage.removeItem('isLoggedIn');
-  }} 
+          setIsLoggedIn(false);
+          sessionStorage.removeItem('isLoggedIn');
+        }} 
         isOpen={isSidebarOpen}
         setIsOpen={setIsSidebarOpen}
       />
@@ -136,7 +139,7 @@ const App = () => {
               <i className="ph-bold ph-list text-2xl"></i>
             </button>
             
-            <h2 className="text-lg md:text-xl font-black capitalize text-crm-primary">
+            <h2 className="text-lg md:text-xl font-medium capitalize text-crm-primary">
               {activeTab.replace('-', ' ')}
             </h2>
             
@@ -146,9 +149,9 @@ const App = () => {
                   <button
                     key={item.id}
                     onClick={() => setActiveSubTab(item.id)}
-                    className={`px-3 py-1.5 rounded-full text-sm font-black transition-all flex items-center gap-1.5 ${
+                    className={`px-3 py-1.5 rounded-full text-sm font-semibold transition-all flex items-center gap-1.5 ${
                       activeSubTab === item.id 
-                        ? 'bg-crm-primary text-white shadow-sm' 
+                        ? 'bg-crm-primary text-white shadow-sm font-semibold' 
                         : 'text-crm-primary hover:bg-crm-primaryLighter'
                     }`}
                   >
@@ -162,10 +165,10 @@ const App = () => {
           
           <div className="flex items-center gap-3">
             <div className="text-right hidden sm:block">
-              <p className="text-sm font-bold text-crm-textDark">Admin User</p>
-              <p className="text-xs text-crm-primary font-bold">Administrator</p>
+              <p className="text-sm font-normal text-crm-textDark">Admin User</p>
+              <p className="text-xs text-crm-primary font-normal">Administrator</p>
             </div>
-            <div className="h-10 w-10 rounded-full bg-crm-primaryLighter text-crm-primary flex items-center justify-center font-black shadow-sm border border-crm-primary/20">
+            <div className="h-10 w-10 rounded-full bg-crm-primaryLighter text-crm-primary flex items-center justify-center font-normal shadow-sm border border-crm-primary/20">
               A
             </div>
           </div>
@@ -178,7 +181,7 @@ const App = () => {
               <button
                 key={item.id}
                 onClick={() => setActiveSubTab(item.id)}
-                className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-black transition-all flex items-center gap-1.5 ${
+                className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${
                   activeSubTab === item.id 
                     ? 'bg-crm-primary text-white shadow-sm' 
                     : 'text-crm-primary hover:bg-crm-primaryLighter'
