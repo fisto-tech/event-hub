@@ -12,15 +12,15 @@
           extend: {
             colors: {
               crm: {
-                primary: '#990033',
-                primaryDark: '#7A0029',
-                primaryLight: '#BD003F',
-                primaryLighter: '#FFF2F5',
-                sidebarText: '#FFFFFF',
-                bg: '#FFFFFF',
-                cardBg: '#F9FAFB',
-                textDark: '#111827',
-                textMuted: '#6B7280',
+                primary: '#1558d6', // Zoho Primary Blue
+                primaryDark: '#11192e', // Zoho Sidebar Navy
+                primaryLight: '#377dff',
+                primaryLighter: '#f0f5ff',
+                sidebarText: '#d1d5db',
+                bg: '#f8f9fa',
+                cardBg: '#ffffff',
+                textDark: '#1e293b',
+                textMuted: '#64748b',
               }
             }
           }
@@ -30,22 +30,22 @@
     <style>
       /* Smooth custom animations */
       @keyframes running-border {
-        0% { border-color: #990033; box-shadow: 0 0 0 2px rgba(153, 0, 51, 0.2); }
-        50% { border-color: #BD003F; box-shadow: 0 0 0 4px rgba(153, 0, 51, 0.4); }
-        100% { border-color: #990033; box-shadow: 0 0 0 2px rgba(153, 0, 51, 0.2); }
+        0% { border-color: #1558d6; box-shadow: 0 0 0 2px rgba(21, 88, 214, 0.2); }
+        50% { border-color: #377dff; box-shadow: 0 0 0 4px rgba(21, 88, 214, 0.4); }
+        100% { border-color: #1558d6; box-shadow: 0 0 0 2px rgba(21, 88, 214, 0.2); }
       }
       
       .btn-running-border {
         position: relative;
         overflow: hidden;
-        border: 1px solid #000000 !important;
-        background: #000000 !important;
+        border: 1px solid #1558d6 !important;
+        background: #1558d6 !important;
         color: #FFFFFF !important;
         transition: all 0.2s ease;
       }
       .btn-running-border:hover {
-        background: #333333 !important;
-        border-color: #333333 !important;
+        background: #0f44ad !important;
+        border-color: #0f44ad !important;
       }
       
       /* Sidebar hover animations */
@@ -90,16 +90,23 @@
       /* Global inputs & select styling (Premium Black & White Theme) */
       .crm-input {
         background-color: #FFFFFF !important;
-        border: 1px solid #D1D5DB !important;
-        color: #111827 !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #1e293b !important;
         transition: all 0.2s ease;
+        border-radius: 4px !important;
       }
       .crm-input::placeholder {
-        color: #9CA3AF !important;
+        color: #94a3b8 !important;
       }
       .crm-input:focus {
-        border-color: #990033 !important;
-        box-shadow: 0 0 0 3px rgba(153, 0, 51, 0.15) !important;
+        border-color: #1558d6 !important;
+        box-shadow: 0 0 0 1px #1558d6 !important;
+        outline: none !important;
+      }
+      
+      /* Zoho classic red line for required fields */
+      .crm-input[required] {
+        border-left: 3px solid #ef4444 !important;
       }
     </style>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>

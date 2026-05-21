@@ -15,6 +15,9 @@ const CustomerReport = () => {
   const [endDate, setEndDate] = useState('');
   const [sortBy, setSortBy] = useState('date-desc'); // 'date-desc', 'date-asc', 'company-asc', 'company-desc'
   
+  const [viewingCustomer, setViewingCustomer] = useState(null);
+  const [editingCustomer, setEditingCustomer] = useState(null);
+  
   // UI Dropdown States
   const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -39,6 +42,41 @@ const CustomerReport = () => {
       
       const expoRes = await fetchApi('expos.php');
       if (expoRes.status === 'success') setExpos(expoRes.data);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (confirm('Are you sure you want to delete this customer?')) {
+      try {
+        const res = await fetchApi(`customers.php?id=${id}`, { method: 'DELETE' });
+        if (res.status === 'success') {
+          alert('Customer deleted');
+          loadData();
+        } else {
+          alert(res.message || 'Failed to delete');
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await fetchApi('customers.php', {
+        method: 'PUT',
+        body: JSON.stringify(editingCustomer)
+      });
+      if (res.status === 'success') {
+        alert('Customer updated successfully');
+        setEditingCustomer(null);
+        loadData();
+      } else {
+        alert(res.message || 'Failed to update');
+      }
     } catch (e) {
       console.error(e);
     }
@@ -207,6 +245,99 @@ const CustomerReport = () => {
 
   return (
     <div className="space-y-6 pb-12 font-sans animate-in fade-in duration-300">
+      
+      {/* View Modal */}
+      {viewingCustomer && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setViewingCustomer(null)}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200" onClick={e => e.stopPropagation()}>
+            <div className="bg-crm-primaryLighter border-b border-crm-primary/10 px-6 py-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-crm-primary flex items-center gap-2">
+                <i className="ph-fill ph-user-circle"></i> Customer Details
+              </h3>
+              <button onClick={() => setViewingCustomer(null)} className="text-gray-400 hover:text-gray-600">
+                <i className="ph-bold ph-x text-lg"></i>
+              </button>
+            </div>
+            <div className="p-6 grid grid-cols-2 gap-4 h-[60vh] overflow-y-auto custom-scrollbar">
+              <div><p className="text-xs text-gray-500 uppercase font-semibold">Visit Date</p><p className="font-medium text-gray-800">{viewingCustomer.visit_date || '-'}</p></div>
+              <div><p className="text-xs text-gray-500 uppercase font-semibold">Expo</p><p className="font-medium text-gray-800">{viewingCustomer.linked_expo || viewingCustomer.manual_expo_name || '-'}</p></div>
+              <div className="col-span-2"><p className="text-xs text-gray-500 uppercase font-semibold">Company Name</p><p className="font-medium text-gray-800">{viewingCustomer.company_name}</p></div>
+              <div className="col-span-2"><p className="text-xs text-gray-500 uppercase font-semibold">Customer Name</p><p className="font-medium text-gray-800">{viewingCustomer.customer_name}</p></div>
+              <div><p className="text-xs text-gray-500 uppercase font-semibold">Designation</p><p className="font-medium text-gray-800">{viewingCustomer.designation || '-'}</p></div>
+              <div><p className="text-xs text-gray-500 uppercase font-semibold">Phone 1</p><p className="font-medium text-gray-800">{viewingCustomer.phone_1 || '-'}</p></div>
+              <div><p className="text-xs text-gray-500 uppercase font-semibold">Phone 2</p><p className="font-medium text-gray-800">{viewingCustomer.phone_2 || '-'}</p></div>
+              <div><p className="text-xs text-gray-500 uppercase font-semibold">Email</p><p className="font-medium text-gray-800">{viewingCustomer.email || '-'}</p></div>
+              <div><p className="text-xs text-gray-500 uppercase font-semibold">Website</p><p className="font-medium text-gray-800">{viewingCustomer.website || '-'}</p></div>
+              <div><p className="text-xs text-gray-500 uppercase font-semibold">City</p><p className="font-medium text-gray-800">{viewingCustomer.city || '-'}</p></div>
+              <div className="col-span-2"><p className="text-xs text-gray-500 uppercase font-semibold">Location / Address</p><p className="font-medium text-gray-800">{viewingCustomer.location || '-'}</p></div>
+              <div><p className="text-xs text-gray-500 uppercase font-semibold">Priority</p><p className="font-medium text-gray-800">{viewingCustomer.priority ? viewingCustomer.priority.toUpperCase() : 'MEDIUM'}</p></div>
+              <div><p className="text-xs text-gray-500 uppercase font-semibold">Enquiry Type</p><p className="font-medium text-gray-800">{viewingCustomer.enquiry_type || 'Unknown'}</p></div>
+              <div><p className="text-xs text-gray-500 uppercase font-semibold">Reference Source</p><p className="font-medium text-gray-800">{viewingCustomer.reference_source || '-'}</p></div>
+              <div><p className="text-xs text-gray-500 uppercase font-semibold">Status</p><p className="font-medium text-gray-800">{viewingCustomer.status === 'completed' ? 'Completed' : 'Pending'}</p></div>
+              <div className="col-span-2"><p className="text-xs text-gray-500 uppercase font-semibold">Remarks</p><p className="font-medium text-gray-800">{viewingCustomer.remarks || '-'}</p></div>
+            </div>
+            <div className="px-6 py-4 bg-gray-50 flex justify-end">
+              <button onClick={() => setViewingCustomer(null)} className="px-4 py-2 border rounded-lg hover:bg-gray-100">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {editingCustomer && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setEditingCustomer(null)}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200" onClick={e => e.stopPropagation()}>
+            <div className="bg-crm-primaryLighter border-b border-crm-primary/10 px-6 py-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-crm-primary flex items-center gap-2">
+                <i className="ph-fill ph-pencil-simple"></i> Edit Customer Details
+              </h3>
+              <button onClick={() => setEditingCustomer(null)} className="text-gray-400 hover:text-gray-600">
+                <i className="ph-bold ph-x text-lg"></i>
+              </button>
+            </div>
+            <form onSubmit={handleEditSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <label className="block text-sm font-semibold mb-1">Company Name</label>
+                  <input type="text" required value={editingCustomer.company_name || ''} onChange={e => setEditingCustomer({...editingCustomer, company_name: e.target.value})} className="w-full px-3 py-2 rounded-lg border outline-none focus:border-crm-primary" />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm font-semibold mb-1">Customer Name</label>
+                  <input type="text" required value={editingCustomer.customer_name || ''} onChange={e => setEditingCustomer({...editingCustomer, customer_name: e.target.value})} className="w-full px-3 py-2 rounded-lg border outline-none focus:border-crm-primary" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-1">Phone 1</label>
+                  <input type="text" required value={editingCustomer.phone_1 || ''} onChange={e => setEditingCustomer({...editingCustomer, phone_1: e.target.value})} className="w-full px-3 py-2 rounded-lg border outline-none focus:border-crm-primary" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-1">City</label>
+                  <input type="text" value={editingCustomer.city || ''} onChange={e => setEditingCustomer({...editingCustomer, city: e.target.value})} className="w-full px-3 py-2 rounded-lg border outline-none focus:border-crm-primary" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-1">Priority</label>
+                  <select value={editingCustomer.priority || 'medium'} onChange={e => setEditingCustomer({...editingCustomer, priority: e.target.value})} className="w-full px-3 py-2 rounded-lg border outline-none focus:border-crm-primary">
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-1">Status</label>
+                  <select value={editingCustomer.status || 'pending'} onChange={e => setEditingCustomer({...editingCustomer, status: e.target.value})} className="w-full px-3 py-2 rounded-lg border outline-none focus:border-crm-primary">
+                    <option value="pending">Pending</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <button type="button" onClick={() => setEditingCustomer(null)} className="px-4 py-2 border rounded-lg hover:bg-gray-100">Cancel</button>
+                <button type="submit" className="px-4 py-2 bg-crm-primary text-white rounded-lg hover:bg-crm-primaryDark">Save Changes</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Top Section: Pill Tabs & Premium Interactive Export Menu */}
       <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4 bg-white p-4 rounded-xl border border-gray-200/80 shadow-sm">
         {/* Completed / Pending Tabs with Dynamic Badges */}
@@ -375,7 +506,7 @@ const CustomerReport = () => {
               <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider">Priority</th>
               <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider">Enquiry Type</th>
               <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider">Status</th>
-              <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider">Card</th>
+              <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -415,19 +546,23 @@ const CustomerReport = () => {
                     {cust.status === 'completed' ? 'Completed' : 'Pending'}
                   </span>
                 </td>
-                <td className="px-5 py-3.5 text-sm">
-                  {cust.image_path ? (
-                    <a 
-                      href={`${API_BASE_URL.replace('/api', '')}/${cust.image_path}`} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-xs text-crm-primary hover:text-crm-primaryDark font-semibold border border-crm-primary/20 px-2 py-1 rounded-lg bg-crm-primaryLighter hover:bg-crm-primaryLighter/80 transition-colors"
-                    >
-                      <i className="ph ph-image text-sm"></i> View
-                    </a>
-                  ) : (
-                    <span className="text-gray-400 text-xs font-semibold">-</span>
-                  )}
+                <td className="px-5 py-3.5 text-sm text-right whitespace-nowrap">
+                  <div className="flex justify-end items-center gap-2">
+                    {cust.image_path && (
+                      <a 
+                        href={`${API_BASE_URL.replace('/api', '')}/${cust.image_path}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-gray-500 hover:text-gray-700 p-1"
+                        title="View Card"
+                      >
+                        <i className="ph-bold ph-image text-lg"></i>
+                      </a>
+                    )}
+                    <button onClick={() => setViewingCustomer(cust)} className="text-blue-600 hover:text-blue-800 p-1" title="View"><i className="ph-bold ph-eye text-lg"></i></button>
+                    <button onClick={() => setEditingCustomer(cust)} className="text-crm-primary hover:text-crm-primaryDark p-1" title="Edit"><i className="ph-bold ph-pencil-simple text-lg"></i></button>
+                    <button onClick={() => handleDelete(cust.id)} className="text-red-600 hover:text-red-800 p-1" title="Delete"><i className="ph-bold ph-trash text-lg"></i></button>
+                  </div>
                 </td>
               </tr>
             ))}

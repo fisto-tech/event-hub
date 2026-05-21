@@ -3,8 +3,8 @@ import { fetchApi } from '../utils/api';
 
 // OCR Backend Server URL (runs on port 4000)
 const OCR_SERVER_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? 'http://localhost:4000'
-  : 'https://www.fist-o.com/ocr-server';
+  ? 'https://ocr-event-app.onrender.com'
+  : 'https://ocr-event-app.onrender.com';
 
 const RegistrationForm = () => {
   const [expos, setExpos] = useState([]);
@@ -660,260 +660,185 @@ END:VCARD`;
     URL.revokeObjectURL(url);
   };
 
-  const SectionHeader = ({ title, icon }) => (
-    <div className="bg-crm-primaryLighter border-b border-crm-primary/10 px-6 py-4 flex items-center gap-2">
-      <i className={`ph-fill ${icon} text-crm-primary text-2xl`}></i>
-      <h3 className="text-lg font-semibold text-crm-primary tracking-tight">{title}</h3>
+  const FormField = ({ label, children, isFullWidth }) => (
+    <div className={`flex items-start ${isFullWidth ? 'col-span-1 md:col-span-2' : ''}`}>
+      <label className="w-1/3 text-right pr-4 text-sm text-gray-600 pt-2 font-medium">
+        {label}
+      </label>
+      <div className="w-2/3">
+        {children}
+      </div>
+    </div>
+  );
+
+  const SectionHeader = ({ title }) => (
+    <div className="col-span-1 md:col-span-2 mt-4 mb-2">
+      <h3 className="text-lg font-medium text-gray-800 border-b border-gray-200 pb-2">{title}</h3>
     </div>
   );
 
   return (
-    <div className="space-y-6 pb-20 relative">
+    <div className="space-y-6 pb-20 relative bg-white min-h-screen p-6">
       
-      {/* Dynamic Upper Tool Bar with Scanning CTA */}
-      <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-gray-200/80 shadow-sm flex-wrap gap-4">
+      {/* Top Bar matching Zoho Header style */}
+      <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
         <div>
-          <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Fast Input Assistant</h4>
-          <p className="text-xs text-gray-400 font-medium">Use our intelligent OCR engine to capture cards or type manually below.</p>
+          <h2 className="text-xl font-medium text-gray-800">Create Customer Record</h2>
         </div>
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => { setShowScanModal(true); resetScanModalState(); }}
-            className="flex items-center gap-2 bg-gradient-to-r from-crm-primary to-crm-primaryDark hover:from-crm-primaryDark hover:to-crm-primary text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-md hover:shadow-lg transition-all active:scale-95"
+            className="flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-4 py-1.5 rounded text-sm hover:bg-gray-50 transition-all"
           >
             <i className="ph-bold ph-scan text-lg"></i>
-            Scan Visiting Card
+            Scan Card
           </button>
-          {formData.image && (
-            <button
-              type="button"
-              onClick={resetMainForm}
-              className="flex items-center gap-1.5 border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all"
-            >
-              <i className="ph-bold ph-trash"></i>
-              Reset Form Data
-            </button>
-          )}
+          <button type="button" onClick={resetMainForm} className="px-4 py-1.5 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded text-sm transition-all">Cancel</button>
+          <button type="submit" onClick={handleSubmit} className="px-6 py-1.5 bg-crm-primary text-white rounded font-medium shadow-sm hover:bg-crm-primaryDark transition-all text-sm">
+            Save
+          </button>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        
-        {/* SECTION 1: Company Details */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden animate-in fade-in duration-300">
-          <SectionHeader title="1. Company Details" icon="ph-buildings" />
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="space-y-1">
-              <label className="block text-sm font-normal text-crm-primary">Expo Name</label>
-              <select name="expoId" value={formData.expoId} onChange={handleChange} className="w-full px-4 py-3 rounded-lg outline-none crm-input">
-                <option value="">-- Select Expo --</option>
-                {expos.map(expo => (
-                  <option key={expo.id} value={expo.id}>{expo.expo_name}</option>
-                ))}
-                <option value="other">Other (Manual Entry)</option>
-              </select>
-            </div>
+      <form onSubmit={handleSubmit} className="space-y-0 w-full max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
+          
+          <SectionHeader title="Company Information" />
+          
+          <FormField label="Expo Name">
+            <select name="expoId" value={formData.expoId} onChange={handleChange} className="w-full px-3 py-1.5 crm-input">
+              <option value="">-- None --</option>
+              {expos.map(expo => (
+                <option key={expo.id} value={expo.id}>{expo.expo_name}</option>
+              ))}
+              <option value="other">Other (Manual Entry)</option>
+            </select>
+          </FormField>
 
-            {formData.expoId === 'other' && (
-              <div className="space-y-1">
-                <label className="block text-sm font-normal text-crm-primary">Manual Expo Name</label>
-                <input type="text" name="manualExpoName" value={formData.manualExpoName} onChange={handleChange} className="w-full px-4 py-3 rounded-lg outline-none crm-input" placeholder="Enter Expo Name" />
-              </div>
-            )}
+          <FormField label="Visit Date *">
+            <input type="date" name="visitDate" required value={formData.visitDate} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
+          </FormField>
 
-            <div className="space-y-1">
-              <label className="block text-sm font-normal text-crm-primary">Visit Date *</label>
-              <input type="date" name="visitDate" required value={formData.visitDate} onChange={handleChange} className="w-full px-4 py-3 rounded-lg outline-none crm-input" />
-            </div>
+          {formData.expoId === 'other' && (
+            <FormField label="Manual Expo Name">
+              <input type="text" name="manualExpoName" value={formData.manualExpoName} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
+            </FormField>
+          )}
 
-            <div className="space-y-1">
-              <label className="block text-sm font-normal text-crm-primary">Company Name *</label>
-              <input type="text" name="companyName" required value={formData.companyName} onChange={handleChange} className="w-full px-4 py-3 rounded-lg outline-none crm-input" placeholder="Acme Corp" />
-            </div>
+          <FormField label="Company Name *">
+            <input type="text" name="companyName" required value={formData.companyName} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
+          </FormField>
 
-            <div className="space-y-1">
-              <label className="block text-sm font-normal text-crm-primary">Industry Type</label>
-              <input type="text" name="industryType" value={formData.industryType} onChange={handleChange} className="w-full px-4 py-3 rounded-lg outline-none crm-input" placeholder="E.g. Manufacturing" />
-            </div>
+          <FormField label="Industry Type">
+            <input type="text" name="industryType" value={formData.industryType} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
+          </FormField>
 
-            <div className="space-y-1">
-              <label className="block text-sm font-normal text-crm-primary">Website</label>
-              <input type="text" name="website" value={formData.website} onChange={handleChange} className="w-full px-4 py-3 rounded-lg outline-none crm-input" placeholder="https://example.com" />
-            </div>
+          <FormField label="Website">
+            <input type="text" name="website" value={formData.website} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
+          </FormField>
 
-            <div className="space-y-1">
-              <label className="block text-sm font-normal text-crm-primary">City</label>
-              <input type="text" name="city" value={formData.city} onChange={handleChange} className="w-full px-4 py-3 rounded-lg outline-none crm-input" placeholder="City" />
-            </div>
+          <FormField label="City">
+            <input type="text" name="city" value={formData.city} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
+          </FormField>
 
-            <div className="space-y-1 md:col-span-2 lg:col-span-3">
-              <label className="block text-sm font-normal text-crm-primary">Full Address / Location</label>
-              <input type="text" name="location" value={formData.location} onChange={handleChange} className="w-full px-4 py-3 rounded-lg outline-none crm-input" placeholder="Street address, building, etc." />
-            </div>
-          </div>
-        </div>
+          <FormField label="Address / Location">
+            <input type="text" name="location" value={formData.location} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
+          </FormField>
 
-        {/* SECTION 2: Customer Details */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden animate-in fade-in duration-300">
-          <SectionHeader title="2. Point of Contact Details" icon="ph-user-circle" />
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="space-y-1">
-              <label className="block text-sm font-normal text-crm-primary">Customer Name *</label>
-              <input type="text" name="customerName" required value={formData.customerName} onChange={handleChange} className="w-full px-4 py-3 rounded-lg outline-none crm-input" placeholder="Full Name" />
-            </div>
 
-            <div className="space-y-1">
-              <label className="block text-sm font-normal text-crm-primary">Designation</label>
-              <input type="text" name="designation" value={formData.designation} onChange={handleChange} className="w-full px-4 py-3 rounded-lg outline-none crm-input" placeholder="Director, Manager, etc." />
-            </div>
+          <SectionHeader title="Point of Contact Details" />
+          
+          <FormField label="Customer Name *">
+            <input type="text" name="customerName" required value={formData.customerName} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
+          </FormField>
 
-            <div className="space-y-1">
-              <label className="block text-sm font-normal text-crm-primary">Email Address</label>
-              <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full px-4 py-3 rounded-lg outline-none crm-input" placeholder="email@company.com" />
-            </div>
+          <FormField label="Designation">
+            <input type="text" name="designation" value={formData.designation} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
+          </FormField>
 
-            <div className="space-y-1">
-              <label className="block text-sm font-normal text-crm-primary">Primary Phone / WhatsApp *</label>
-              <div className="flex">
-                <span className="inline-flex items-center px-4 rounded-l-lg border border-r-0 border-gray-300 bg-gray-100 text-gray-600">
-                  <i className="ph-fill ph-whatsapp-logo text-gray-600 text-xl"></i>
-                </span>
-                <input type="tel" name="phone1" required value={formData.phone1} onChange={handleChange} className="flex-1 w-full px-4 py-3 rounded-r-lg outline-none crm-input" placeholder="+1234567890" />
-              </div>
-            </div>
+          <FormField label="Email Address">
+            <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
+          </FormField>
 
-            <div className="space-y-1">
-              <label className="block text-sm font-normal text-crm-primary">Secondary Phone</label>
-              <input type="tel" name="phone2" value={formData.phone2} onChange={handleChange} className="w-full px-4 py-3 rounded-lg outline-none crm-input" placeholder="Alternate Number" />
-            </div>
-          </div>
-        </div>
+          <FormField label="Phone / WhatsApp *">
+            <input type="tel" name="phone1" required value={formData.phone1} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" placeholder="+1234567890" />
+          </FormField>
 
-        {/* SECTION 3: Enquiry Details */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden animate-in fade-in duration-300">
-          <SectionHeader title="3. Enquiry & Follow-up Details" icon="ph-target" />
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-1">
-              <label className="block text-sm font-normal text-crm-primary">Enquiry Type</label>
-              <select name="enquiryType" value={formData.enquiryType} onChange={handleChange} className="w-full px-4 py-3 rounded-lg outline-none font-medium crm-input">
-                <option value="Hot Lead">🔥 Hot Lead (Immediate Need)</option>
-                <option value="Warm Lead">⭐ Warm Lead (Interested)</option>
-                <option value="Cold Lead">Cold Lead (Just Browsing)</option>
-                <option value="Partner">🤝 Partnership/Vendor</option>
-              </select>
-            </div>
+          <FormField label="Secondary Phone">
+            <input type="tel" name="phone2" value={formData.phone2} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
+          </FormField>
 
-            <div className="space-y-1">
-              <label className="block text-sm font-normal text-crm-primary">Priority Level</label>
-              <select name="priority" value={formData.priority} onChange={handleChange} className="w-full px-4 py-3 rounded-lg outline-none font-medium crm-input">
-                <option value="high">🔴 High Priority</option>
-                <option value="medium">🟡 Medium Priority</option>
-                <option value="low">🟢 Low Priority</option>
-              </select>
-            </div>
 
-            <div className="space-y-1">
-              <label className="block text-sm font-normal text-crm-primary">Next Follow-up Date</label>
-              <input type="date" name="nextFollowUpDate" value={formData.nextFollowUpDate} onChange={handleChange} className="w-full px-4 py-3 rounded-lg outline-none crm-input" />
-            </div>
+          <SectionHeader title="Enquiry & Follow-up Details" />
+          
+          <FormField label="Enquiry Type">
+            <select name="enquiryType" value={formData.enquiryType} onChange={handleChange} className="w-full px-3 py-1.5 crm-input">
+              <option value="Hot Lead">Hot Lead</option>
+              <option value="Warm Lead">Warm Lead</option>
+              <option value="Cold Lead">Cold Lead</option>
+              <option value="Partner">Partner</option>
+            </select>
+          </FormField>
 
-            <div className="space-y-1">
-              <label className="block text-sm font-normal text-crm-primary">Reference Source</label>
-              <input type="text" name="referenceSource" value={formData.referenceSource} onChange={handleChange} className="w-full px-4 py-3 rounded-lg outline-none crm-input" placeholder="How did they find us?" />
-            </div>
+          <FormField label="Priority Level">
+            <select name="priority" value={formData.priority} onChange={handleChange} className="w-full px-3 py-1.5 crm-input">
+              <option value="high">High Priority</option>
+              <option value="medium">Medium Priority</option>
+              <option value="low">Low Priority</option>
+            </select>
+          </FormField>
 
-            <div className="space-y-1 md:col-span-2">
-              <label className="block text-sm font-normal text-crm-primary">Remarks / Requirements</label>
-              <textarea name="remarks" value={formData.remarks} onChange={handleChange} rows="3" className="w-full px-4 py-3 rounded-lg outline-none crm-input" placeholder="Enter detailed customer requirements..."></textarea>
-            </div>
+          <FormField label="Next Follow-up">
+            <input type="date" name="nextFollowUpDate" value={formData.nextFollowUpDate} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
+          </FormField>
 
-            {/* WhatsApp Message Box */}
-            <div className="space-y-2 md:col-span-2 bg-gray-50 p-5 rounded-xl border border-gray-200 mt-2">
-              <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <i className="ph-fill ph-whatsapp-logo text-crm-primary text-2xl"></i>
-                  <h4 className="font-semibold text-crm-primary">WhatsApp Instant Message Template</h4>
-                </div>
-                {formData.phone1 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const cleanPhone = formData.phone1.replace(/[^0-9]/g, '');
-                      
-                      // Find selected Expo Name
-                      let selectedExpoName = '';
-                      if (formData.expoId === 'other') {
-                        selectedExpoName = formData.manualExpoName;
-                      } else if (formData.expoId) {
-                        const selectedExpo = expos.find(e => String(e.id) === String(formData.expoId));
-                        if (selectedExpo) {
-                          selectedExpoName = selectedExpo.expo_name;
-                        }
-                      }
+          <FormField label="Reference Source">
+            <input type="text" name="referenceSource" value={formData.referenceSource} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
+          </FormField>
 
-                      const resolvedMsg = formData.whatsappMessage
-                        .replace(/{customer_name}/g, formData.customerName || 'Customer')
-                        .replace(/{company_name}/g, formData.companyName || 'your company')
-                        .replace(/{expo_name}/g, selectedExpoName || 'our expo');
+          <FormField label="Remarks" isFullWidth>
+            <textarea name="remarks" value={formData.remarks} onChange={handleChange} rows="2" className="w-full px-3 py-1.5 crm-input"></textarea>
+          </FormField>
 
-                      window.open(`https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(resolvedMsg)}`, '_blank');
-                    }}
-                    className="flex items-center gap-1.5 px-4 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-semibold shadow-md hover:shadow-lg transition-all"
-                  >
-                    <i className="ph-bold ph-whatsapp-logo text-base"></i>
-                    Send WhatsApp Message
-                  </button>
-                )}
-              </div>
-              <textarea name="whatsappMessage" value={formData.whatsappMessage} onChange={handleChange} rows="3" className="w-full px-4 py-3 rounded-lg outline-none font-medium crm-input"></textarea>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">This message is auto-selected from Master Templates.</p>
-            </div>
-          </div>
-        </div>
-
-        {/* SECTION 4: Upload Image / Visit Card */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden animate-in fade-in duration-300">
-          <SectionHeader title="4. Visit Card / Image Upload" icon="ph-image" />
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+          <FormField label="WhatsApp Template" isFullWidth>
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-crm-primary">Select Photo / Snapped Image</label>
-              <input 
-                type="file" 
-                accept="image/*" 
-                onChange={handleImageChange} 
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 outline-none file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-crm-primaryLighter file:text-crm-primary hover:file:bg-crm-primary/20 transition-all cursor-pointer" 
-              />
-              <p className="text-xs text-gray-500 font-medium">Capture visiting card directly using your device camera or upload an image file.</p>
-            </div>
-
-            <div className="flex justify-center border-2 border-dashed border-gray-200 rounded-xl p-4 h-48 bg-gray-50 relative overflow-hidden">
-              {formData.image ? (
-                <div className="w-full h-full flex flex-col items-center justify-center gap-2 animate-in zoom-in-95 duration-200">
-                  <img src={formData.image} alt="Visiting Card Preview" className="max-h-36 object-contain rounded border border-gray-200" />
-                  <button 
-                    type="button" 
-                    onClick={() => setFormData(prev => ({ ...prev, image: '' }))}
-                    className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-md transition-all text-xs font-semibold px-2 py-1"
-                  >
-                    Remove
-                  </button>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center text-gray-400">
-                  <i className="ph ph-image text-5xl mb-2 text-gray-300"></i>
-                  <span className="text-xs font-semibold uppercase tracking-wider">No Image Selected</span>
-                </div>
+              <textarea name="whatsappMessage" value={formData.whatsappMessage} onChange={handleChange} rows="3" className="w-full px-3 py-1.5 crm-input"></textarea>
+              {formData.phone1 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const cleanPhone = formData.phone1.replace(/[^0-9]/g, '');
+                    let selectedExpoName = formData.expoId === 'other' ? formData.manualExpoName : (expos.find(e => String(e.id) === String(formData.expoId))?.expo_name || '');
+                    const resolvedMsg = formData.whatsappMessage.replace(/{customer_name}/g, formData.customerName || 'Customer').replace(/{company_name}/g, formData.companyName || 'your company').replace(/{expo_name}/g, selectedExpoName || 'our expo');
+                    window.open(`https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(resolvedMsg)}`, '_blank');
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded text-xs transition-all"
+                >
+                  <i className="ph-bold ph-whatsapp-logo text-sm"></i> Send WhatsApp
+                </button>
               )}
             </div>
-          </div>
-        </div>
+          </FormField>
 
-        <div className="flex justify-end gap-4 mt-6">
-          <button type="button" onClick={resetMainForm} className="px-6 py-3 text-crm-primary font-semibold hover:bg-crm-primaryLighter rounded-lg transition-colors uppercase tracking-wider text-sm">Cancel</button>
-          <button type="submit" className="btn-running-border text-white px-8 py-3 rounded-lg font-semibold shadow-md hover:shadow-lg transition-all flex items-center gap-2 uppercase tracking-wider text-sm">
-            <i className="ph-bold ph-floppy-disk text-lg"></i> Save Registration
-          </button>
+          <SectionHeader title="Image Upload" />
+          <FormField label="Visit Card Image" isFullWidth>
+             <div className="flex items-center gap-4">
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleImageChange} 
+                  className="w-full px-3 py-1.5 border border-gray-300 outline-none file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 cursor-pointer text-sm" 
+                />
+                {formData.image && (
+                  <div className="flex-shrink-0 relative">
+                    <img src={formData.image} alt="Preview" className="h-16 rounded border" />
+                    <button type="button" onClick={() => setFormData(prev => ({ ...prev, image: '' }))} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 text-[10px]">✕</button>
+                  </div>
+                )}
+             </div>
+          </FormField>
+          
         </div>
       </form>
 

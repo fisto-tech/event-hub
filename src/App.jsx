@@ -45,7 +45,6 @@ const App = () => {
       case 'master-data':
         return [
           { id: 'expo-details', label: 'Expo Details', icon: 'ph-calendar-star' },
-          { id: 'whatsapp-template', label: 'WhatsApp Templates', icon: 'ph-whatsapp-logo' },
           { id: 'employee-registration', label: 'Add Employee', icon: 'ph-user-plus' },
           { id: 'employee-report', label: 'Employee Management', icon: 'ph-users-three' }
         ];
@@ -121,6 +120,8 @@ const App = () => {
       <Sidebar 
         activeTab={activeTab} 
         setActiveTab={handleTabChange} 
+        activeSubTab={activeSubTab}
+        setActiveSubTab={setActiveSubTab}
         onLogout={() => {
           setIsLoggedIn(false);
           sessionStorage.removeItem('isLoggedIn');
@@ -142,25 +143,6 @@ const App = () => {
             <h2 className="text-lg md:text-xl font-medium capitalize text-crm-primary">
               {activeTab.replace('-', ' ')}
             </h2>
-            
-            {submenuItems.length > 0 && (
-              <div className="hidden md:flex items-center gap-2 border-l border-gray-200 pl-6">
-                {submenuItems.map(item => (
-                  <button
-                    key={item.id}
-                    onClick={() => setActiveSubTab(item.id)}
-                    className={`px-3 py-1.5 rounded-full text-sm font-semibold transition-all flex items-center gap-1.5 ${
-                      activeSubTab === item.id 
-                        ? 'bg-crm-primary text-white shadow-sm font-semibold' 
-                        : 'text-crm-primary hover:bg-crm-primaryLighter'
-                    }`}
-                  >
-                    <i className={`ph ${item.icon}`}></i>
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
           
           <div className="flex items-center gap-3">
@@ -173,26 +155,6 @@ const App = () => {
             </div>
           </div>
         </header>
-
-        {/* Mobile/Tablet Submenu (Visible when header space is narrow) */}
-        {submenuItems.length > 0 && (
-          <div className="flex md:hidden bg-gray-50 border-b border-gray-200 px-4 py-2 gap-2 overflow-x-auto shrink-0 scrollbar-none">
-            {submenuItems.map(item => (
-              <button
-                key={item.id}
-                onClick={() => setActiveSubTab(item.id)}
-                className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                  activeSubTab === item.id 
-                    ? 'bg-crm-primary text-white shadow-sm' 
-                    : 'text-crm-primary hover:bg-crm-primaryLighter'
-                }`}
-              >
-                <i className={`ph ${item.icon}`}></i>
-                {item.label}
-              </button>
-            ))}
-          </div>
-        )}
         
         <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-gray-50 tab-content">
           {renderContent()}

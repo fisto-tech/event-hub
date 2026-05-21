@@ -16,7 +16,7 @@ const Login = ({ onLogin }) => {
       <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-crm-primary/10">
         <div className="bg-crm-primaryDark p-8 text-center border-b border-crm-primaryDark/30">
           <h1 className="text-3xl font-black text-white tracking-widest flex items-center justify-center gap-2">
-            <i className="ph-fill ph-calendar-star text-white"></i> EventHub
+            <i className="ph-fill ph-calendar-star text-white"></i> Event App
           </h1>
           <p className="text-white/70 font-bold text-xs mt-2 uppercase tracking-widest">Lead Management System</p>
         </div>
