@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
 import logo from "../assets/logo.png"
-const Sidebar = ({ activeTab, setActiveTab, activeSubTab, setActiveSubTab, onLogout, isOpen, setIsOpen }) => {
+
+const Sidebar = ({ activeTab, setActiveTab, activeSubTab, setActiveSubTab, onLogout, isOpen, setIsOpen, userRole }) => {
   const [openAccordion, setOpenAccordion] = useState('master-data');
 
-  const menuItems = [
+  // Full menu definition — filtered by role below
+  const allMenuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: 'ph-squares-four' },
     { 
       id: 'master-data', 
       label: 'Master Data', 
       icon: 'ph-database',
+      adminOnly: true,  // ← only visible to admin
       subItems: [
         { id: 'expo-details', label: 'Expo Details', icon: 'ph-calendar-star' },
         { id: 'employee-registration', label: 'Employee Registration', icon: 'ph-user-plus' },
@@ -39,11 +42,22 @@ const Sidebar = ({ activeTab, setActiveTab, activeSubTab, setActiveSubTab, onLog
       label: 'Date wise analyse', 
       icon: 'ph-calendar-blank'
     },
+    { 
+      id: 'profile', 
+      label: 'Profile', 
+      icon: 'ph-user-circle'
+    },
   ];
+
+  // Role-based filtering: hide adminOnly items from employees
+  const menuItems = allMenuItems.filter(item => {
+    if (item.adminOnly && userRole !== 'admin') return false;
+    return true;
+  });
 
   return (
     <aside className={`fixed md:relative inset-y-0 left-0 w-64 bg-crm-primaryDark text-crm-sidebarText flex flex-col shrink-0 h-full shadow-2xl z-50 transform ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 transition-transform duration-300 ease-in-out`}>
-      <div className="h-16 flex items-center justify-between px-6 bg-crm-primaryDark border-b border-white/10 shrink-0">
+      <div className="h-16 flex  items-center justify-between mx-auto px-6 bg-crm-primaryDark border-b border-white/10 shrink-0">
         <h1 className="text-white font-semibold tracking-wider  ">
           <img src={logo} className="h-10 w-auto" style={{filter : 'brightness(0) invert(1)'}}/> 
         </h1>

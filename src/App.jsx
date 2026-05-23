@@ -9,20 +9,49 @@ import WhatsappTemplates from './components/WhatsappTemplates';
 import FollowupManagement from './components/FollowupManagement';
 import EmployeeRegistration from './components/EmployeeRegistration';
 import EmployeeReport from './components/EmployeeReport';
+import Profile from './components/Profile';
 
 const App = () => {
+  // ── Auth state: restore from sessionStorage ────────────────────────────
   const [isLoggedIn, setIsLoggedIn] = useState(() => !!sessionStorage.getItem('isLoggedIn'));
-  const handleLoginSuccess = () => {
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const stored = sessionStorage.getItem('user');
+      return stored ? JSON.parse(stored) : null;
+    } catch { return null; }
+  });
+
+  const handleLoginSuccess = (user) => {
     setIsLoggedIn(true);
+    setCurrentUser(user);
     sessionStorage.setItem('isLoggedIn', '1');
+    sessionStorage.setItem('user', JSON.stringify(user));
   };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setCurrentUser(null);
+    sessionStorage.removeItem('isLoggedIn');
+    sessionStorage.removeItem('user');
+  };
+
+  const handleProfileUpdate = (updatedUser) => {
+    setCurrentUser(prev => ({ ...prev, ...updatedUser }));
+    sessionStorage.setItem('user', JSON.stringify({ ...currentUser, ...updatedUser }));
+  };
+
   const [activeTab, setActiveTab] = useState('dashboard');
   const [activeSubTab, setActiveSubTab] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  if (!isLoggedIn) {
+  // ── Guard: not logged in → show Login ──────────────────────────────────
+  if (!isLoggedIn || !currentUser) {
     return <Login onLogin={handleLoginSuccess} />;
   }
+
+  const userRole = currentUser.role || 'employee';
+  const userName = currentUser.name || currentUser.username || 'User';
+  const userInitials = userName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
 
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
@@ -39,6 +68,12 @@ const App = () => {
       setActiveSubTab('');
     }
   };
+
+  // ── Block employees from accessing admin-only tabs via URL/state ──────
+  if (activeTab === 'master-data' && userRole !== 'admin') {
+    setActiveTab('dashboard');
+    setActiveSubTab('');
+  }
 
   const getSubmenuItems = () => {
     switch (activeTab) {
@@ -69,6 +104,11 @@ const App = () => {
   };
 
   const renderContent = () => {
+    // Profile page
+    if (activeTab === 'profile') {
+      return <Profile user={currentUser} onProfileUpdate={handleProfileUpdate} />;
+    }
+
     if (activeTab === 'dashboard') {
       return <Dashboard />;
     }
@@ -122,12 +162,10 @@ const App = () => {
         setActiveTab={handleTabChange} 
         activeSubTab={activeSubTab}
         setActiveSubTab={setActiveSubTab}
-        onLogout={() => {
-          setIsLoggedIn(false);
-          sessionStorage.removeItem('isLoggedIn');
-        }} 
+        onLogout={handleLogout} 
         isOpen={isSidebarOpen}
         setIsOpen={setIsSidebarOpen}
+        userRole={userRole}
       />
       
       <div className="flex-1 flex flex-col overflow-hidden bg-white">
@@ -141,18 +179,22 @@ const App = () => {
             </button>
             
             <h2 className="text-lg md:text-xl font-medium capitalize text-crm-primary">
-              {activeTab.replace('-', ' ')}
+              {activeTab.replace(/-/g, ' ')}
             </h2>
           </div>
           
           <div className="flex items-center gap-3">
             <div className="text-right hidden sm:block">
-              <p className="text-sm font-normal text-crm-textDark">Admin User</p>
-              <p className="text-xs text-crm-primary font-normal">Administrator</p>
+              <p className="text-sm font-normal text-crm-textDark">{userName}</p>
+              <p className="text-xs text-crm-primary font-normal capitalize">{userRole}</p>
             </div>
-            <div className="h-10 w-10 rounded-full bg-crm-primaryLighter text-crm-primary flex items-center justify-center font-normal shadow-sm border border-crm-primary/20">
-              A
-            </div>
+            <button
+              onClick={() => handleTabChange('profile')}
+              className="h-10 w-10 rounded-full bg-crm-primaryLighter text-crm-primary flex items-center justify-center font-semibold shadow-sm border border-crm-primary/20 hover:bg-crm-primary hover:text-white transition-all cursor-pointer"
+              title="View Profile"
+            >
+              {userInitials}
+            </button>
           </div>
         </header>
         

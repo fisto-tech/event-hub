@@ -9,6 +9,7 @@ const EmployeeRegistration = () => {
     name: '',
     email: '',
     phone: '',
+    city: '',
     department: '',
     role: 'employee',
     username: '',
@@ -16,19 +17,28 @@ const EmployeeRegistration = () => {
     status: 'active'
   });
   const [isEditing, setIsEditing] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  const [submitError, setSubmitError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     loadEmployees();
   }, []);
 
   const loadEmployees = async () => {
+    setLoadError('');
     try {
       const res = await fetchApi('users.php');
-      if (res.status === 'success') {
+      if (res.status === 'success' && Array.isArray(res.data)) {
         setEmployees(res.data);
+      } else {
+        setEmployees([]);
+        setLoadError(res.message || 'Could not load employees from server.');
       }
     } catch (e) {
       console.error(e);
+      setEmployees([]);
+      setLoadError(e.message || 'Could not connect to the API. Is the PHP backend running?');
     }
   };
 
@@ -39,21 +49,27 @@ const EmployeeRegistration = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitError('');
+    setLoading(true);
     try {
       const method = isEditing ? 'PUT' : 'POST';
       const res = await fetchApi('users.php', {
         method,
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formData),
+        ...(isEditing ? { headers: { 'X-HTTP-Method-Override': 'PUT' } } : {}),
       });
       if (res.status === 'success') {
         alert(`Employee ${isEditing ? 'Updated' : 'Registered'} Successfully!`);
         resetForm();
         loadEmployees();
       } else {
-        alert(res.message);
+        setSubmitError(res.message || 'Registration failed.');
       }
     } catch (e) {
       console.error(e);
+      setSubmitError(e.message || 'Could not reach the server.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -64,6 +80,7 @@ const EmployeeRegistration = () => {
       name: '',
       email: '',
       phone: '',
+      city: '',
       department: '',
       role: 'employee',
       username: '',
@@ -80,6 +97,7 @@ const EmployeeRegistration = () => {
       name: emp.name,
       email: emp.email,
       phone: emp.phone || '',
+      city: emp.city || '',
       department: emp.department || '',
       role: emp.role,
       username: emp.username,
@@ -109,6 +127,18 @@ const EmployeeRegistration = () => {
         <h3 className="text-lg font-semibold text-crm-primary mb-4">
           <i className="ph-fill ph-user-plus text-crm-primary mr-2"></i> {isEditing ? 'Edit Employee Details' : 'Register New Employee'}
         </h3>
+        {loadError && (
+          <div className="mb-4 flex items-center gap-2 bg-amber-50 text-amber-800 px-4 py-3 rounded-lg text-sm border border-amber-200">
+            <i className="ph-fill ph-warning-circle shrink-0"></i>
+            <span>{loadError}</span>
+          </div>
+        )}
+        {submitError && (
+          <div className="mb-4 flex items-center gap-2 bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm border border-red-200">
+            <i className="ph-fill ph-warning-circle shrink-0"></i>
+            <span>{submitError}</span>
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-normal text-crm-primary">Employee ID</label>
@@ -125,6 +155,10 @@ const EmployeeRegistration = () => {
           <div>
             <label className="block text-sm font-normal text-crm-primary">Phone Number</label>
             <input type="tel" name="phone" value={formData.phone} onChange={handleChange} placeholder="+12345678" className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1" />
+          </div>
+          <div>
+            <label className="block text-sm font-normal text-crm-primary">City</label>
+            <input type="text" name="city" value={formData.city} onChange={handleChange} placeholder="e.g. Mumbai, Delhi" className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1" />
           </div>
           <div>
             <label className="block text-sm font-normal text-crm-primary">Department</label>
@@ -157,8 +191,8 @@ const EmployeeRegistration = () => {
 
           <div className="lg:col-span-3 flex justify-end gap-3 mt-2">
             <button type="button" onClick={resetForm} className="px-6 py-2 text-crm-primary font-normal hover:bg-crm-primaryLighter rounded-lg">Cancel</button>
-            <button type="submit" className="btn-running-border text-white px-8 py-2 rounded-lg font-normal shadow-md">
-              {isEditing ? 'Update Employee' : 'Register Employee'}
+            <button type="submit" disabled={loading} className="btn-running-border text-white px-8 py-2 rounded-lg font-normal shadow-md disabled:opacity-60">
+              {loading ? 'Saving...' : (isEditing ? 'Update Employee' : 'Register Employee')}
             </button>
           </div>
         </form>
