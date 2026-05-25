@@ -1,0 +1,94 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap');
+
+html,
+body,
+#root,
+button,
+input,
+select,
+textarea,
+optgroup {
+  font-family: 'Open Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.whatsapp-templates-page,
+.whatsapp-templates-page input,
+.whatsapp-templates-page select,
+.whatsapp-templates-page textarea,
+.whatsapp-templates-page button {
+  font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Branded scrollbars — theme blue (#1558d6) */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f0f5ff;
+  border-radius: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #377dff 0%, #1558d6 100%);
+  border-radius: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #0f44ad;
+}
+.custom-scrollbar::-webkit-scrollbar-corner {
+  background: #1558d6;
+}
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #1558d6 #f0f5ff;
+}
+
+/* Report tables: clean corners, single border */
+.report-table-wrap {
+  border-radius: 0.75rem;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  background: #fff;
+}
+.report-table-wrap .report-table-scroll {
+  overflow-x: auto;
+}
+.report-table-wrap .report-table-scroll::-webkit-scrollbar {
+  height: 10px;
+}
+.report-table-wrap .report-table-scroll::-webkit-scrollbar-track {
+  background: #f0f5ff;
+  border-radius: 0 0 0.75rem 0.75rem;
+}
+.report-table-wrap .report-table-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(90deg, #377dff, #1558d6);
+  border-radius: 6px;
+}
+.report-table-wrap .report-table-scroll::-webkit-scrollbar-thumb:hover {
+  background: #0f44ad;
+}
+.report-table-wrap .report-table-scroll::-webkit-scrollbar-corner {
+  background: #1558d6;
+}
+.report-table-wrap .report-table-scroll {
+  scrollbar-color: #1558d6 #f0f5ff;
+  scrollbar-width: thin;
+}
+.report-table-wrap table {
+  border-collapse: collapse;
+}
+.report-table-wrap thead tr:first-child th:first-child {
+  border-top-left-radius: 0;
+}
+.report-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem 1.5rem;
+}
+@media (max-width: 640px) {
+  .report-modal-grid {
+    grid-template-columns: 1fr;
+  }
+}

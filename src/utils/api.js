@@ -20,9 +20,11 @@ export const fetchApi = async (endpoint, options = {}) => {
     data = text ? JSON.parse(text) : {};
   } catch {
     const preview = text.slice(0, 120).replace(/\s+/g, ' ');
-    throw new Error(
-      `Server returned non-JSON (${response.status}). Check that the PHP API is deployed, not the React app. ${preview}`
-    );
+    const hint =
+      response.status === 404
+        ? ' Endpoint not found — for local dev run "npm run dev:api" in another terminal, or deploy the PHP file to production.'
+        : ' Check that the PHP API is running, not the React app.';
+    throw new Error(`Server returned non-JSON (${response.status}).${hint} ${preview}`);
   }
 
   if (!response.ok && !data.message) {

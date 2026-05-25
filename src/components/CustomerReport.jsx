@@ -2,9 +2,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import { fetchApi, API_BASE_URL } from '../utils/api';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
+import { isPrivilegedRole } from '../utils/roles';
+import LoadingSpinner from './common/LoadingSpinner';
+import { confirmDelete } from '../utils/confirm';
+import { showToast } from '../utils/toast';
+import ReportModalShell, { DetailField, EditField, reportInputClass } from './common/ReportModalShell';
 
-const CustomerReport = () => {
+const ENQUIRY_OPTIONS = ['Hot Lead', 'Warm Lead', 'Cold Lead', 'General Inquiry', 'Unknown'];
+
+const CustomerReport = ({ currentUser }) => {
   const [customers, setCustomers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterExpo, setFilterExpo] = useState('');
   const [expos, setExpos] = useState([]);
@@ -23,8 +31,8 @@ const CustomerReport = () => {
   const dropdownRef = useRef(null);
 
   useEffect(() => {
-    loadData();
-    
+    if (currentUser?.id) loadData();
+
     // Close dropdown on click outside
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -33,33 +41,67 @@ const CustomerReport = () => {
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [currentUser?.id, currentUser?.role]);
+
+  const userRole = currentUser?.role || 'employee';
+  const showAllCustomers = isPrivilegedRole(userRole);
 
   const loadData = async () => {
+    setLoading(true);
     try {
-      const custRes = await fetchApi('customers.php');
-      if (custRes.status === 'success') setCustomers(custRes.data);
-      
-      const expoRes = await fetchApi('expos.php');
-      if (expoRes.status === 'success') setExpos(expoRes.data);
+      const uid = currentUser?.id ? `&user_id=${currentUser.id}` : '';
+      const role = `&role=${encodeURIComponent(userRole)}`;
+      const [custRes, expoRes] = await Promise.all([
+        fetchApi(`customers.php?_${Date.now()}${uid}${role}`),
+        fetchApi('expos.php'),
+      ]);
+      if (custRes.status === 'success') setCustomers(custRes.data || []);
+      if (expoRes.status === 'success') setExpos(expoRes.data || []);
     } catch (e) {
       console.error(e);
+      alert(e.message || 'Failed to load customer report.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (confirm('Are you sure you want to delete this customer?')) {
-      try {
-        const res = await fetchApi(`customers.php?id=${id}`, { method: 'DELETE' });
-        if (res.status === 'success') {
-          alert('Customer deleted');
-          loadData();
-        } else {
-          alert(res.message || 'Failed to delete');
-        }
-      } catch (e) {
-        console.error(e);
+  const registeredByLabel = (cust) =>
+    cust.registered_by_name ||
+    cust.registered_by_username ||
+    (cust.created_by ? `User #${cust.created_by}` : '—');
+
+  const expoLabel = (cust) => cust.linked_expo || cust.manual_expo_name || '—';
+
+  const getExpoSelectValue = (cust) => {
+    if (cust.manual_expo_name) return 'other';
+    return cust.expo_id ? String(cust.expo_id) : '';
+  };
+
+  const patchEditingCustomer = (patch) =>
+    setEditingCustomer((prev) => (prev ? { ...prev, ...patch } : prev));
+
+  const handleExpoChange = (value) => {
+    setEditingCustomer((prev) => {
+      if (!prev) return prev;
+      if (value === 'other') {
+        return { ...prev, expo_id: 'other', manual_expo_name: prev.manual_expo_name || '' };
       }
+      return { ...prev, expo_id: value, manual_expo_name: '' };
+    });
+  };
+
+  const handleDelete = async (id, name) => {
+    if (!confirmDelete(`customer "${name}"`)) return;
+    try {
+      const res = await fetchApi(`customers.php?id=${id}`, { method: 'DELETE' });
+      if (res.status === 'success') {
+        showToast('Customer deleted successfully!');
+        loadData();
+      } else {
+        showToast(res.message || 'Failed to delete', 'error');
+      }
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -71,11 +113,11 @@ const CustomerReport = () => {
         body: JSON.stringify(editingCustomer)
       });
       if (res.status === 'success') {
-        alert('Customer updated successfully');
+        showToast('Customer updated successfully!');
         setEditingCustomer(null);
         loadData();
       } else {
-        alert(res.message || 'Failed to update');
+        showToast(res.message || 'Failed to update', 'error');
       }
     } catch (e) {
       console.error(e);
@@ -202,7 +244,7 @@ const CustomerReport = () => {
       <head><title>Customer Leads Report</title>
       <style>
         table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #ddd; padding: 8px; font-family: Arial, sans-serif; text-align: left; }
+        th, td { border: 1px solid #ddd; padding: 8px; font-family: 'Open Sans', sans-serif; text-align: left; }
         th { background-color: #990033; color: white; }
       </style>
       </head>
@@ -246,95 +288,275 @@ const CustomerReport = () => {
   return (
     <div className="space-y-6 pb-12 font-sans animate-in fade-in duration-300">
       
-      {/* View Modal */}
       {viewingCustomer && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setViewingCustomer(null)}>
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200" onClick={e => e.stopPropagation()}>
-            <div className="bg-crm-primaryLighter border-b border-crm-primary/10 px-6 py-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-crm-primary flex items-center gap-2">
-                <i className="ph-fill ph-user-circle"></i> Customer Details
-              </h3>
-              <button onClick={() => setViewingCustomer(null)} className="text-gray-400 hover:text-gray-600">
-                <i className="ph-bold ph-x text-lg"></i>
+        <ReportModalShell
+          title="Customer Details"
+          icon="ph-user-circle"
+          onClose={() => setViewingCustomer(null)}
+          maxWidth="max-w-3xl"
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={() => setViewingCustomer(null)}
+                className="px-5 py-2.5 border border-gray-200 rounded-lg hover:bg-white text-sm font-medium text-gray-700"
+              >
+                Close
               </button>
-            </div>
-            <div className="p-6 grid grid-cols-2 gap-4 h-[60vh] overflow-y-auto custom-scrollbar">
-              <div><p className="text-xs text-gray-500 uppercase font-semibold">Visit Date</p><p className="font-medium text-gray-800">{viewingCustomer.visit_date || '-'}</p></div>
-              <div><p className="text-xs text-gray-500 uppercase font-semibold">Expo</p><p className="font-medium text-gray-800">{viewingCustomer.linked_expo || viewingCustomer.manual_expo_name || '-'}</p></div>
-              <div className="col-span-2"><p className="text-xs text-gray-500 uppercase font-semibold">Company Name</p><p className="font-medium text-gray-800">{viewingCustomer.company_name}</p></div>
-              <div className="col-span-2"><p className="text-xs text-gray-500 uppercase font-semibold">Customer Name</p><p className="font-medium text-gray-800">{viewingCustomer.customer_name}</p></div>
-              <div><p className="text-xs text-gray-500 uppercase font-semibold">Designation</p><p className="font-medium text-gray-800">{viewingCustomer.designation || '-'}</p></div>
-              <div><p className="text-xs text-gray-500 uppercase font-semibold">Phone 1</p><p className="font-medium text-gray-800">{viewingCustomer.phone_1 || '-'}</p></div>
-              <div><p className="text-xs text-gray-500 uppercase font-semibold">Phone 2</p><p className="font-medium text-gray-800">{viewingCustomer.phone_2 || '-'}</p></div>
-              <div><p className="text-xs text-gray-500 uppercase font-semibold">Email</p><p className="font-medium text-gray-800">{viewingCustomer.email || '-'}</p></div>
-              <div><p className="text-xs text-gray-500 uppercase font-semibold">Website</p><p className="font-medium text-gray-800">{viewingCustomer.website || '-'}</p></div>
-              <div><p className="text-xs text-gray-500 uppercase font-semibold">City</p><p className="font-medium text-gray-800">{viewingCustomer.city || '-'}</p></div>
-              <div className="col-span-2"><p className="text-xs text-gray-500 uppercase font-semibold">Location / Address</p><p className="font-medium text-gray-800">{viewingCustomer.location || '-'}</p></div>
-              <div><p className="text-xs text-gray-500 uppercase font-semibold">Priority</p><p className="font-medium text-gray-800">{viewingCustomer.priority ? viewingCustomer.priority.toUpperCase() : 'MEDIUM'}</p></div>
-              <div><p className="text-xs text-gray-500 uppercase font-semibold">Enquiry Type</p><p className="font-medium text-gray-800">{viewingCustomer.enquiry_type || 'Unknown'}</p></div>
-              <div><p className="text-xs text-gray-500 uppercase font-semibold">Reference Source</p><p className="font-medium text-gray-800">{viewingCustomer.reference_source || '-'}</p></div>
-              <div><p className="text-xs text-gray-500 uppercase font-semibold">Status</p><p className="font-medium text-gray-800">{viewingCustomer.status === 'completed' ? 'Completed' : 'Pending'}</p></div>
-              <div className="col-span-2"><p className="text-xs text-gray-500 uppercase font-semibold">Remarks</p><p className="font-medium text-gray-800">{viewingCustomer.remarks || '-'}</p></div>
-            </div>
-            <div className="px-6 py-4 bg-gray-50 flex justify-end">
-              <button onClick={() => setViewingCustomer(null)} className="px-4 py-2 border rounded-lg hover:bg-gray-100">Close</button>
-            </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingCustomer({ ...viewingCustomer });
+                  setViewingCustomer(null);
+                }}
+                className="px-5 py-2.5 bg-crm-primary text-white rounded-lg hover:bg-crm-primaryDark text-sm font-medium"
+              >
+                Edit
+              </button>
+            </>
+          }
+        >
+          <div className="report-modal-grid">
+            <DetailField label="Visit Date" value={viewingCustomer.visit_date || '-'} />
+            <DetailField label="Expo" value={expoLabel(viewingCustomer)} />
+            <DetailField label="Company Name" value={viewingCustomer.company_name} colSpan={2} />
+            <DetailField label="Industry Type" value={viewingCustomer.industry_type || '-'} />
+            <DetailField label="Website" value={viewingCustomer.website || '-'} />
+            <DetailField label="Customer Name" value={viewingCustomer.customer_name} colSpan={2} />
+            <DetailField label="Designation" value={viewingCustomer.designation || '-'} />
+            <DetailField label="Phone 1" value={viewingCustomer.phone_1 || '-'} />
+            <DetailField label="Phone 2" value={viewingCustomer.phone_2 || '-'} />
+            <DetailField label="Email" value={viewingCustomer.email || '-'} />
+            <DetailField label="City" value={viewingCustomer.city || '-'} />
+            <DetailField label="Location / Address" value={viewingCustomer.location || '-'} colSpan={2} />
+            <DetailField label="Priority" value={viewingCustomer.priority ? viewingCustomer.priority.toUpperCase() : 'MEDIUM'} />
+            <DetailField label="Enquiry Type" value={viewingCustomer.enquiry_type || 'Unknown'} />
+            <DetailField label="Reference Source" value={viewingCustomer.reference_source || '-'} />
+            <DetailField label="Status" value={viewingCustomer.status === 'completed' ? 'Completed' : 'Pending'} />
+            <DetailField label="Registered By" value={registeredByLabel(viewingCustomer)} colSpan={2} />
+            <DetailField label="Remarks" value={viewingCustomer.remarks || '-'} colSpan={2} />
+            {viewingCustomer.image_path && (
+              <DetailField label="Business Card" colSpan={2}>
+                <a
+                  href={`${API_BASE_URL.replace('/api', '')}/${viewingCustomer.image_path}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-crm-primary hover:underline inline-flex items-center gap-1"
+                >
+                  <i className="ph-bold ph-image" /> View image
+                </a>
+              </DetailField>
+            )}
           </div>
-        </div>
+        </ReportModalShell>
       )}
 
-      {/* Edit Modal */}
       {editingCustomer && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setEditingCustomer(null)}>
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200" onClick={e => e.stopPropagation()}>
-            <div className="bg-crm-primaryLighter border-b border-crm-primary/10 px-6 py-4 flex items-center justify-between">
+          <form
+            onSubmit={handleEditSubmit}
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="shrink-0 px-6 py-4 flex items-center justify-between border-b bg-crm-primary/5 border-crm-primary/15">
               <h3 className="text-lg font-semibold text-crm-primary flex items-center gap-2">
-                <i className="ph-fill ph-pencil-simple"></i> Edit Customer Details
+                <i className="ph-fill ph-pencil-simple" /> Edit Customer Details
               </h3>
-              <button onClick={() => setEditingCustomer(null)} className="text-gray-400 hover:text-gray-600">
-                <i className="ph-bold ph-x text-lg"></i>
+              <button type="button" onClick={() => setEditingCustomer(null)} className="h-9 w-9 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100">
+                <i className="ph-bold ph-x text-lg" />
               </button>
             </div>
-            <form onSubmit={handleEditSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
-                  <label className="block text-sm font-semibold mb-1">Company Name</label>
-                  <input type="text" required value={editingCustomer.company_name || ''} onChange={e => setEditingCustomer({...editingCustomer, company_name: e.target.value})} className="w-full px-3 py-2 rounded-lg border outline-none focus:border-crm-primary" />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-sm font-semibold mb-1">Customer Name</label>
-                  <input type="text" required value={editingCustomer.customer_name || ''} onChange={e => setEditingCustomer({...editingCustomer, customer_name: e.target.value})} className="w-full px-3 py-2 rounded-lg border outline-none focus:border-crm-primary" />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-1">Phone 1</label>
-                  <input type="text" required value={editingCustomer.phone_1 || ''} onChange={e => setEditingCustomer({...editingCustomer, phone_1: e.target.value})} className="w-full px-3 py-2 rounded-lg border outline-none focus:border-crm-primary" />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-1">City</label>
-                  <input type="text" value={editingCustomer.city || ''} onChange={e => setEditingCustomer({...editingCustomer, city: e.target.value})} className="w-full px-3 py-2 rounded-lg border outline-none focus:border-crm-primary" />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-1">Priority</label>
-                  <select value={editingCustomer.priority || 'medium'} onChange={e => setEditingCustomer({...editingCustomer, priority: e.target.value})} className="w-full px-3 py-2 rounded-lg border outline-none focus:border-crm-primary">
+            <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-5">
+              <div className="report-modal-grid">
+                <EditField label="Visit Date">
+                  <input
+                    type="date"
+                    value={editingCustomer.visit_date || ''}
+                    onChange={(e) => patchEditingCustomer({ visit_date: e.target.value })}
+                    className={reportInputClass}
+                  />
+                </EditField>
+                <EditField label="Expo">
+                  <select
+                    value={getExpoSelectValue(editingCustomer)}
+                    onChange={(e) => handleExpoChange(e.target.value)}
+                    className={reportInputClass}
+                  >
+                    <option value="">— None —</option>
+                    {expos.map((expo) => (
+                      <option key={expo.id} value={String(expo.id)}>
+                        {expo.expo_name}
+                      </option>
+                    ))}
+                    <option value="other">Other (manual name)</option>
+                  </select>
+                </EditField>
+                {getExpoSelectValue(editingCustomer) === 'other' && (
+                  <EditField label="Manual Expo Name" colSpan={2}>
+                    <input
+                      type="text"
+                      value={editingCustomer.manual_expo_name || ''}
+                      onChange={(e) => patchEditingCustomer({ manual_expo_name: e.target.value })}
+                      className={reportInputClass}
+                    />
+                  </EditField>
+                )}
+                <EditField label="Company Name" required colSpan={2}>
+                  <input
+                    type="text"
+                    required
+                    value={editingCustomer.company_name || ''}
+                    onChange={(e) => patchEditingCustomer({ company_name: e.target.value })}
+                    className={reportInputClass}
+                  />
+                </EditField>
+                <EditField label="Industry Type">
+                  <input
+                    type="text"
+                    value={editingCustomer.industry_type || ''}
+                    onChange={(e) => patchEditingCustomer({ industry_type: e.target.value })}
+                    className={reportInputClass}
+                  />
+                </EditField>
+                <EditField label="Website">
+                  <input
+                    type="url"
+                    value={editingCustomer.website || ''}
+                    onChange={(e) => patchEditingCustomer({ website: e.target.value })}
+                    className={reportInputClass}
+                  />
+                </EditField>
+                <EditField label="Customer Name" required colSpan={2}>
+                  <input
+                    type="text"
+                    required
+                    value={editingCustomer.customer_name || ''}
+                    onChange={(e) => patchEditingCustomer({ customer_name: e.target.value })}
+                    className={reportInputClass}
+                  />
+                </EditField>
+                <EditField label="Designation">
+                  <input
+                    type="text"
+                    value={editingCustomer.designation || ''}
+                    onChange={(e) => patchEditingCustomer({ designation: e.target.value })}
+                    className={reportInputClass}
+                  />
+                </EditField>
+                <EditField label="Phone 1" required>
+                  <input
+                    type="tel"
+                    required
+                    value={editingCustomer.phone_1 || ''}
+                    onChange={(e) => patchEditingCustomer({ phone_1: e.target.value })}
+                    className={reportInputClass}
+                  />
+                </EditField>
+                <EditField label="Phone 2">
+                  <input
+                    type="tel"
+                    value={editingCustomer.phone_2 || ''}
+                    onChange={(e) => patchEditingCustomer({ phone_2: e.target.value })}
+                    className={reportInputClass}
+                  />
+                </EditField>
+                <EditField label="Email">
+                  <input
+                    type="email"
+                    value={editingCustomer.email || ''}
+                    onChange={(e) => patchEditingCustomer({ email: e.target.value })}
+                    className={reportInputClass}
+                  />
+                </EditField>
+                <EditField label="City">
+                  <input
+                    type="text"
+                    value={editingCustomer.city || ''}
+                    onChange={(e) => patchEditingCustomer({ city: e.target.value })}
+                    className={reportInputClass}
+                  />
+                </EditField>
+                <EditField label="Location / Address" colSpan={2}>
+                  <input
+                    type="text"
+                    value={editingCustomer.location || ''}
+                    onChange={(e) => patchEditingCustomer({ location: e.target.value })}
+                    className={reportInputClass}
+                  />
+                </EditField>
+                <EditField label="Priority">
+                  <select
+                    value={editingCustomer.priority || 'medium'}
+                    onChange={(e) => patchEditingCustomer({ priority: e.target.value })}
+                    className={reportInputClass}
+                  >
                     <option value="high">High</option>
                     <option value="medium">Medium</option>
                     <option value="low">Low</option>
                   </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold mb-1">Status</label>
-                  <select value={editingCustomer.status || 'pending'} onChange={e => setEditingCustomer({...editingCustomer, status: e.target.value})} className="w-full px-3 py-2 rounded-lg border outline-none focus:border-crm-primary">
+                </EditField>
+                <EditField label="Enquiry Type">
+                  <select
+                    value={editingCustomer.enquiry_type || ''}
+                    onChange={(e) => patchEditingCustomer({ enquiry_type: e.target.value })}
+                    className={reportInputClass}
+                  >
+                    <option value="">Select</option>
+                    {ENQUIRY_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                    {editingCustomer.enquiry_type &&
+                      !ENQUIRY_OPTIONS.includes(editingCustomer.enquiry_type) && (
+                        <option value={editingCustomer.enquiry_type}>{editingCustomer.enquiry_type}</option>
+                      )}
+                  </select>
+                </EditField>
+                <EditField label="Reference Source">
+                  <input
+                    type="text"
+                    value={editingCustomer.reference_source || ''}
+                    onChange={(e) => patchEditingCustomer({ reference_source: e.target.value })}
+                    className={reportInputClass}
+                  />
+                </EditField>
+                <EditField label="Status">
+                  <select
+                    value={editingCustomer.status || 'pending'}
+                    onChange={(e) => patchEditingCustomer({ status: e.target.value })}
+                    className={reportInputClass}
+                  >
                     <option value="pending">Pending</option>
                     <option value="completed">Completed</option>
                   </select>
-                </div>
+                </EditField>
+                <EditField label="Remarks" colSpan={2}>
+                  <textarea
+                    rows={3}
+                    value={editingCustomer.remarks || ''}
+                    onChange={(e) => patchEditingCustomer({ remarks: e.target.value })}
+                    className={reportInputClass}
+                  />
+                </EditField>
               </div>
-              <div className="flex justify-end gap-3 pt-4 border-t">
-                <button type="button" onClick={() => setEditingCustomer(null)} className="px-4 py-2 border rounded-lg hover:bg-gray-100">Cancel</button>
-                <button type="submit" className="px-4 py-2 bg-crm-primary text-white rounded-lg hover:bg-crm-primaryDark">Save Changes</button>
-              </div>
-            </form>
-          </div>
+            </div>
+            <div className="shrink-0 px-6 py-4 bg-gray-50/90 border-t border-gray-100 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setEditingCustomer(null)}
+                className="px-5 py-2.5 border border-gray-200 rounded-lg hover:bg-white text-sm font-medium text-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-5 py-2.5 bg-crm-primary text-white rounded-lg hover:bg-crm-primaryDark text-sm font-medium"
+              >
+                Save Changes
+              </button>
+            </div>
+          </form>
         </div>
       )}
 
@@ -492,94 +714,113 @@ const CustomerReport = () => {
         </div>
       </div>
 
-      {/* Main Customers Table */}
-      <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm overflow-hidden overflow-x-auto">
-        <table className="w-full text-left border-collapse whitespace-nowrap text-crm-textDark">
-          <thead>
-            <tr className="bg-gray-50 border-b border-gray-200">
-              <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider">Date</th>
-              <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider">Expo</th>
-              <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider">Company</th>
-              <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider">Contact Person</th>
-              <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider">Phone</th>
-              <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider">City</th>
-              <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider">Priority</th>
-              <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider">Enquiry Type</th>
-              <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider">Status</th>
-              <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredCustomers.map(cust => (
-              <tr key={cust.id} className="border-b border-gray-100 hover:bg-crm-primaryLighter/40 transition-colors duration-150">
-                <td className="px-5 py-3.5 text-sm text-gray-600">{cust.visit_date}</td>
-                <td className="px-5 py-3.5 font-semibold text-crm-primary text-sm">{cust.linked_expo || cust.manual_expo_name || '-'}</td>
-                <td className="px-5 py-3.5 font-semibold text-sm text-gray-900">{cust.company_name}</td>
-                <td className="px-5 py-3.5 text-sm text-gray-700">{cust.customer_name}</td>
-                <td className="px-5 py-3.5 text-sm text-gray-600 font-mono">{cust.phone_1}</td>
-                <td className="px-5 py-3.5 text-sm text-gray-600">{cust.city || '-'}</td>
-                <td className="px-5 py-3.5 text-sm">
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${
-                    cust.priority === 'high' ? 'bg-red-50 text-red-700 border-red-200' :
-                    cust.priority === 'low' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                    'bg-amber-50 text-amber-700 border-amber-200'
-                  }`}>
-                    {cust.priority ? cust.priority.toUpperCase() : 'MEDIUM'}
-                  </span>
-                </td>
-                <td className="px-5 py-3.5 text-sm">
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${
-                    cust.enquiry_type === 'Hot Lead' ? 'bg-red-50 text-red-700 border-red-200/50' :
-                    cust.enquiry_type === 'Warm Lead' ? 'bg-amber-50 text-amber-700 border-amber-200/50' :
-                    'bg-slate-50 text-slate-700 border-slate-200/50'
-                  }`}>
-                    {cust.enquiry_type || 'Unknown'}
-                  </span>
-                </td>
-                <td className="px-5 py-3.5 text-sm">
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${
-                    cust.status === 'completed' 
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200/50' 
-                      : 'bg-amber-50 text-amber-700 border-amber-200/50'
-                  }`}>
-                    <i className={`ph-bold ${cust.status === 'completed' ? 'ph-check-circle' : 'ph-clock'} mr-1 text-xs`}></i>
-                    {cust.status === 'completed' ? 'Completed' : 'Pending'}
-                  </span>
-                </td>
-                <td className="px-5 py-3.5 text-sm text-right whitespace-nowrap">
-                  <div className="flex justify-end items-center gap-2">
-                    {cust.image_path && (
-                      <a 
-                        href={`${API_BASE_URL.replace('/api', '')}/${cust.image_path}`} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-gray-500 hover:text-gray-700 p-1"
-                        title="View Card"
-                      >
-                        <i className="ph-bold ph-image text-lg"></i>
-                      </a>
-                    )}
-                    <button onClick={() => setViewingCustomer(cust)} className="text-blue-600 hover:text-blue-800 p-1" title="View"><i className="ph-bold ph-eye text-lg"></i></button>
-                    <button onClick={() => setEditingCustomer(cust)} className="text-crm-primary hover:text-crm-primaryDark p-1" title="Edit"><i className="ph-bold ph-pencil-simple text-lg"></i></button>
-                    <button onClick={() => handleDelete(cust.id)} className="text-red-600 hover:text-red-800 p-1" title="Delete"><i className="ph-bold ph-trash text-lg"></i></button>
-                  </div>
-                </td>
+      {!showAllCustomers && (
+        <p className="text-sm text-crm-primary bg-crm-primaryLighter/60 border border-crm-primary/15 rounded-lg px-4 py-2">
+          Showing customers you registered only.
+        </p>
+      )}
+
+      {loading ? (
+        <LoadingSpinner label="Loading customer report..." />
+      ) : (
+      <div className="report-table-wrap">
+        <div className="report-table-scroll">
+          <table className="w-full text-left border-collapse whitespace-nowrap text-crm-textDark min-w-[1000px]">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-200">
+                <th className="px-4 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider border-r border-gray-200 w-14">S.No</th>
+                <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider border-r border-gray-200">Date</th>
+                <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider border-r border-gray-200">Expo</th>
+                <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider border-r border-gray-200">Company</th>
+                <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider border-r border-gray-200">Contact Person</th>
+                <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider border-r border-gray-200">Phone</th>
+                {showAllCustomers && (
+                  <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider border-r border-gray-200">Registered By</th>
+                )}
+                <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider border-r border-gray-200">City</th>
+                <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider border-r border-gray-200">Priority</th>
+                <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider border-r border-gray-200">Enquiry Type</th>
+                <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider border-r border-gray-200">Status</th>
+                <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider text-right">Actions</th>
               </tr>
-            ))}
-            {filteredCustomers.length === 0 && (
-              <tr>
-                <td colSpan="10" className="px-5 py-12 text-center text-gray-400">
-                  <div className="flex flex-col items-center justify-center space-y-2">
-                    <i className="ph-bold ph-tray text-4xl text-gray-300"></i>
-                    <p className="font-semibold text-gray-500">No customers found matching these filters</p>
-                    <p className="text-xs text-gray-400">Try adjusting your search query, status tabs, or date range.</p>
-                  </div>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredCustomers.map((cust, index) => (
+                <tr key={cust.id} className="border-b border-gray-100 hover:bg-crm-primaryLighter/40 transition-colors duration-150">
+                  <td className="px-4 py-3.5 text-sm text-gray-600 border-r border-gray-100 text-center">{index + 1}</td>
+                  <td className="px-5 py-3.5 text-sm text-gray-600 border-r border-gray-100">{cust.visit_date}</td>
+                  <td className="px-5 py-3.5 font-semibold text-crm-primary text-sm border-r border-gray-100">{expoLabel(cust)}</td>
+                  <td className="px-5 py-3.5 font-semibold text-sm text-gray-900 border-r border-gray-100">{cust.company_name}</td>
+                  <td className="px-5 py-3.5 text-sm text-gray-700 border-r border-gray-100">{cust.customer_name}</td>
+                  <td className="px-5 py-3.5 text-sm text-gray-600 font-mono border-r border-gray-100">{cust.phone_1}</td>
+                  {showAllCustomers && (
+                    <td className="px-5 py-3.5 text-sm text-gray-700 border-r border-gray-100">{registeredByLabel(cust)}</td>
+                  )}
+                  <td className="px-5 py-3.5 text-sm text-gray-600 border-r border-gray-100">{cust.city || '-'}</td>
+                  <td className="px-5 py-3.5 text-sm border-r border-gray-100">
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${
+                      cust.priority === 'high' ? 'bg-red-50 text-red-700 border-red-200' :
+                      cust.priority === 'low' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                      'bg-amber-50 text-amber-700 border-amber-200'
+                    }`}>
+                      {cust.priority ? cust.priority.toUpperCase() : 'MEDIUM'}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3.5 text-sm border-r border-gray-100">
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${
+                      cust.enquiry_type === 'Hot Lead' ? 'bg-red-50 text-red-700 border-red-200/50' :
+                      cust.enquiry_type === 'Warm Lead' ? 'bg-amber-50 text-amber-700 border-amber-200/50' :
+                      'bg-slate-50 text-slate-700 border-slate-200/50'
+                    }`}>
+                      {cust.enquiry_type || 'Unknown'}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3.5 text-sm border-r border-gray-100">
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${
+                      cust.status === 'completed'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200/50'
+                        : 'bg-amber-50 text-amber-700 border-amber-200/50'
+                    }`}>
+                      <i className={`ph-bold ${cust.status === 'completed' ? 'ph-check-circle' : 'ph-clock'} mr-1 text-xs`}></i>
+                      {cust.status === 'completed' ? 'Completed' : 'Pending'}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3.5 text-sm text-right whitespace-nowrap">
+                    <div className="flex justify-end items-center gap-1">
+                      {cust.image_path && (
+                        <a
+                          href={`${API_BASE_URL.replace('/api', '')}/${cust.image_path}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-gray-500 hover:text-gray-700 p-1.5 rounded-lg hover:bg-gray-100"
+                          title="View Card"
+                        >
+                          <i className="ph-bold ph-image text-lg"></i>
+                        </a>
+                      )}
+                      <button onClick={() => setViewingCustomer(cust)} className="text-blue-600 hover:text-blue-800 p-1.5 rounded-lg hover:bg-blue-50" title="View"><i className="ph-bold ph-eye text-lg"></i></button>
+                      <button onClick={() => setEditingCustomer({ ...cust })} className="text-crm-primary hover:text-crm-primaryDark p-1.5 rounded-lg hover:bg-crm-primaryLighter" title="Edit"><i className="ph-bold ph-pencil-simple text-lg"></i></button>
+                      <button onClick={() => handleDelete(cust.id, cust.company_name)} className="text-red-600 hover:text-red-800 p-1.5 rounded-lg hover:bg-red-50" title="Delete"><i className="ph-bold ph-trash text-lg"></i></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filteredCustomers.length === 0 && (
+                <tr>
+                  <td colSpan={showAllCustomers ? 12 : 11} className="px-5 py-12 text-center text-gray-400">
+                    <div className="flex flex-col items-center justify-center space-y-2">
+                      <i className="ph-bold ph-tray text-4xl text-gray-300"></i>
+                      <p className="font-semibold text-gray-500">No customers found matching these filters</p>
+                      <p className="text-xs text-gray-400">Try adjusting your search query, status tabs, or date range.</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
+      )}
     </div>
   );
 };

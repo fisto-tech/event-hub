@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:api": "php -S 127.0.0.1:8080 -t ../backend/api",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"

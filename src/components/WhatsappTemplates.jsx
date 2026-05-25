@@ -1,51 +1,81 @@
 import React, { useState, useEffect } from 'react';
 import { fetchApi } from '../utils/api';
+import { showToast } from '../utils/toast';
+import { confirmDelete } from '../utils/confirm';
+import LoadingSpinner from './common/LoadingSpinner';
 
-const WhatsappTemplates = () => {
+const WhatsappTemplates = ({ embedded = false }) => {
   const [templates, setTemplates] = useState([]);
   const [expos, setExpos] = useState([]);
-  const [formData, setFormData] = useState({ id: '', expoName: '', industryType: '', templateTitle: '', messageContent: '' });
+  const [lookups, setLookups] = useState({ enquiry_type: [] });
+  const [loading, setLoading] = useState(true);
+  const [formData, setFormData] = useState({
+    id: '',
+    expoName: '',
+    enquiryType: '',
+    templateTitle: '',
+    messageContent: '',
+  });
   const [isEditing, setIsEditing] = useState(false);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [tempRes, expoRes, lookupRes] = await Promise.all([
+        fetchApi('whatsapp_templates.php'),
+        fetchApi('expos.php'),
+        fetchApi('master_data.php?type=enquiry_type'),
+      ]);
+      if (tempRes.status === 'success') setTemplates(tempRes.data || []);
+      if (expoRes.status === 'success') setExpos(expoRes.data || []);
+      if (lookupRes.status === 'success') {
+        setLookups({ enquiry_type: lookupRes.data || [] });
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     loadData();
   }, []);
 
-  const loadData = async () => {
-    try {
-      const tempRes = await fetchApi('whatsapp_templates.php');
-      if (tempRes.status === 'success') setTemplates(tempRes.data);
-      
-      const expoRes = await fetchApi('expos.php');
-      if (expoRes.status === 'success') setExpos(expoRes.data);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const resetForm = () => {
+    setFormData({
+      id: '',
+      expoName: '',
+      enquiryType: '',
+      templateTitle: '',
+      messageContent: '',
+    });
+    setIsEditing(false);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       const method = isEditing ? 'PUT' : 'POST';
+      const payload = { ...formData, industryType: '' };
       const res = await fetchApi('whatsapp_templates.php', {
         method,
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload),
       });
       if (res.status === 'success') {
-        alert(`Template ${isEditing ? 'Updated' : 'Added'} Successfully!`);
-        setFormData({ id: '', expoName: '', industryType: '', templateTitle: '', messageContent: '' });
-        setIsEditing(false);
+        showToast(`Template ${isEditing ? 'updated' : 'saved'} successfully!`);
+        resetForm();
         loadData();
       } else {
-        alert(res.message);
+        showToast(res.message || 'Save failed', 'error');
       }
-    } catch (e) {
-      console.error(e);
+    } catch {
+      showToast('Save failed.', 'error');
     }
   };
 
@@ -53,107 +83,208 @@ const WhatsappTemplates = () => {
     setFormData({
       id: template.id,
       expoName: template.expo_name || '',
-      industryType: template.industry_type || '',
+      enquiryType: template.enquiry_type || '',
       templateTitle: template.template_title,
-      messageContent: template.message_content
+      messageContent: template.message_content,
     });
     setIsEditing(true);
   };
 
-  const handleDelete = async (id) => {
-    if (confirm('Are you sure you want to delete this template?')) {
-      try {
-        const res = await fetchApi(`whatsapp_templates.php?id=${id}`, { method: 'DELETE' });
-        if (res.status === 'success') {
-          alert('Template Deleted');
-          loadData();
-        }
-      } catch (e) {
-        console.error(e);
+  const handleDelete = async (id, title) => {
+    if (!confirmDelete(`template "${title}"`)) return;
+    try {
+      const res = await fetchApi(`whatsapp_templates.php?id=${id}`, { method: 'DELETE' });
+      if (res.status === 'success') {
+        showToast('Template deleted successfully!');
+        loadData();
+      } else {
+        showToast(res.message || 'Delete failed', 'error');
       }
+    } catch {
+      showToast('Delete failed.', 'error');
     }
   };
 
-  return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-        <h3 className="text-lg font-semibold text-crm-primary mb-4">
-          <i className="ph-fill ph-whatsapp-logo text-crm-primary mr-2"></i> {isEditing ? 'Edit Template' : 'Add New Template'}
-        </h3>
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+  const pageClass = 'whatsapp-templates-page font-[Segoe_UI,Helvetica_Neue,Arial,sans-serif]';
+
+  const formBlock = (
+    <div className="bg-white rounded-xl border border-crm-primary/15 shadow-sm overflow-hidden">
+      <div className="bg-crm-primaryLighter/80 px-5 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-crm-primary/10">
+        <span className="font-semibold text-crm-primary">
+          {isEditing ? 'Edit WhatsApp Template' : 'Add WhatsApp Template'}
+        </span>
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-crm-primary/80">
+          Leave expo blank = general (all expos)
+        </span>
+      </div>
+
+      <form onSubmit={handleSubmit} className="p-5 space-y-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-normal text-crm-primary">Linked Expo</label>
-            <select name="expoName" value={formData.expoName} onChange={handleChange} className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1">
-              <option value="">-- Global Template --</option>
-              {expos.map(expo => (
-                <option key={expo.id} value={expo.expo_name}>{expo.expo_name}</option>
+            <label className="block text-[10px] font-bold uppercase tracking-wide text-gray-500 mb-1.5">
+              Expo (blank = all expos)
+            </label>
+            <select
+              name="expoName"
+              value={formData.expoName}
+              onChange={handleChange}
+              className="w-full px-3 py-2.5 rounded-lg crm-input text-sm"
+            >
+              <option value="">— General (All Expos) —</option>
+              {expos.map((expo) => (
+                <option key={expo.id} value={expo.expo_name}>
+                  {expo.expo_name}
+                </option>
               ))}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-normal text-crm-primary">Industry Type</label>
-            <input type="text" name="industryType" value={formData.industryType} onChange={handleChange} placeholder="e.g., Manufacturing" className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1" />
+            <label className="block text-[10px] font-bold uppercase tracking-wide text-gray-500 mb-1.5">
+              Enquiry type (blank = all)
+            </label>
+            <select
+              name="enquiryType"
+              value={formData.enquiryType}
+              onChange={handleChange}
+              className="w-full px-3 py-2.5 rounded-lg crm-input text-sm"
+            >
+              <option value="">— General (All Enquiry Types) —</option>
+              {lookups.enquiry_type.map((item, i) => (
+                <option key={`e-${i}`} value={item.name}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
           </div>
-          <div>
-            <label className="block text-sm font-normal text-crm-primary">Template Title *</label>
-            <input type="text" name="templateTitle" required value={formData.templateTitle} onChange={handleChange} placeholder="e.g., Welcome Message" className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1" />
-          </div>
-          <div className="lg:col-span-3">
-            <label className="block text-sm font-normal text-crm-primary">Message Content *</label>
-            <p className="text-xs text-gray-500 mb-1">Use {'{customer_name}'}, {'{company_name}'} as placeholders</p>
-            <textarea name="messageContent" required value={formData.messageContent} onChange={handleChange} rows="4" className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1"></textarea>
-          </div>
-          <div className="lg:col-span-3 flex justify-end gap-3 mt-2">
-            {isEditing && (
-              <button 
-                type="button" 
-                onClick={() => {setIsEditing(false); setFormData({ id: '', expoName: '', industryType: '', templateTitle: '', messageContent: '' });}} 
-                className="px-6 py-2 text-crm-primary font-normal hover:bg-crm-primaryLighter rounded-lg"
-              >
-                Cancel
-              </button>
-            )}
-            <button type="submit" className="btn-running-border text-white px-8 py-2 rounded-lg font-normal shadow-md">
-              {isEditing ? 'Update Template' : 'Save Template'}
-            </button>
-          </div>
-        </form>
-      </div>
+        </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-x-auto">
-        <table className="w-full text-left border-collapse text-crm-textDark min-w-[600px]">
-          <thead>
-            <tr className="bg-gray-100 border-b border-gray-200">
-              <th className="px-4 py-3 text-crm-primary font-normal">Title</th>
-              <th className="px-4 py-3 text-crm-primary font-normal">Expo / Industry</th>
-              <th className="px-4 py-3 text-crm-primary font-normal">Preview</th>
-              <th className="px-4 py-3 text-crm-primary font-normal text-right">Actions</th>
+        <div>
+          <label className="block text-[10px] font-bold uppercase tracking-wide text-gray-500 mb-1.5">Title</label>
+          <input
+            type="text"
+            name="templateTitle"
+            required
+            value={formData.templateTitle}
+            onChange={handleChange}
+            placeholder="Enter template title..."
+            className="w-full px-3 py-2.5 rounded-lg crm-input"
+          />
+        </div>
+
+        <div>
+          <label className="block text-[10px] font-bold uppercase tracking-wide text-gray-500 mb-1.5">Content</label>
+          <textarea
+            name="messageContent"
+            required
+            rows={5}
+            value={formData.messageContent}
+            onChange={handleChange}
+            placeholder="Enter WhatsApp message content..."
+            className="w-full px-3 py-2.5 rounded-lg crm-input resize-y leading-relaxed"
+            style={{ fontFamily: 'Segoe UI, Helvetica Neue, Arial, sans-serif' }}
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Use {'{customer_name}'}, {'{company_name}'} as placeholders
+          </p>
+        </div>
+
+        <div className="flex justify-end gap-3 pt-1">
+          {isEditing && (
+            <button type="button" onClick={resetForm} className="px-5 py-2 text-crm-primary hover:bg-crm-primaryLighter rounded-lg">
+              Cancel
+            </button>
+          )}
+          <button type="submit" className="btn-running-border text-white px-8 py-2 rounded-lg font-medium">
+            {isEditing ? 'Update Template' : 'Save Template'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+
+  const listBlock = loading ? (
+    <LoadingSpinner label="Loading templates..." />
+  ) : (
+    <div className="bg-white rounded-xl border border-gray-700 shadow-sm overflow-x-auto">
+      <table className="w-full text-left min-w-[640px] border border-gray-700 border-collapse">
+        <thead>
+          <tr className="bg-gray-50 border-b border-gray-700 text-sm text-crm-primary">
+            <th className="px-4 py-3 font-medium border-r border-gray-700 w-14">S.No</th>
+            <th className="px-4 py-3 font-medium border-r border-gray-700">Title</th>
+            <th className="px-4 py-3 font-medium border-r border-gray-700">Scope</th>
+            <th className="px-4 py-3 font-medium border-r border-gray-700">Preview</th>
+            <th className="px-4 py-3 font-medium text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {templates.map((temp, index) => (
+            <tr key={temp.id} className="border-b border-gray-700 hover:bg-gray-50">
+              <td className="px-4 py-3 text-sm border-r border-gray-700 text-center">{index + 1}</td>
+              <td className="px-4 py-3 font-medium text-crm-textDark border-r border-gray-700">{temp.template_title}</td>
+              <td className="px-4 py-3 text-sm text-gray-600 border-r border-gray-700">
+                <div>{temp.expo_name || 'All Expos'}</div>
+                <div className="text-xs text-gray-400">{temp.enquiry_type || 'All enquiry types'}</div>
+              </td>
+              <td
+                className="px-4 py-3 text-sm text-gray-500 max-w-xs truncate border-r border-gray-700"
+                style={{ fontFamily: 'Segoe UI, Helvetica Neue, Arial, sans-serif' }}
+              >
+                {temp.message_content}
+              </td>
+              <td className="px-4 py-3 text-right">
+                <button type="button" onClick={() => handleEdit(temp)} className="text-crm-primary mr-3" title="Edit">
+                  <i className="ph-bold ph-pencil-simple text-lg" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(temp.id, temp.template_title)}
+                  className="text-red-600"
+                  title="Delete"
+                >
+                  <i className="ph-bold ph-trash text-lg" />
+                </button>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {templates.map(temp => (
-              <tr key={temp.id} className="border-b border-gray-100 hover:bg-crm-primaryLighter transition-colors">
-                <td className="px-4 py-3 font-normal text-crm-primary">{temp.template_title}</td>
-                <td className="px-4 py-3 text-sm">
-                  {temp.expo_name || 'All Expos'}
-                  <br/>
-                  <span className="text-gray-500 text-xs font-normal">{temp.industry_type || 'All Industries'}</span>
-                </td>
-                <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate" title={temp.message_content}>
-                  {temp.message_content}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <button onClick={() => handleEdit(temp)} className="text-crm-primary hover:text-crm-primaryDark mr-3"><i className="ph-bold ph-pencil-simple text-lg"></i></button>
-                  <button onClick={() => handleDelete(temp.id)} className="text-red-600 hover:text-red-800"><i className="ph-bold ph-trash text-lg"></i></button>
-                </td>
-              </tr>
-            ))}
-            {templates.length === 0 && (
-              <tr><td colSpan="4" className="px-4 py-8 text-center text-gray-400">No templates found.</td></tr>
-            )}
-          </tbody>
-        </table>
+          ))}
+          {templates.length === 0 && (
+            <tr>
+              <td colSpan={5} className="px-4 py-8 text-center text-gray-400 border-t border-gray-700">
+                No templates yet.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  if (embedded) {
+    return (
+      <div className={`space-y-6 ${pageClass}`}>
+        <div className="flex items-start gap-3">
+          <i className="ph-fill ph-whatsapp-logo text-3xl text-crm-primary shrink-0" />
+          <div>
+            <h2 className="text-xl font-bold text-crm-textDark">WhatsApp Templates</h2>
+            <p className="text-sm text-crm-textMuted">WhatsApp message templates</p>
+          </div>
+        </div>
+        {formBlock}
+        {listBlock}
       </div>
+    );
+  }
+
+  return (
+    <div className={`max-w-6xl mx-auto space-y-6 ${pageClass}`}>
+      <div className="flex items-start gap-3">
+        <i className="ph-fill ph-whatsapp-logo text-3xl text-crm-primary" />
+        <div>
+          <h1 className="text-2xl font-bold text-crm-textDark">WhatsApp Templates</h1>
+          <p className="text-sm text-crm-textMuted">WhatsApp message templates</p>
+        </div>
+      </div>
+      {formBlock}
+      {listBlock}
     </div>
   );
 };

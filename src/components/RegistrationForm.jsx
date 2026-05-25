@@ -1,13 +1,85 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { fetchApi } from '../utils/api';
+import {
+  loadRegistrationBootstrap,
+  appendLookupToCache,
+  getCachedRegistrationData,
+} from '../utils/registrationDataCache';
+import { showToast } from '../utils/toast';
+
+const DEFAULT_WHATSAPP_MESSAGE =
+  'Hello {customer_name}, Thank you for visiting us at our stall! We appreciate your interest in our products. Our team will contact you shortly to discuss further.';
+
+const FormField = ({ label, children, isFullWidth, required }) => {
+  const labelText = String(label).replace(/\s*\*+\s*$/, '').trim();
+  return (
+    <div className={`flex items-start ${isFullWidth ? 'col-span-1 md:col-span-2' : ''}`}>
+      <label className="w-1/3 text-right pr-4 text-sm text-gray-600 pt-2 font-medium">
+        {labelText}
+        {required && <span className="text-red-600 ml-0.5" aria-hidden="true">*</span>}
+      </label>
+      <div className="w-2/3">{children}</div>
+    </div>
+  );
+};
+
+const validateRegistration = (payload, { customEnquiry, customIndustry, customSource, showSourceField }) => {
+  const missing = [];
+
+  if (!String(payload.visitDate || '').trim()) missing.push('Visit Date');
+  if (!String(payload.companyName || '').trim()) missing.push('Company Name');
+  if (!String(payload.customerName || '').trim()) missing.push('Customer Name');
+  if (!String(payload.phone1 || '').trim()) missing.push('Phone / WhatsApp');
+
+  if (payload.expoId === 'other' && !String(payload.manualExpoName || '').trim()) {
+    missing.push('Manual Expo Name');
+  }
+
+  const enquiry = payload.enquiryType === OTHER_VALUE
+    ? customEnquiry
+    : payload.enquiryType;
+  if (!String(enquiry || '').trim()) missing.push('Enquiry Type');
+
+  if (payload.industryType === OTHER_VALUE && !String(customIndustry || '').trim()) {
+    missing.push('Industry Type (custom value)');
+  }
+
+  if (showSourceField && payload.referenceSource === OTHER_VALUE && !String(customSource || '').trim()) {
+    missing.push('Reference Source (custom value)');
+  }
+
+  return missing;
+};
+
+const SectionHeader = ({ title }) => (
+  <div className="col-span-1 md:col-span-2 mt-4 mb-2">
+    <h3 className="text-lg font-medium text-gray-800 border-b border-gray-200 pb-2">{title}</h3>
+  </div>
+);
 
 // OCR Backend Server URL (runs on port 4000)
 const OCR_SERVER_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
   ? 'https://ocr-event-app.onrender.com'
   : 'https://ocr-event-app.onrender.com';
 
-const RegistrationForm = () => {
+const OTHER_VALUE = '__other__';
+const DEFAULT_ENQUIRY_TYPES = ['Hot Lead', 'Warm Lead', 'Cold Lead', 'Partner'];
+
+const filterLookupsForExpo = (items, expoId) => {
+  if (!items?.length) return [];
+  const eid = expoId && expoId !== 'other' ? String(expoId) : null;
+  return items.filter((item) => {
+    if (!item.expo_id) return true;
+    return eid && String(item.expo_id) === eid;
+  });
+};
+
+const RegistrationForm = ({ currentUser }) => {
   const [expos, setExpos] = useState([]);
+  const [lookups, setLookups] = useState({ source: [], enquiry_type: [], industry_type: [] });
+  const [customEnquiry, setCustomEnquiry] = useState('');
+  const [customIndustry, setCustomIndustry] = useState('');
+  const [customSource, setCustomSource] = useState('');
   const [formData, setFormData] = useState({
     expoId: '',
     manualExpoName: '',
@@ -28,8 +100,10 @@ const RegistrationForm = () => {
     nextFollowUpDate: '',
     remarks: '',
     image: '',
-    whatsappMessage: 'Hello {customer_name}, Thank you for visiting us at our stall! We appreciate your interest in our products. Our team will contact you shortly to discuss further.'
+    whatsappMessage: DEFAULT_WHATSAPP_MESSAGE,
   });
+
+  const [formReady, setFormReady] = useState(false);
 
   // Modal Scanner States (from raw HTML design context)
   const [showScanModal, setShowScanModal] = useState(false);
@@ -59,74 +133,73 @@ const RegistrationForm = () => {
   }, [cameraActive, modalTab, capturedImage]);
 
   useEffect(() => {
-    const loadExpos = async () => {
-      try {
-        const result = await fetchApi('expos.php');
-        if (result.status === 'success') {
-          setExpos(result.data);
-        }
-      } catch (error) {
-        console.error('Failed to fetch expos', error);
-      }
-    };
+    let cancelled = false;
+    setFormReady(false);
 
-    const loadTemplates = async () => {
-      try {
-        const result = await fetchApi('whatsapp_templates.php');
-        if (result.status === 'success') {
-          setWhatsappTemplates(result.data);
-        }
-      } catch (error) {
-        console.error('Failed to fetch templates', error);
-      }
-    };
+    loadRegistrationBootstrap()
+      .then((data) => {
+        if (cancelled) return;
+        setExpos(data.expos);
+        setWhatsappTemplates(data.whatsappTemplates);
+        setLookups(data.lookups);
+      })
+      .catch((error) => {
+        console.error('Failed to load registration data', error);
+      })
+      .finally(() => {
+        if (!cancelled) setFormReady(true);
+      });
 
-    loadExpos();
-    loadTemplates();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  // Dynamically update template based on chosen Expo
-  useEffect(() => {
-    if (whatsappTemplates.length === 0) return;
+  const resolvedWhatsappMessage = useMemo(() => {
+    if (whatsappTemplates.length === 0) return DEFAULT_WHATSAPP_MESSAGE;
 
     let selectedExpoName = '';
     if (formData.expoId === 'other') {
       selectedExpoName = formData.manualExpoName;
     } else if (formData.expoId) {
-      const selectedExpo = expos.find(e => String(e.id) === String(formData.expoId));
-      if (selectedExpo) {
-        selectedExpoName = selectedExpo.expo_name;
-      }
+      const selectedExpo = expos.find((e) => String(e.id) === String(formData.expoId));
+      if (selectedExpo) selectedExpoName = selectedExpo.expo_name;
     }
 
-    // 1. Search for matching template by expo name
     let matchedTemplate = null;
     if (selectedExpoName) {
-      matchedTemplate = whatsappTemplates.find(t => 
-        t.expo_name && t.expo_name.toLowerCase().trim() === selectedExpoName.toLowerCase().trim()
+      matchedTemplate = whatsappTemplates.find(
+        (t) =>
+          t.expo_name &&
+          t.expo_name.toLowerCase().trim() === selectedExpoName.toLowerCase().trim()
       );
     }
-
-    // 2. If no matched template, find a default/common template (empty or no expo name set)
     if (!matchedTemplate) {
-      matchedTemplate = whatsappTemplates.find(t => !t.expo_name);
+      matchedTemplate = whatsappTemplates.find((t) => !t.expo_name);
     }
 
-    // 3. Set message content
-    if (matchedTemplate) {
-      setFormData(prev => ({ ...prev, whatsappMessage: matchedTemplate.message_content }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        whatsappMessage: 'Hello {customer_name}, Thank you for visiting us at our stall! We appreciate your interest in our products. Our team will contact you shortly to discuss further.'
-      }));
-    }
+    return matchedTemplate?.message_content || DEFAULT_WHATSAPP_MESSAGE;
   }, [formData.expoId, formData.manualExpoName, expos, whatsappTemplates]);
 
-  const handleChange = (e) => {
+  // Sync WhatsApp template when expo changes — skip if user already edited the message
+  const whatsappUserEditedRef = useRef(false);
+
+  useEffect(() => {
+    if (whatsappUserEditedRef.current) return;
+    setFormData((prev) =>
+      prev.whatsappMessage === resolvedWhatsappMessage
+        ? prev
+        : { ...prev, whatsappMessage: resolvedWhatsappMessage }
+    );
+  }, [resolvedWhatsappMessage]);
+
+  const handleChange = useCallback((e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
+    if (name === 'whatsappMessage') {
+      whatsappUserEditedRef.current = true;
+    }
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  }, []);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -139,33 +212,112 @@ const RegistrationForm = () => {
     }
   };
 
+  const resolveFieldValue = (selected, custom, fallback = '') => {
+    if (selected === OTHER_VALUE) return custom.trim() || fallback;
+    return selected || fallback;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const payload = {
+      ...formData,
+      enquiryType: resolveFieldValue(formData.enquiryType, customEnquiry, ''),
+      industryType: resolveFieldValue(formData.industryType, customIndustry),
+      referenceSource: resolveFieldValue(formData.referenceSource, customSource),
+    };
+
+    const missing = validateRegistration(payload, {
+      customEnquiry,
+      customIndustry,
+      customSource,
+      showSourceField,
+    });
+
+    if (missing.length > 0) {
+      showToast(`Missing: ${missing.join(', ')}`, 'error');
+      return;
+    }
+
+    const submitPayload = {
+      ...payload,
+      enquiryType: payload.enquiryType || 'Hot Lead',
+      createdBy: currentUser?.id || null,
+      image: payload.image && payload.image.length > 6_000_000 ? '' : payload.image,
+    };
+
     try {
       const result = await fetchApi('customers.php', {
         method: 'POST',
-        body: JSON.stringify(formData)
+        body: JSON.stringify(submitPayload),
       });
       if (result.status === 'success') {
-        alert('Customer Saved Successfully!');
+        showToast('Customer saved successfully!');
+        const expoIdNum =
+          submitPayload.expoId && submitPayload.expoId !== 'other'
+            ? Number(submitPayload.expoId)
+            : null;
+        if (submitPayload.enquiryType) {
+          appendLookupToCache('enquiry_type', submitPayload.enquiryType, expoIdNum);
+        }
+        if (submitPayload.industryType) {
+          appendLookupToCache('industry_type', submitPayload.industryType, expoIdNum);
+        }
+        if (
+          submitPayload.referenceSource &&
+          (!submitPayload.expoId || submitPayload.expoId === 'other')
+        ) {
+          appendLookupToCache('source', submitPayload.referenceSource, null);
+        }
+        const snap = getCachedRegistrationData();
+        if (snap?.lookups) setLookups(snap.lookups);
         resetMainForm();
       } else {
-        alert(result.message || 'Error saving customer');
+        showToast(result.message || 'Error saving customer', 'error');
       }
     } catch (error) {
       console.error('Error submitting form', error);
-      alert('Failed to connect to the server.');
+      const msg = error?.message || '';
+      showToast(
+        msg.includes('non-JSON') || msg.includes('fetch')
+          ? 'Could not reach the server. Check API is running.'
+          : msg || 'Failed to save customer.',
+        'error'
+      );
     }
   };
 
   const resetMainForm = () => {
+    whatsappUserEditedRef.current = false;
+    setCustomEnquiry('');
+    setCustomIndustry('');
+    setCustomSource('');
     setFormData(prev => ({
       ...prev,
       companyName: '', industryType: '', website: '', location: '', city: '',
       customerName: '', designation: '', phone1: '', phone2: '', email: '',
+      enquiryType: 'Hot Lead',
       referenceSource: '', nextFollowUpDate: '', remarks: '', priority: 'medium', image: ''
     }));
   };
+
+  const enquiryOptions = useMemo(
+    () => filterLookupsForExpo(lookups.enquiry_type, formData.expoId),
+    [lookups.enquiry_type, formData.expoId]
+  );
+  const industryOptions = useMemo(
+    () => filterLookupsForExpo(lookups.industry_type, formData.expoId),
+    [lookups.industry_type, formData.expoId]
+  );
+  const sourceOptions = lookups.source || [];
+  const enquiryList = useMemo(
+    () =>
+      enquiryOptions.length
+        ? enquiryOptions
+        : DEFAULT_ENQUIRY_TYPES.map((name) => ({ name })),
+    [enquiryOptions]
+  );
+  const showSourceField = !formData.expoId || formData.expoId === 'other';
 
   // Heuristic OCR Parser
   const parseCardText = (text) => {
@@ -660,23 +812,6 @@ END:VCARD`;
     URL.revokeObjectURL(url);
   };
 
-  const FormField = ({ label, children, isFullWidth }) => (
-    <div className={`flex items-start ${isFullWidth ? 'col-span-1 md:col-span-2' : ''}`}>
-      <label className="w-1/3 text-right pr-4 text-sm text-gray-600 pt-2 font-medium">
-        {label}
-      </label>
-      <div className="w-2/3">
-        {children}
-      </div>
-    </div>
-  );
-
-  const SectionHeader = ({ title }) => (
-    <div className="col-span-1 md:col-span-2 mt-4 mb-2">
-      <h3 className="text-lg font-medium text-gray-800 border-b border-gray-200 pb-2">{title}</h3>
-    </div>
-  );
-
   return (
     <div className="space-y-6 pb-20 relative bg-white min-h-screen p-6">
       
@@ -685,23 +820,22 @@ END:VCARD`;
         <div>
           <h2 className="text-xl font-medium text-gray-800">Create Customer Record</h2>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => { setShowScanModal(true); resetScanModalState(); }}
-            className="flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-4 py-1.5 rounded text-sm hover:bg-gray-50 transition-all"
-          >
-            <i className="ph-bold ph-scan text-lg"></i>
-            Scan Card
-          </button>
-          <button type="button" onClick={resetMainForm} className="px-4 py-1.5 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded text-sm transition-all">Cancel</button>
-          <button type="submit" onClick={handleSubmit} className="px-6 py-1.5 bg-crm-primary text-white rounded font-medium shadow-sm hover:bg-crm-primaryDark transition-all text-sm">
-            Save
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => { setShowScanModal(true); resetScanModalState(); }}
+          className="flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-4 py-1.5 rounded text-sm hover:bg-gray-50 transition-all"
+        >
+          <i className="ph-bold ph-scan text-lg"></i>
+          Scan Card
+        </button>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-0 w-full max-w-5xl mx-auto">
+        {!formReady && (
+          <p className="text-sm text-gray-500 mb-4 flex items-center gap-2">
+            <i className="ph ph-spinner animate-spin" /> Loading form options…
+          </p>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
           
           <SectionHeader title="Company Information" />
@@ -716,8 +850,8 @@ END:VCARD`;
             </select>
           </FormField>
 
-          <FormField label="Visit Date *">
-            <input type="date" name="visitDate" required value={formData.visitDate} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
+          <FormField label="Visit Date" required>
+            <input type="date" name="visitDate" value={formData.visitDate} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
           </FormField>
 
           {formData.expoId === 'other' && (
@@ -726,12 +860,34 @@ END:VCARD`;
             </FormField>
           )}
 
-          <FormField label="Company Name *">
-            <input type="text" name="companyName" required value={formData.companyName} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
+          <FormField label="Company Name" required>
+            <input type="text" name="companyName" value={formData.companyName} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
           </FormField>
 
           <FormField label="Industry Type">
-            <input type="text" name="industryType" value={formData.industryType} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
+            <select
+              name="industryType"
+              value={formData.industryType}
+              onChange={handleChange}
+              className="w-full px-3 py-1.5 crm-input"
+            >
+              <option value="">— Select —</option>
+              {industryOptions.map((item, i) => (
+                <option key={`ind-${i}-${item.name}`} value={item.name}>
+                  {item.name}
+                </option>
+              ))}
+              <option value={OTHER_VALUE}>Others (custom)</option>
+            </select>
+            {formData.industryType === OTHER_VALUE && (
+              <input
+                type="text"
+                value={customIndustry}
+                onChange={(e) => setCustomIndustry(e.target.value)}
+                placeholder="Enter industry type..."
+                className="w-full px-3 py-1.5 crm-input mt-2"
+              />
+            )}
           </FormField>
 
           <FormField label="Website">
@@ -749,8 +905,8 @@ END:VCARD`;
 
           <SectionHeader title="Point of Contact Details" />
           
-          <FormField label="Customer Name *">
-            <input type="text" name="customerName" required value={formData.customerName} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
+          <FormField label="Customer Name" required>
+            <input type="text" name="customerName" value={formData.customerName} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
           </FormField>
 
           <FormField label="Designation">
@@ -761,8 +917,8 @@ END:VCARD`;
             <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
           </FormField>
 
-          <FormField label="Phone / WhatsApp *">
-            <input type="tel" name="phone1" required value={formData.phone1} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" placeholder="+1234567890" />
+          <FormField label="Phone / WhatsApp" required>
+            <input type="tel" name="phone1" value={formData.phone1} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" placeholder="+1234567890" />
           </FormField>
 
           <FormField label="Secondary Phone">
@@ -772,13 +928,25 @@ END:VCARD`;
 
           <SectionHeader title="Enquiry & Follow-up Details" />
           
-          <FormField label="Enquiry Type">
+          <FormField label="Enquiry Type" required>
             <select name="enquiryType" value={formData.enquiryType} onChange={handleChange} className="w-full px-3 py-1.5 crm-input">
-              <option value="Hot Lead">Hot Lead</option>
-              <option value="Warm Lead">Warm Lead</option>
-              <option value="Cold Lead">Cold Lead</option>
-              <option value="Partner">Partner</option>
+              <option value="">— Select —</option>
+              {enquiryList.map((item, i) => (
+                <option key={`enq-${i}-${item.name}`} value={item.name}>
+                  {item.name}
+                </option>
+              ))}
+              <option value={OTHER_VALUE}>Others (custom)</option>
             </select>
+            {formData.enquiryType === OTHER_VALUE && (
+              <input
+                type="text"
+                value={customEnquiry}
+                onChange={(e) => setCustomEnquiry(e.target.value)}
+                placeholder="Enter enquiry type..."
+                className="w-full px-3 py-1.5 crm-input mt-2"
+              />
+            )}
           </FormField>
 
           <FormField label="Priority Level">
@@ -793,9 +961,33 @@ END:VCARD`;
             <input type="date" name="nextFollowUpDate" value={formData.nextFollowUpDate} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
           </FormField>
 
-          <FormField label="Reference Source">
-            <input type="text" name="referenceSource" value={formData.referenceSource} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
-          </FormField>
+          {showSourceField && (
+            <FormField label="Reference Source">
+              <select
+                name="referenceSource"
+                value={formData.referenceSource}
+                onChange={handleChange}
+                className="w-full px-3 py-1.5 crm-input"
+              >
+                <option value="">— Select —</option>
+                {sourceOptions.map((item, i) => (
+                  <option key={`src-${i}-${item.name}`} value={item.name}>
+                    {item.name}
+                  </option>
+                ))}
+                <option value={OTHER_VALUE}>Others (custom)</option>
+              </select>
+              {formData.referenceSource === OTHER_VALUE && (
+                <input
+                  type="text"
+                  value={customSource}
+                  onChange={(e) => setCustomSource(e.target.value)}
+                  placeholder="How did they find us?"
+                  className="w-full px-3 py-1.5 crm-input mt-2"
+                />
+              )}
+            </FormField>
+          )}
 
           <FormField label="Remarks" isFullWidth>
             <textarea name="remarks" value={formData.remarks} onChange={handleChange} rows="2" className="w-full px-3 py-1.5 crm-input"></textarea>
@@ -839,6 +1031,23 @@ END:VCARD`;
              </div>
           </FormField>
           
+        </div>
+
+        <div className="flex justify-end items-center gap-3 mt-8 pt-6 border-t border-gray-200">
+          <button
+            type="button"
+            onClick={resetMainForm}
+            className="px-5 py-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded text-sm font-medium transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={!formReady}
+            className="px-6 py-2 bg-crm-primary text-white rounded font-medium shadow-sm hover:bg-crm-primaryDark transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Save
+          </button>
         </div>
       </form>
 
