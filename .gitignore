@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Geo API key (use geo_config.example.php as template)
+../backend/api/geo_config.php
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

@@ -105,7 +105,7 @@ const WhatsappTemplates = ({ embedded = false }) => {
     }
   };
 
-  const pageClass = 'whatsapp-templates-page font-[Segoe_UI,Helvetica_Neue,Arial,sans-serif]';
+  const pageClass = 'whatsapp-templates-page';
 
   const formBlock = (
     <div className="bg-white rounded-xl border border-crm-primary/15 shadow-sm overflow-hidden">
@@ -181,7 +181,6 @@ const WhatsappTemplates = ({ embedded = false }) => {
             onChange={handleChange}
             placeholder="Enter WhatsApp message content..."
             className="w-full px-3 py-2.5 rounded-lg crm-input resize-y leading-relaxed"
-            style={{ fontFamily: 'Segoe UI, Helvetica Neue, Arial, sans-serif' }}
           />
           <p className="text-xs text-gray-500 mt-1">
             Use {'{customer_name}'}, {'{company_name}'} as placeholders
@@ -205,34 +204,35 @@ const WhatsappTemplates = ({ embedded = false }) => {
   const listBlock = loading ? (
     <LoadingSpinner label="Loading templates..." />
   ) : (
-    <div className="bg-white rounded-xl border border-gray-700 shadow-sm overflow-x-auto">
-      <table className="w-full text-left min-w-[640px] border border-gray-700 border-collapse">
-        <thead>
-          <tr className="bg-gray-50 border-b border-gray-700 text-sm text-crm-primary">
-            <th className="px-4 py-3 font-medium border-r border-gray-700 w-14">S.No</th>
-            <th className="px-4 py-3 font-medium border-r border-gray-700">Title</th>
-            <th className="px-4 py-3 font-medium border-r border-gray-700">Scope</th>
-            <th className="px-4 py-3 font-medium border-r border-gray-700">Preview</th>
-            <th className="px-4 py-3 font-medium text-right">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {templates.map((temp, index) => (
-            <tr key={temp.id} className="border-b border-gray-700 hover:bg-gray-50">
-              <td className="px-4 py-3 text-sm border-r border-gray-700 text-center">{index + 1}</td>
-              <td className="px-4 py-3 font-medium text-crm-textDark border-r border-gray-700">{temp.template_title}</td>
-              <td className="px-4 py-3 text-sm text-gray-600 border-r border-gray-700">
-                <div>{temp.expo_name || 'All Expos'}</div>
-                <div className="text-xs text-gray-400">{temp.enquiry_type || 'All enquiry types'}</div>
-              </td>
-              <td
-                className="px-4 py-3 text-sm text-gray-500 max-w-xs truncate border-r border-gray-700"
-                style={{ fontFamily: 'Segoe UI, Helvetica Neue, Arial, sans-serif' }}
-              >
-                {temp.message_content}
-              </td>
-              <td className="px-4 py-3 text-right">
-                <button type="button" onClick={() => handleEdit(temp)} className="text-crm-primary mr-3" title="Edit">
+    <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-300">
+      <div className="overflow-x-auto">
+        <table className="w-full text-left min-w-[700px] border-collapse">
+          <thead>
+            <tr className="bg-crm-primary text-sm text-white">
+              <th className="px-4 py-3 font-medium border border-gray-300 w-14">S.No</th>
+              <th className="px-4 py-3 font-medium border border-gray-300">Title</th>
+              <th className="px-4 py-3 font-medium border border-gray-300">Expo Name</th>
+              <th className="px-4 py-3 font-medium border border-gray-300">Enquiry Type</th>
+              <th className="px-4 py-3 font-medium border border-gray-300">Message Preview</th>
+              <th className="px-4 py-3 font-medium border border-gray-300 text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {templates.map((temp, index) => (
+              <tr key={temp.id} className="border-b border-gray-300 hover:bg-gray-50">
+                <td className="px-4 py-3 text-sm border border-gray-300 text-center">{index + 1}</td>
+                <td className="px-4 py-3 font-medium text-crm-textDark border border-gray-300">{temp.template_title}</td>
+                <td className="px-4 py-3 text-sm text-gray-600 border border-gray-300">
+                  {temp.expo_name || 'General (All)'}
+                </td>
+                <td className="px-4 py-3 text-sm text-gray-600 border border-gray-300">
+                  {temp.enquiry_type || 'General (All)'}
+                </td>
+                <td className="px-4 py-3 text-sm text-gray-500 max-w-xs truncate border border-gray-300">
+                  {temp.message_content}
+                </td>
+                <td className="px-4 py-3 text-center border border-gray-300">
+                  <button type="button" onClick={() => handleEdit(temp)} className="text-crm-primary mr-3 hover:opacity-80" title="Edit">
                   <i className="ph-bold ph-pencil-simple text-lg" />
                 </button>
                 <button
@@ -247,14 +247,15 @@ const WhatsappTemplates = ({ embedded = false }) => {
             </tr>
           ))}
           {templates.length === 0 && (
-            <tr>
-              <td colSpan={5} className="px-4 py-8 text-center text-gray-400 border-t border-gray-700">
-                No templates yet.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-gray-400 border border-gray-300">
+                  No templates yet.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 

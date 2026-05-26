@@ -9,6 +9,9 @@ import {
   mergeDepartmentOptions,
 } from '../utils/departments';
 import ReportModalShell, { DetailField, EditField, reportInputClass } from './common/ReportModalShell';
+import CityAutocomplete from './common/CityAutocomplete';
+import PhoneInput from './common/PhoneInput';
+import { validateStoredPhone, normalizePhoneForSubmit } from '../utils/phoneUtils';
 
 const EmployeeRegistration = () => {
   const [employees, setEmployees] = useState([]);
@@ -73,12 +76,21 @@ const EmployeeRegistration = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitError('');
+    if (formData.phone) {
+      const phoneErr = validateStoredPhone(formData.phone, { required: false });
+      if (phoneErr) {
+        setSubmitError(phoneErr);
+        showToast(phoneErr, 'error');
+        return;
+      }
+    }
     setLoading(true);
     try {
       const method = isEditing ? 'PUT' : 'POST';
+      const payload = { ...formData, phone: normalizePhoneForSubmit(formData.phone) };
       const res = await fetchApi('users.php', {
         method,
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
         ...(isEditing ? { headers: { 'X-HTTP-Method-Override': 'PUT' } } : {}),
       });
       if (res.status === 'success') {
@@ -185,11 +197,21 @@ const EmployeeRegistration = () => {
 
   const handleReportEditSubmit = async (e) => {
     e.preventDefault();
+    if (editingEmployee?.phone) {
+      const phoneErr = validateStoredPhone(editingEmployee.phone, { required: false });
+      if (phoneErr) {
+        showToast(phoneErr, 'error');
+        return;
+      }
+    }
     setLoading(true);
     try {
       const res = await fetchApi('users.php', {
         method: 'PUT',
-        body: JSON.stringify(editingEmployee),
+        body: JSON.stringify({
+          ...editingEmployee,
+          phone: normalizePhoneForSubmit(editingEmployee.phone),
+        }),
         headers: { 'X-HTTP-Method-Override': 'PUT' },
       });
       if (res.status === 'success') {
@@ -262,11 +284,28 @@ const EmployeeRegistration = () => {
           </div>
           <div>
             <label className="block text-sm font-normal text-crm-primary">Phone Number</label>
-            <input type="tel" name="phone" value={formData.phone} onChange={handleChange} placeholder="+12345678" className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1" />
+            <div className="mt-1">
+              <PhoneInput
+                name="phone"
+                value={formData.phone}
+                onChange={(phone) => setFormData((prev) => ({ ...prev, phone }))}
+                inputClassName="flex-1 px-4 py-2 rounded-lg outline-none crm-input"
+                selectClassName="w-[7.5rem] shrink-0 px-2 py-2 rounded-lg outline-none crm-input text-sm"
+              />
+            </div>
           </div>
           <div>
             <label className="block text-sm font-normal text-crm-primary">City</label>
-            <input type="text" name="city" value={formData.city} onChange={handleChange} placeholder="e.g. Mumbai" className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1" />
+            <div className="mt-1">
+              <CityAutocomplete
+                name="city"
+                value={formData.city}
+                onChange={(city) => setFormData((prev) => ({ ...prev, city }))}
+                placeholder="Type to search city…"
+                className="w-full"
+                inputClassName="w-full px-4 py-2 rounded-lg outline-none crm-input"
+              />
+            </div>
           </div>
           <div>
             <label className="block text-sm font-normal text-crm-primary">Department</label>
@@ -572,20 +611,20 @@ const EmployeeRegistration = () => {
                 className={reportInputClass}
               />
             </EditField>
-            <EditField label="Phone">
-              <input
-                type="tel"
+            <EditField label="Phone" colSpan={2}>
+              <PhoneInput
                 value={editingEmployee.phone}
-                onChange={(e) => setEditingEmployee({ ...editingEmployee, phone: e.target.value })}
-                className={reportInputClass}
+                onChange={(phone) => setEditingEmployee((prev) => ({ ...prev, phone }))}
+                inputClassName={`flex-1 ${reportInputClass}`}
+                selectClassName={`w-[7.5rem] shrink-0 ${reportInputClass} text-sm`}
               />
             </EditField>
             <EditField label="City">
-              <input
-                type="text"
+              <CityAutocomplete
                 value={editingEmployee.city}
-                onChange={(e) => setEditingEmployee({ ...editingEmployee, city: e.target.value })}
-                className={reportInputClass}
+                onChange={(city) => setEditingEmployee((prev) => ({ ...prev, city }))}
+                placeholder="Type to search city…"
+                inputClassName={reportInputClass}
               />
             </EditField>
             <EditField label="Department">

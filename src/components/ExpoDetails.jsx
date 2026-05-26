@@ -18,6 +18,19 @@ const ExpoDetails = ({ embedded = false }) => {
   });
   const [isEditing, setIsEditing] = useState(false);
   const [viewingExpo, setViewingExpo] = useState(null);
+  const [defaultExpo, setDefaultExpo] = useState(localStorage.getItem('defaultExpo') || '');
+
+  const handleSetDefaultExpo = (expoId) => {
+    if (defaultExpo === String(expoId)) {
+      localStorage.removeItem('defaultExpo');
+      setDefaultExpo('');
+      showToast('Default expo removed.');
+    } else {
+      localStorage.setItem('defaultExpo', String(expoId));
+      setDefaultExpo(String(expoId));
+      showToast('Default expo set successfully!');
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -143,30 +156,49 @@ const ExpoDetails = ({ embedded = false }) => {
                 <i className="ph-bold ph-x text-lg" />
               </button>
             </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <p className="text-xs text-gray-500 uppercase font-semibold">Expo Name</p>
-                <p className="text-gray-800 font-medium">{viewingExpo.expo_name}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 uppercase font-semibold">Status</p>
-                <p className="capitalize mt-1">{viewingExpo.status}</p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 uppercase font-semibold mb-1">Dates</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {viewingExpo.start_date
-                    ? viewingExpo.start_date.split(',').map((d, i) => (
-                        <span key={i} className="bg-gray-100 border border-gray-200 px-2.5 py-1 rounded-md text-sm">
+            <div className="p-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-normal text-crm-primary">
+                    Expo Name
+                  </label>
+                  <input
+                    type="text"
+                    disabled
+                    value={viewingExpo.expo_name || ''}
+                    className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 bg-gray-50 text-gray-600 cursor-not-allowed"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-normal text-crm-primary">Status</label>
+                  <input
+                    type="text"
+                    disabled
+                    value={viewingExpo.status ? viewingExpo.status.charAt(0).toUpperCase() + viewingExpo.status.slice(1) : ''}
+                    className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 bg-gray-50 text-gray-600 cursor-not-allowed"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-normal text-crm-primary mb-2">Dates</label>
+                  <div className="w-full px-4 py-2 rounded-lg outline-none crm-input bg-gray-50 text-gray-600 cursor-not-allowed min-h-[42px] flex flex-wrap gap-1.5 items-center">
+                    {viewingExpo.start_date
+                      ? viewingExpo.start_date.split(',').map((d, i) => (
+                        <span key={i} className="bg-gray-200 border border-gray-300 px-2 py-0.5 rounded text-sm text-gray-700">
                           {d.trim()}
                         </span>
                       ))
-                    : '-'}
+                      : <span className="text-gray-400">No dates selected</span>}
+                  </div>
                 </div>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500 uppercase font-semibold">Remarks</p>
-                <p className="text-gray-800">{viewingExpo.remarks || '-'}</p>
+                <div>
+                  <label className="block text-sm font-normal text-crm-primary">Remarks</label>
+                  <textarea
+                    disabled
+                    value={viewingExpo.remarks || ''}
+                    rows={3}
+                    className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 resize-y bg-gray-50 text-gray-600 cursor-not-allowed"
+                  />
+                </div>
               </div>
             </div>
             <div className="px-6 py-4 bg-gray-50 border-t flex justify-end">
@@ -255,35 +287,47 @@ const ExpoDetails = ({ embedded = false }) => {
       {showSpinner ? (
         <LoadingSpinner label="Loading expos..." />
       ) : (
-        <div className="bg-white rounded-xl border border-gray-700 shadow-sm overflow-x-auto">
-          <table className="w-full text-left border-collapse text-crm-textDark min-w-[600px] border border-gray-700">
+        <div className="bg-white rounded-xl border border-gray-300 shadow-sm overflow-x-auto">
+          <table className="w-full text-left border-collapse text-crm-textDark min-w-[600px] border border-gray-300">
             <thead>
-              <tr className="bg-gray-100 border-b border-gray-700">
-                <th className="px-4 py-3 text-crm-primary font-normal border-r border-gray-700 w-14">S.No</th>
-                <th className="px-4 py-3 text-crm-primary font-normal border-r border-gray-700">Expo Name</th>
-                <th className="px-4 py-3 text-crm-primary font-normal border-r border-gray-700">Dates</th>
-                <th className="px-4 py-3 text-crm-primary font-normal border-r border-gray-700">Status</th>
-                <th className="px-4 py-3 text-crm-primary font-normal text-right">Actions</th>
+              <tr className="bg-crm-primary border-b border-crm-primary text-white">
+                <th className="px-4 py-3 font-normal border-r border-white/20 w-14">S.No</th>
+                <th className="px-4 py-3 font-normal border-r border-white/20">Expo Name</th>
+                <th className="px-4 py-3 font-normal border-r border-white/20">Dates</th>
+                <th className="px-4 py-3 font-normal border-r border-white/20">Status</th>
+                <th className="px-4 py-3 font-normal border-r border-white/20 text-center">Default</th>
+                <th className="px-4 py-3 font-normal text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {expos.map((expo, index) => (
-                <tr key={expo.id} className="border-b border-gray-700 hover:bg-crm-primaryLighter transition-colors">
-                  <td className="px-4 py-3 text-sm border-r border-gray-700 text-center">{index + 1}</td>
-                  <td className="px-4 py-3 font-normal border-r border-gray-700">{expo.expo_name}</td>
-                  <td className="px-4 py-3 text-sm border-r border-gray-700">
+                <tr key={expo.id} className="border-b border-gray-300 hover:bg-crm-primaryLighter transition-colors">
+                  <td className="px-4 py-3 text-sm border-r border-gray-300 text-center">{index + 1}</td>
+                  <td className="px-4 py-3 font-normal border-r border-gray-300">{expo.expo_name}</td>
+                  <td className="px-4 py-3 text-sm border-r border-gray-300">
                     {expo.start_date
                       ? expo.start_date.split(',').map((d, i) => (
-                          <span key={i} className="inline-block bg-white border border-gray-300 px-2 py-0.5 rounded text-xs mr-1 mb-1">
-                            {d.trim()}
-                          </span>
-                        ))
+                        <span key={i} className="inline-block bg-white border border-gray-300 px-2 py-0.5 rounded text-xs mr-1 mb-1">
+                          {d.trim()}
+                        </span>
+                      ))
                       : '-'}
                   </td>
-                  <td className="px-4 py-3 capitalize text-sm border-r border-gray-700">
+                  <td className="px-4 py-3 capitalize text-sm border-r border-gray-300">
                     <span className="px-2.5 py-1 rounded-full text-xs bg-crm-primaryLighter text-crm-primary">
                       {expo.status}
                     </span>
+                  </td>
+                  <td className="px-4 py-3 text-center border-r border-gray-300">
+                    <input
+                      type="radio"
+                      name="defaultExpo"
+                      checked={defaultExpo === String(expo.id)}
+                      onClick={() => handleSetDefaultExpo(expo.id)}
+                      onChange={() => {}}
+                      className="w-4 h-4 text-crm-primary cursor-pointer"
+                      title="Set as Default Expo in Registration Form"
+                    />
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button type="button" onClick={() => setViewingExpo(expo)} className="text-blue-600 hover:text-blue-800 mr-3" title="View">
@@ -305,7 +349,7 @@ const ExpoDetails = ({ embedded = false }) => {
               ))}
               {expos.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-gray-400 border-t border-gray-700">
+                  <td colSpan={6} className="px-4 py-8 text-center text-gray-400 border-t border-gray-300">
                     No expos found.
                   </td>
                 </tr>

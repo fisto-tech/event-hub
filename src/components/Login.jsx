@@ -31,7 +31,8 @@ const Login = ({ onLogin }) => {
         } else {
           localStorage.removeItem('rememberUsername');
         }
-        onLogin(res.user);
+        // Force a page reload to ensure the app mounts with full session context, fixing the blank screen bug
+        window.location.reload();
       } else {
         setError(res.message || 'Login failed. Please try again.');
       }
@@ -53,7 +54,7 @@ const Login = ({ onLogin }) => {
     <div className="min-h-screen min-h-[100dvh] bg-crm-bg flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
         <div className="bg-crm-primary px-8 py-6 text-center">
-          <img src={logo} alt="Event App" className="w-12 h-12 mx-auto mb-3 brightness-0 invert" />
+          <img src={logo} alt="Event App" className="w-auto h-12 mx-auto mb-3 brightness-0 invert" />
           <h1 className="text-xl font-bold text-white">Event App</h1>
           <p className="text-white/70 text-xs mt-1">Lead Management System</p>
         </div>

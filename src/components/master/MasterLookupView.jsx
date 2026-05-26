@@ -12,7 +12,7 @@ const CONFIG = {
     title: 'Enquiry Details',
     subtitle: 'Manage enquiry types used in customer registration',
     icon: 'ph-clipboard-text',
-    placeholder: 'e.g. Hot Lead, Warm Lead',
+    placeholder: 'e.g. IDC, Website',
   },
   industry_type: {
     title: 'Industry Types',
@@ -153,7 +153,7 @@ const MasterLookupView = ({ lookupType }) => {
                 <div className="absolute top-3 right-3 h-9 w-9 rounded-full bg-crm-primaryLighter text-crm-primary flex items-center justify-center font-bold text-sm">
                   {(item.name || '?')[0].toUpperCase()}
                 </div>
-                {item.id && (
+                {item.id && lookupType !== 'source' && (
                   <button
                     type="button"
                     onClick={() => handleDelete(item)}

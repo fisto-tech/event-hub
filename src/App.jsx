@@ -29,10 +29,10 @@ const App = () => {
   };
 
   const handleLogout = () => {
-    setIsLoggedIn(false);
-    setCurrentUser(null);
     sessionStorage.removeItem('isLoggedIn');
     sessionStorage.removeItem('user');
+    // Force a full reload to avoid a blank white flash during React state teardown
+    window.location.reload();
   };
 
   const handleProfileUpdate = (updatedUser) => {
@@ -105,7 +105,7 @@ const App = () => {
         activeSubTab === 'industry-types' ||
         activeSubTab === 'whatsapp-template'
       ) {
-        return <MasterExpoHub activeSubTab={activeSubTab} setActiveSubTab={setActiveSubTab} />;
+        return <MasterExpoHub activeSubTab={activeSubTab} setActiveSubTab={setActiveSubTab} currentUser={currentUser} />;
       }
       switch (activeSubTab) {
         case 'employee-registration':
@@ -119,7 +119,7 @@ const App = () => {
             </MasterPageShell>
           );
         default:
-          return <MasterExpoHub activeSubTab="sources" setActiveSubTab={setActiveSubTab} />;
+          return <MasterExpoHub activeSubTab="sources" setActiveSubTab={setActiveSubTab} currentUser={currentUser} />;
       }
     }
 
@@ -147,7 +147,7 @@ const App = () => {
   };
 
   return (
-    <div className="flex h-screen bg-white font-sans text-crm-textDark overflow-hidden relative">
+    <div className="flex h-screen h-[100dvh] bg-white font-sans text-crm-textDark overflow-hidden relative">
       {/* Overlay — covers mobile + tablet (below lg = 1024px) */}
       {isSidebarOpen && (
         <div
@@ -168,7 +168,7 @@ const App = () => {
       />
 
       <div className="flex-1 flex flex-col overflow-hidden bg-white">
-        <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-4 lg:px-6 shrink-0 shadow-sm z-10">
+        <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-4 lg:px-6 shrink-0 shadow-sm">
           <div className="flex items-center gap-3 lg:gap-6">
             {/* Hamburger — visible on mobile + tablet (below lg) */}
             <button

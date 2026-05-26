@@ -8,24 +8,24 @@ import { confirmDelete } from '../utils/confirm';
 import { showToast } from '../utils/toast';
 import ReportModalShell, { DetailField, EditField, reportInputClass } from './common/ReportModalShell';
 
-const ENQUIRY_OPTIONS = ['Hot Lead', 'Warm Lead', 'Cold Lead', 'General Inquiry', 'Unknown'];
+const ENQUIRY_OPTIONS = ['IDC', 'Website', 'Web page', 'Application', 'General Inquiry', 'Unknown'];
 
-const CustomerReport = ({ currentUser }) => {
+const CustomerReport = ({ currentUser, filterSource }) => {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterExpo, setFilterExpo] = useState('');
   const [expos, setExpos] = useState([]);
-  
+
   // Filter & Sort States
   const [activeTab, setActiveTab] = useState('all'); // 'all', 'completed', 'pending'
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [sortBy, setSortBy] = useState('date-desc'); // 'date-desc', 'date-asc', 'company-asc', 'company-desc'
-  
+
   const [viewingCustomer, setViewingCustomer] = useState(null);
   const [editingCustomer, setEditingCustomer] = useState(null);
-  
+
   // UI Dropdown States
   const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -73,7 +73,6 @@ const CustomerReport = ({ currentUser }) => {
   const expoLabel = (cust) => cust.linked_expo || cust.manual_expo_name || '—';
 
   const getExpoSelectValue = (cust) => {
-    if (cust.manual_expo_name) return 'other';
     return cust.expo_id ? String(cust.expo_id) : '';
   };
 
@@ -81,13 +80,7 @@ const CustomerReport = ({ currentUser }) => {
     setEditingCustomer((prev) => (prev ? { ...prev, ...patch } : prev));
 
   const handleExpoChange = (value) => {
-    setEditingCustomer((prev) => {
-      if (!prev) return prev;
-      if (value === 'other') {
-        return { ...prev, expo_id: 'other', manual_expo_name: prev.manual_expo_name || '' };
-      }
-      return { ...prev, expo_id: value, manual_expo_name: '' };
-    });
+    patchEditingCustomer({ expo_id: value, manual_expo_name: '' });
   };
 
   const handleDelete = async (id, name) => {
@@ -130,15 +123,15 @@ const CustomerReport = ({ currentUser }) => {
       const companyName = c.company_name || '';
       const customerName = c.customer_name || '';
       const phone1 = c.phone_1 || '';
-      
+
       // Search term filter
-      const matchesSearch = companyName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                            customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            phone1.includes(searchTerm);
-      
+      const matchesSearch = companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        phone1.includes(searchTerm);
+
       // Expo filter
       const matchesExpo = filterExpo ? c.expo_id == filterExpo : true;
-      
+
       // Status subtab filter
       const matchesStatus = (() => {
         if (activeTab === 'all') return true;
@@ -146,13 +139,18 @@ const CustomerReport = ({ currentUser }) => {
         return c.status !== 'completed'; // Matches pending/missed/null
       })();
 
+      // Source filter
+      const matchesSource = filterSource
+        ? (c.reference_source || '').trim().toLowerCase() === filterSource.trim().toLowerCase()
+        : true;
+
       // Date Wise Filter (Start Date & End Date)
-      if (!c.visit_date) return matchesSearch && matchesExpo && matchesStatus;
+      if (!c.visit_date) return matchesSearch && matchesExpo && matchesStatus && matchesSource;
       const visitDate = new Date(c.visit_date);
       const matchesStartDate = startDate ? visitDate >= new Date(startDate) : true;
       const matchesEndDate = endDate ? visitDate <= new Date(endDate) : true;
 
-      return matchesSearch && matchesExpo && matchesStatus && matchesStartDate && matchesEndDate;
+      return matchesSearch && matchesExpo && matchesStatus && matchesStartDate && matchesEndDate && matchesSource;
     })
     .sort((a, b) => {
       if (sortBy === 'date-desc') {
@@ -188,10 +186,10 @@ const CustomerReport = ({ currentUser }) => {
     const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    
+
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `customer_report_${new Date().toISOString().slice(0,10)}.csv`);
+    link.setAttribute("download", `customer_report_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -208,7 +206,7 @@ const CustomerReport = ({ currentUser }) => {
     doc.text("Customer Leads Report", 14, 20);
     doc.setFontSize(10);
     doc.text(`Generated on: ${new Date().toLocaleDateString()} | Filter: ${activeTab.toUpperCase()}`, 14, 26);
-    
+
     const headers = ["Date", "Expo", "Company", "Contact Person", "Phone", "City", "Type", "Status"];
     const rows = filteredCustomers.map(c => [
       c.visit_date,
@@ -220,7 +218,7 @@ const CustomerReport = ({ currentUser }) => {
       c.enquiry_type || 'Unknown',
       c.status === 'completed' ? 'Completed' : 'Pending'
     ]);
-    
+
     doc.autoTable({
       startY: 32,
       head: [headers],
@@ -229,8 +227,8 @@ const CustomerReport = ({ currentUser }) => {
       headStyles: { fillColor: [153, 0, 51] }, // CRM primary crimson
       styles: { fontSize: 8, font: 'helvetica' }
     });
-    
-    doc.save(`customer_report_${new Date().toISOString().slice(0,10)}.pdf`);
+
+    doc.save(`customer_report_${new Date().toISOString().slice(0, 10)}.pdf`);
     setIsExportDropdownOpen(false);
   };
 
@@ -276,10 +274,10 @@ const CustomerReport = ({ currentUser }) => {
     const footer = '</table></body></html>';
     const blob = new Blob([header + rows + footer], { type: 'application/msword' });
     const url = URL.createObjectURL(blob);
-    
+
     const a = document.createElement('a');
     a.href = url;
-    a.download = `customer_report_${new Date().toISOString().slice(0,10)}.doc`;
+    a.download = `customer_report_${new Date().toISOString().slice(0, 10)}.doc`;
     a.click();
     URL.revokeObjectURL(url);
     setIsExportDropdownOpen(false);
@@ -287,7 +285,7 @@ const CustomerReport = ({ currentUser }) => {
 
   return (
     <div className="space-y-6 pb-12 font-sans animate-in fade-in duration-300">
-      
+
       {viewingCustomer && (
         <ReportModalShell
           title="Customer Details"
@@ -331,7 +329,7 @@ const CustomerReport = ({ currentUser }) => {
             <DetailField label="Location / Address" value={viewingCustomer.location || '-'} colSpan={2} />
             <DetailField label="Priority" value={viewingCustomer.priority ? viewingCustomer.priority.toUpperCase() : 'MEDIUM'} />
             <DetailField label="Enquiry Type" value={viewingCustomer.enquiry_type || 'Unknown'} />
-            <DetailField label="Reference Source" value={viewingCustomer.reference_source || '-'} />
+            <DetailField label="Reference" value={viewingCustomer.reference_source || '-'} />
             <DetailField label="Status" value={viewingCustomer.status === 'completed' ? 'Completed' : 'Pending'} />
             <DetailField label="Registered By" value={registeredByLabel(viewingCustomer)} colSpan={2} />
             <DetailField label="Remarks" value={viewingCustomer.remarks || '-'} colSpan={2} />
@@ -382,25 +380,14 @@ const CustomerReport = ({ currentUser }) => {
                     onChange={(e) => handleExpoChange(e.target.value)}
                     className={reportInputClass}
                   >
-                    <option value="">— None —</option>
+                    <option value="">Others (General)</option>
                     {expos.map((expo) => (
                       <option key={expo.id} value={String(expo.id)}>
                         {expo.expo_name}
                       </option>
                     ))}
-                    <option value="other">Other (manual name)</option>
                   </select>
                 </EditField>
-                {getExpoSelectValue(editingCustomer) === 'other' && (
-                  <EditField label="Manual Expo Name" colSpan={2}>
-                    <input
-                      type="text"
-                      value={editingCustomer.manual_expo_name || ''}
-                      onChange={(e) => patchEditingCustomer({ manual_expo_name: e.target.value })}
-                      className={reportInputClass}
-                    />
-                  </EditField>
-                )}
                 <EditField label="Company Name" required colSpan={2}>
                   <input
                     type="text"
@@ -513,7 +500,7 @@ const CustomerReport = ({ currentUser }) => {
                       )}
                   </select>
                 </EditField>
-                <EditField label="Reference Source">
+                <EditField label="Reference">
                   <input
                     type="text"
                     value={editingCustomer.reference_source || ''}
@@ -566,11 +553,10 @@ const CustomerReport = ({ currentUser }) => {
         <div className="flex bg-gray-100 p-1.5 rounded-xl border border-gray-200/30 overflow-x-auto scrollbar-none">
           <button
             onClick={() => setActiveTab('all')}
-            className={`px-4 py-2.5 text-sm font-semibold transition-all rounded-lg flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'all'
+            className={`px-4 py-2.5 text-sm font-semibold transition-all rounded-lg flex items-center gap-2 whitespace-nowrap ${activeTab === 'all'
                 ? 'bg-crm-primary text-white shadow-md'
                 : 'text-gray-600 hover:text-crm-primary hover:bg-gray-200/50'
-            }`}
+              }`}
           >
             <i className="ph-bold ph-list-bullets text-base"></i> All Leads
             <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${activeTab === 'all' ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-700'}`}>
@@ -579,11 +565,10 @@ const CustomerReport = ({ currentUser }) => {
           </button>
           <button
             onClick={() => setActiveTab('completed')}
-            className={`px-4 py-2.5 text-sm font-semibold transition-all rounded-lg flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'completed'
+            className={`px-4 py-2.5 text-sm font-semibold transition-all rounded-lg flex items-center gap-2 whitespace-nowrap ${activeTab === 'completed'
                 ? 'bg-emerald-600 text-white shadow-md'
                 : 'text-gray-600 hover:text-emerald-600 hover:bg-emerald-50/50'
-            }`}
+              }`}
           >
             <i className="ph-bold ph-check-circle text-base"></i> Completed
             <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${activeTab === 'completed' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'}`}>
@@ -592,11 +577,10 @@ const CustomerReport = ({ currentUser }) => {
           </button>
           <button
             onClick={() => setActiveTab('pending')}
-            className={`px-4 py-2.5 text-sm font-semibold transition-all rounded-lg flex items-center gap-2 whitespace-nowrap ${
-              activeTab === 'pending'
+            className={`px-4 py-2.5 text-sm font-semibold transition-all rounded-lg flex items-center gap-2 whitespace-nowrap ${activeTab === 'pending'
                 ? 'bg-amber-500 text-white shadow-md'
                 : 'text-gray-600 hover:text-amber-600 hover:bg-amber-50/50'
-            }`}
+              }`}
           >
             <i className="ph-bold ph-clock text-base"></i> Pending
             <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${activeTab === 'pending' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-800'}`}>
@@ -651,12 +635,12 @@ const CustomerReport = ({ currentUser }) => {
           <label className="block text-sm font-semibold text-crm-primary mb-1.5">Search Customer</label>
           <div className="relative">
             <i className="ph ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-lg"></i>
-            <input 
-              type="text" 
-              placeholder="Search by name, company, phone..." 
+            <input
+              type="text"
+              placeholder="Search by name, company, phone..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-11 pr-4 py-2.5 rounded-xl outline-none crm-input transition-all focus:ring-2 focus:ring-crm-primary/10 focus:border-crm-primary" 
+              className="w-full pl-11 pr-4 py-2.5 rounded-xl outline-none crm-input transition-all focus:ring-2 focus:ring-crm-primary/10 focus:border-crm-primary"
             />
           </div>
         </div>
@@ -664,7 +648,7 @@ const CustomerReport = ({ currentUser }) => {
         {/* Filter by Expo */}
         <div className="w-full">
           <label className="block text-sm font-semibold text-crm-primary mb-1.5">Filter by Expo</label>
-          <select 
+          <select
             value={filterExpo}
             onChange={(e) => setFilterExpo(e.target.value)}
             className="w-full px-4 py-2.5 rounded-xl outline-none crm-input transition-all focus:ring-2 focus:ring-crm-primary/10 focus:border-crm-primary"
@@ -680,7 +664,7 @@ const CustomerReport = ({ currentUser }) => {
         <div className="w-full grid grid-cols-2 gap-3 lg:col-span-1">
           <div>
             <label className="block text-sm font-semibold text-crm-primary mb-1.5">Start Date</label>
-            <input 
+            <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
@@ -689,7 +673,7 @@ const CustomerReport = ({ currentUser }) => {
           </div>
           <div>
             <label className="block text-sm font-semibold text-crm-primary mb-1.5">End Date</label>
-            <input 
+            <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
@@ -701,7 +685,7 @@ const CustomerReport = ({ currentUser }) => {
         {/* Sorting options */}
         <div className="w-full">
           <label className="block text-sm font-semibold text-crm-primary mb-1.5">Order Options</label>
-          <select 
+          <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
             className="w-full px-4 py-2.5 rounded-xl outline-none crm-input transition-all focus:ring-2 focus:ring-crm-primary/10 focus:border-crm-primary"
@@ -723,103 +707,101 @@ const CustomerReport = ({ currentUser }) => {
       {loading ? (
         <LoadingSpinner label="Loading customer report..." />
       ) : (
-      <div className="report-table-wrap">
-        <div className="report-table-scroll">
-          <table className="w-full text-left border-collapse whitespace-nowrap text-crm-textDark min-w-[1000px]">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="px-4 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider border-r border-gray-200 w-14">S.No</th>
-                <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider border-r border-gray-200">Date</th>
-                <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider border-r border-gray-200">Expo</th>
-                <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider border-r border-gray-200">Company</th>
-                <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider border-r border-gray-200">Contact Person</th>
-                <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider border-r border-gray-200">Phone</th>
-                {showAllCustomers && (
-                  <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider border-r border-gray-200">Registered By</th>
-                )}
-                <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider border-r border-gray-200">City</th>
-                <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider border-r border-gray-200">Priority</th>
-                <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider border-r border-gray-200">Enquiry Type</th>
-                <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider border-r border-gray-200">Status</th>
-                <th className="px-5 py-4 text-crm-primary font-semibold text-xs uppercase tracking-wider text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredCustomers.map((cust, index) => (
-                <tr key={cust.id} className="border-b border-gray-100 hover:bg-crm-primaryLighter/40 transition-colors duration-150">
-                  <td className="px-4 py-3.5 text-sm text-gray-600 border-r border-gray-100 text-center">{index + 1}</td>
-                  <td className="px-5 py-3.5 text-sm text-gray-600 border-r border-gray-100">{cust.visit_date}</td>
-                  <td className="px-5 py-3.5 font-semibold text-crm-primary text-sm border-r border-gray-100">{expoLabel(cust)}</td>
-                  <td className="px-5 py-3.5 font-semibold text-sm text-gray-900 border-r border-gray-100">{cust.company_name}</td>
-                  <td className="px-5 py-3.5 text-sm text-gray-700 border-r border-gray-100">{cust.customer_name}</td>
-                  <td className="px-5 py-3.5 text-sm text-gray-600 font-mono border-r border-gray-100">{cust.phone_1}</td>
+        <div className="report-table-wrap">
+          <div className="report-table-scroll rounded-xl border border-gray-300 shadow-sm overflow-hidden">
+            <table className="w-full text-left border-collapse whitespace-nowrap text-crm-textDark min-w-[1000px]">
+              <thead>
+                <tr className="bg-crm-primary border-b border-crm-primary text-white">
+                  <th className="px-4 py-4 font-semibold text-xs uppercase tracking-wider border-r border-white/20 w-14">S.No</th>
+                  <th className="px-5 py-4 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Date</th>
+                  <th className="px-5 py-4 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Expo</th>
+                  <th className="px-5 py-4 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Company</th>
+                  <th className="px-5 py-4 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Contact Person</th>
+                  <th className="px-5 py-4 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Phone</th>
                   {showAllCustomers && (
-                    <td className="px-5 py-3.5 text-sm text-gray-700 border-r border-gray-100">{registeredByLabel(cust)}</td>
+                    <th className="px-5 py-4 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Registered By</th>
                   )}
-                  <td className="px-5 py-3.5 text-sm text-gray-600 border-r border-gray-100">{cust.city || '-'}</td>
-                  <td className="px-5 py-3.5 text-sm border-r border-gray-100">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${
-                      cust.priority === 'high' ? 'bg-red-50 text-red-700 border-red-200' :
-                      cust.priority === 'low' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                      'bg-amber-50 text-amber-700 border-amber-200'
-                    }`}>
-                      {cust.priority ? cust.priority.toUpperCase() : 'MEDIUM'}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3.5 text-sm border-r border-gray-100">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${
-                      cust.enquiry_type === 'Hot Lead' ? 'bg-red-50 text-red-700 border-red-200/50' :
-                      cust.enquiry_type === 'Warm Lead' ? 'bg-amber-50 text-amber-700 border-amber-200/50' :
-                      'bg-slate-50 text-slate-700 border-slate-200/50'
-                    }`}>
-                      {cust.enquiry_type || 'Unknown'}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3.5 text-sm border-r border-gray-100">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${
-                      cust.status === 'completed'
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200/50'
-                        : 'bg-amber-50 text-amber-700 border-amber-200/50'
-                    }`}>
-                      <i className={`ph-bold ${cust.status === 'completed' ? 'ph-check-circle' : 'ph-clock'} mr-1 text-xs`}></i>
-                      {cust.status === 'completed' ? 'Completed' : 'Pending'}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3.5 text-sm text-right whitespace-nowrap">
-                    <div className="flex justify-end items-center gap-1">
-                      {cust.image_path && (
-                        <a
-                          href={`${API_BASE_URL.replace('/api', '')}/${cust.image_path}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-gray-500 hover:text-gray-700 p-1.5 rounded-lg hover:bg-gray-100"
-                          title="View Card"
-                        >
-                          <i className="ph-bold ph-image text-lg"></i>
-                        </a>
-                      )}
-                      <button onClick={() => setViewingCustomer(cust)} className="text-blue-600 hover:text-blue-800 p-1.5 rounded-lg hover:bg-blue-50" title="View"><i className="ph-bold ph-eye text-lg"></i></button>
-                      <button onClick={() => setEditingCustomer({ ...cust })} className="text-crm-primary hover:text-crm-primaryDark p-1.5 rounded-lg hover:bg-crm-primaryLighter" title="Edit"><i className="ph-bold ph-pencil-simple text-lg"></i></button>
-                      <button onClick={() => handleDelete(cust.id, cust.company_name)} className="text-red-600 hover:text-red-800 p-1.5 rounded-lg hover:bg-red-50" title="Delete"><i className="ph-bold ph-trash text-lg"></i></button>
-                    </div>
-                  </td>
+                  <th className="px-5 py-4 font-semibold text-xs uppercase tracking-wider border-r border-white/20">City</th>
+                  <th className="px-5 py-4 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Priority</th>
+                  <th className="px-5 py-4 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Enquiry Type</th>
+                  <th className="px-5 py-4 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Status</th>
+                  <th className="px-5 py-4 font-semibold text-xs uppercase tracking-wider text-right">Actions</th>
                 </tr>
-              ))}
-              {filteredCustomers.length === 0 && (
-                <tr>
-                  <td colSpan={showAllCustomers ? 12 : 11} className="px-5 py-12 text-center text-gray-400">
-                    <div className="flex flex-col items-center justify-center space-y-2">
-                      <i className="ph-bold ph-tray text-4xl text-gray-300"></i>
-                      <p className="font-semibold text-gray-500">No customers found matching these filters</p>
-                      <p className="text-xs text-gray-400">Try adjusting your search query, status tabs, or date range.</p>
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredCustomers.map((cust, index) => (
+                  <tr key={cust.id} className="border-b border-gray-300 hover:bg-crm-primaryLighter/40 transition-colors duration-150">
+                    <td className="px-4 py-3.5 text-sm text-gray-600 border-r border-gray-300 text-center">{index + 1}</td>
+                    <td className="px-5 py-3.5 text-sm text-gray-600 border-r border-gray-300">{cust.visit_date}</td>
+                    <td className="px-5 py-3.5 font-semibold text-crm-primary text-sm border-r border-gray-300">{expoLabel(cust)}</td>
+                    <td className="px-5 py-3.5 font-semibold text-sm text-gray-900 border-r border-gray-300">{cust.company_name}</td>
+                    <td className="px-5 py-3.5 text-sm text-gray-700 border-r border-gray-300">{cust.customer_name}</td>
+                    <td className="px-5 py-3.5 text-sm text-gray-600 font-mono border-r border-gray-300">{cust.phone_1}</td>
+                    {showAllCustomers && (
+                      <td className="px-5 py-3.5 text-sm text-gray-700 border-r border-gray-300">{registeredByLabel(cust)}</td>
+                    )}
+                    <td className="px-5 py-3.5 text-sm text-gray-600 border-r border-gray-300">{cust.city || '-'}</td>
+                    <td className="px-5 py-3.5 text-sm border-r border-gray-300">
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${cust.priority === 'high' ? 'bg-red-50 text-red-700 border-red-200' :
+                          cust.priority === 'low' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                            'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}>
+                        {cust.priority ? cust.priority.toUpperCase() : 'MEDIUM'}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3.5 text-sm border-r border-gray-300">
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${cust.enquiry_type === 'IDC' ? 'bg-blue-50 text-blue-700 border-blue-200/50' :
+                          cust.enquiry_type === 'Website' ? 'bg-indigo-50 text-indigo-700 border-indigo-200/50' :
+                            cust.enquiry_type === 'Application' ? 'bg-purple-50 text-purple-700 border-purple-200/50' :
+                              'bg-slate-50 text-slate-700 border-slate-200/50'
+                        }`}>
+                        {cust.enquiry_type || 'Unknown'}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3.5 text-sm border-r border-gray-300">
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${cust.status === 'completed'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200/50'
+                          : 'bg-amber-50 text-amber-700 border-amber-200/50'
+                        }`}>
+                        <i className={`ph-bold ${cust.status === 'completed' ? 'ph-check-circle' : 'ph-clock'} mr-1 text-xs`}></i>
+                        {cust.status === 'completed' ? 'Completed' : 'Pending'}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3.5 text-sm text-right whitespace-nowrap">
+                      <div className="flex justify-end items-center gap-1">
+                        {cust.image_path && (
+                          <a
+                            href={`${API_BASE_URL.replace('/api', '')}/${cust.image_path}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-gray-500 hover:text-gray-700 p-1.5 rounded-lg hover:bg-gray-100"
+                            title="View Card"
+                          >
+                            <i className="ph-bold ph-image text-lg"></i>
+                          </a>
+                        )}
+                        <button onClick={() => setViewingCustomer(cust)} className="text-blue-600 hover:text-blue-800 p-1.5 rounded-lg hover:bg-blue-50" title="View"><i className="ph-bold ph-eye text-lg"></i></button>
+                        <button onClick={() => setEditingCustomer({ ...cust })} className="text-crm-primary hover:text-crm-primaryDark p-1.5 rounded-lg hover:bg-crm-primaryLighter" title="Edit"><i className="ph-bold ph-pencil-simple text-lg"></i></button>
+                        <button onClick={() => handleDelete(cust.id, cust.company_name)} className="text-red-600 hover:text-red-800 p-1.5 rounded-lg hover:bg-red-50" title="Delete"><i className="ph-bold ph-trash text-lg"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {filteredCustomers.length === 0 && (
+                  <tr>
+                    <td colSpan={showAllCustomers ? 12 : 11} className="px-5 py-12 text-center text-gray-400">
+                      <div className="flex flex-col items-center justify-center space-y-2">
+                        <i className="ph-bold ph-tray text-4xl text-gray-300"></i>
+                        <p className="font-semibold text-gray-500">No customers found matching these filters</p>
+                        <p className="text-xs text-gray-400">Try adjusting your search query, status tabs, or date range.</p>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
       )}
     </div>
   );

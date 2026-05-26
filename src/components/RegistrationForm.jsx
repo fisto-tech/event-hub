@@ -6,6 +6,9 @@ import {
   getCachedRegistrationData,
 } from '../utils/registrationDataCache';
 import { showToast } from '../utils/toast';
+import CityAutocomplete from './common/CityAutocomplete';
+import PhoneInput from './common/PhoneInput';
+import { validateStoredPhone, normalizePhoneForSubmit } from '../utils/phoneUtils';
 
 const DEFAULT_WHATSAPP_MESSAGE =
   'Hello {customer_name}, Thank you for visiting us at our stall! We appreciate your interest in our products. Our team will contact you shortly to discuss further.';
@@ -23,16 +26,18 @@ const FormField = ({ label, children, isFullWidth, required }) => {
   );
 };
 
-const validateRegistration = (payload, { customEnquiry, customIndustry, customSource, showSourceField }) => {
+const validateRegistration = (payload, { customEnquiry, customIndustry, showSourceField }) => {
   const missing = [];
 
   if (!String(payload.visitDate || '').trim()) missing.push('Visit Date');
   if (!String(payload.companyName || '').trim()) missing.push('Company Name');
   if (!String(payload.customerName || '').trim()) missing.push('Customer Name');
-  if (!String(payload.phone1 || '').trim()) missing.push('Phone / WhatsApp');
+  const phone1Err = validateStoredPhone(payload.phone1, { required: true });
+  if (phone1Err) missing.push(phone1Err === 'Phone number is required' ? 'Phone / WhatsApp' : phone1Err);
 
-  if (payload.expoId === 'other' && !String(payload.manualExpoName || '').trim()) {
-    missing.push('Manual Expo Name');
+  if (String(payload.phone2 || '').trim()) {
+    const phone2Err = validateStoredPhone(payload.phone2, { required: true });
+    if (phone2Err) missing.push(`Secondary phone: ${phone2Err}`);
   }
 
   const enquiry = payload.enquiryType === OTHER_VALUE
@@ -42,10 +47,6 @@ const validateRegistration = (payload, { customEnquiry, customIndustry, customSo
 
   if (payload.industryType === OTHER_VALUE && !String(customIndustry || '').trim()) {
     missing.push('Industry Type (custom value)');
-  }
-
-  if (showSourceField && payload.referenceSource === OTHER_VALUE && !String(customSource || '').trim()) {
-    missing.push('Reference Source (custom value)');
   }
 
   return missing;
@@ -63,11 +64,11 @@ const OCR_SERVER_URL = window.location.hostname === 'localhost' || window.locati
   : 'https://ocr-event-app.onrender.com';
 
 const OTHER_VALUE = '__other__';
-const DEFAULT_ENQUIRY_TYPES = ['Hot Lead', 'Warm Lead', 'Cold Lead', 'Partner'];
+const DEFAULT_ENQUIRY_TYPES = ['IDC', 'Website', 'Web page', 'Application'];
 
 const filterLookupsForExpo = (items, expoId) => {
   if (!items?.length) return [];
-  const eid = expoId && expoId !== 'other' ? String(expoId) : null;
+  const eid = expoId ? String(expoId) : null;
   return items.filter((item) => {
     if (!item.expo_id) return true;
     return eid && String(item.expo_id) === eid;
@@ -79,9 +80,8 @@ const RegistrationForm = ({ currentUser }) => {
   const [lookups, setLookups] = useState({ source: [], enquiry_type: [], industry_type: [] });
   const [customEnquiry, setCustomEnquiry] = useState('');
   const [customIndustry, setCustomIndustry] = useState('');
-  const [customSource, setCustomSource] = useState('');
   const [formData, setFormData] = useState({
-    expoId: '',
+    expoId: localStorage.getItem('defaultExpo') || '',
     manualExpoName: '',
     visitDate: new Date().toISOString().split('T')[0],
     companyName: '',
@@ -94,8 +94,9 @@ const RegistrationForm = ({ currentUser }) => {
     phone1: '',
     phone2: '',
     email: '',
-    enquiryType: 'Hot Lead',
+    enquiryType: 'IDC',
     referenceSource: '',
+    reference: '',
     priority: 'medium',
     nextFollowUpDate: '',
     remarks: '',
@@ -112,7 +113,7 @@ const RegistrationForm = ({ currentUser }) => {
   const [capturedBlob, setCapturedBlob] = useState(null);
   const [capturedImage, setCapturedImage] = useState('');
   const [facingMode, setFacingMode] = useState('environment'); // 'environment' or 'user'
-  
+
   const [cameraActive, setCameraActive] = useState(false);
   const [ocrProgress, setOcrProgress] = useState(0);
   const [isProcessingOcr, setIsProcessingOcr] = useState(false);
@@ -159,9 +160,7 @@ const RegistrationForm = ({ currentUser }) => {
     if (whatsappTemplates.length === 0) return DEFAULT_WHATSAPP_MESSAGE;
 
     let selectedExpoName = '';
-    if (formData.expoId === 'other') {
-      selectedExpoName = formData.manualExpoName;
-    } else if (formData.expoId) {
+    if (formData.expoId) {
       const selectedExpo = expos.find((e) => String(e.id) === String(formData.expoId));
       if (selectedExpo) selectedExpoName = selectedExpo.expo_name;
     }
@@ -179,7 +178,7 @@ const RegistrationForm = ({ currentUser }) => {
     }
 
     return matchedTemplate?.message_content || DEFAULT_WHATSAPP_MESSAGE;
-  }, [formData.expoId, formData.manualExpoName, expos, whatsappTemplates]);
+  }, [formData.expoId, expos, whatsappTemplates]);
 
   // Sync WhatsApp template when expo changes — skip if user already edited the message
   const whatsappUserEditedRef = useRef(false);
@@ -224,13 +223,13 @@ const RegistrationForm = ({ currentUser }) => {
       ...formData,
       enquiryType: resolveFieldValue(formData.enquiryType, customEnquiry, ''),
       industryType: resolveFieldValue(formData.industryType, customIndustry),
-      referenceSource: resolveFieldValue(formData.referenceSource, customSource),
+      referenceSource: String(formData.referenceSource || '').trim(),
+      reference: String(formData.reference || '').trim(),
     };
 
     const missing = validateRegistration(payload, {
       customEnquiry,
       customIndustry,
-      customSource,
       showSourceField,
     });
 
@@ -241,7 +240,9 @@ const RegistrationForm = ({ currentUser }) => {
 
     const submitPayload = {
       ...payload,
-      enquiryType: payload.enquiryType || 'Hot Lead',
+      phone1: normalizePhoneForSubmit(payload.phone1),
+      phone2: payload.phone2 ? normalizePhoneForSubmit(payload.phone2) : '',
+      enquiryType: payload.enquiryType || 'IDC',
       createdBy: currentUser?.id || null,
       image: payload.image && payload.image.length > 6_000_000 ? '' : payload.image,
     };
@@ -254,7 +255,7 @@ const RegistrationForm = ({ currentUser }) => {
       if (result.status === 'success') {
         showToast('Customer saved successfully!');
         const expoIdNum =
-          submitPayload.expoId && submitPayload.expoId !== 'other'
+          submitPayload.expoId
             ? Number(submitPayload.expoId)
             : null;
         if (submitPayload.enquiryType) {
@@ -265,7 +266,7 @@ const RegistrationForm = ({ currentUser }) => {
         }
         if (
           submitPayload.referenceSource &&
-          (!submitPayload.expoId || submitPayload.expoId === 'other')
+          !submitPayload.expoId
         ) {
           appendLookupToCache('source', submitPayload.referenceSource, null);
         }
@@ -291,13 +292,13 @@ const RegistrationForm = ({ currentUser }) => {
     whatsappUserEditedRef.current = false;
     setCustomEnquiry('');
     setCustomIndustry('');
-    setCustomSource('');
     setFormData(prev => ({
       ...prev,
+      expoId: localStorage.getItem('defaultExpo') || '',
       companyName: '', industryType: '', website: '', location: '', city: '',
       customerName: '', designation: '', phone1: '', phone2: '', email: '',
-      enquiryType: 'Hot Lead',
-      referenceSource: '', nextFollowUpDate: '', remarks: '', priority: 'medium', image: ''
+      enquiryType: 'IDC',
+      referenceSource: '', reference: '', nextFollowUpDate: '', remarks: '', priority: 'medium', image: ''
     }));
   };
 
@@ -317,12 +318,12 @@ const RegistrationForm = ({ currentUser }) => {
         : DEFAULT_ENQUIRY_TYPES.map((name) => ({ name })),
     [enquiryOptions]
   );
-  const showSourceField = !formData.expoId || formData.expoId === 'other';
+  const showSourceField = !formData.expoId;
 
   // Heuristic OCR Parser
   const parseCardText = (text) => {
     const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-    
+
     let companyName = '';
     let customerName = '';
     let designation = '';
@@ -374,11 +375,11 @@ const RegistrationForm = ({ currentUser }) => {
 
     // 1. Identify Designation
     const designationKeywords = [
-      'director', 'manager', 'ceo', 'founder', 'president', 'partner', 'executive', 
-      'engineer', 'proprietor', 'head', 'owner', 'developer', 'consultant', 'officer', 
+      'director', 'manager', 'ceo', 'founder', 'president', 'partner', 'executive',
+      'engineer', 'proprietor', 'head', 'owner', 'developer', 'consultant', 'officer',
       'representative', 'specialist', 'co-founder', 'advisor'
     ];
-    const designationIndex = remainingLines.findIndex(line => 
+    const designationIndex = remainingLines.findIndex(line =>
       designationKeywords.some(keyword => line.toLowerCase().includes(keyword))
     );
     if (designationIndex !== -1) {
@@ -388,13 +389,13 @@ const RegistrationForm = ({ currentUser }) => {
 
     // 2. Identify Company Name by explicit company keywords
     const companyKeywords = [
-      'ltd', 'limited', 'pvt', 'private', 'corp', 'corporation', 'inc', 'co', 'company', 
-      'solutions', 'technologies', 'services', 'industries', 'group', 'exports', 'global', 
-      'systems', 'enterprises', 'studio', 'firm', 'agency', 'manufacturing', 'logistics', 
-      'associates', 'designs', 'networks', 'labs', 'software', 'digital', 'communications', 
+      'ltd', 'limited', 'pvt', 'private', 'corp', 'corporation', 'inc', 'co', 'company',
+      'solutions', 'technologies', 'services', 'industries', 'group', 'exports', 'global',
+      'systems', 'enterprises', 'studio', 'firm', 'agency', 'manufacturing', 'logistics',
+      'associates', 'designs', 'networks', 'labs', 'software', 'digital', 'communications',
       'marketing', 'ventures', 'holdings', 'trading', 'commerce', 'international'
     ];
-    const companyIndex = remainingLines.findIndex(line => 
+    const companyIndex = remainingLines.findIndex(line =>
       companyKeywords.some(keyword => {
         const regex = new RegExp(`\\b${keyword}\\b`, 'i');
         return regex.test(line);
@@ -460,8 +461,8 @@ const RegistrationForm = ({ currentUser }) => {
     }
 
     // Address
-    const addressLines = remainingLines.filter(line => 
-      /\d/.test(line) || 
+    const addressLines = remainingLines.filter(line =>
+      /\d/.test(line) ||
       ['street', 'road', 'floor', 'plot', 'ave', 'avenue', 'area', 'zone', 'city', 'nagar', 'bazar', 'market', 'pin', 'zip', 'india', 'building', 'chowk', 'highway'].some(k => line.toLowerCase().includes(k))
     );
 
@@ -518,7 +519,7 @@ const RegistrationForm = ({ currentUser }) => {
 
       // Map server response fields to our form field names
       const serverData = result.data || {};
-      const phone2 = (serverData.phone_numbers && serverData.phone_numbers.length > 1) 
+      const phone2 = (serverData.phone_numbers && serverData.phone_numbers.length > 1)
         ? serverData.phone_numbers[1] : '';
 
       const extractedCompanyName = serverData.company || '';
@@ -528,7 +529,7 @@ const RegistrationForm = ({ currentUser }) => {
       const extractedEmail = serverData.email_address || '';
       const extractedWebsite = serverData.website || '';
       const extractedLocation = serverData.address || '';
-      
+
       // Auto-extract city if location is present
       let extractedCity = '';
       if (extractedLocation) {
@@ -588,10 +589,10 @@ const RegistrationForm = ({ currentUser }) => {
 
       alert(debugMsg);
 
-      console.log('🤖 OCR Result auto-populated into main registration form:', { 
-        method: result.metadata?.parsingMethod, 
-        confidence: result.metadata?.confidence, 
-        data: serverData 
+      console.log('🤖 OCR Result auto-populated into main registration form:', {
+        method: result.metadata?.parsingMethod,
+        confidence: result.metadata?.confidence,
+        data: serverData
       });
 
     } catch (e) {
@@ -652,7 +653,7 @@ const RegistrationForm = ({ currentUser }) => {
       canvas.height = video.videoHeight;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      
+
       canvas.toBlob((blob) => {
         setCapturedBlob(blob);
         const dataUrl = URL.createObjectURL(blob);
@@ -814,7 +815,7 @@ END:VCARD`;
 
   return (
     <div className="space-y-6 pb-20 relative bg-white min-h-screen p-6">
-      
+
       {/* Top Bar matching Zoho Header style */}
       <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
         <div>
@@ -837,28 +838,34 @@ END:VCARD`;
           </p>
         )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
-          
+
           <SectionHeader title="Company Information" />
-          
+
           <FormField label="Expo Name">
             <select name="expoId" value={formData.expoId} onChange={handleChange} className="w-full px-3 py-1.5 crm-input">
-              <option value="">-- None --</option>
+              <option value="">Other (General)</option>
               {expos.map(expo => (
                 <option key={expo.id} value={expo.id}>{expo.expo_name}</option>
               ))}
-              <option value="other">Other (Manual Entry)</option>
             </select>
           </FormField>
+
+          {showSourceField && (
+            <FormField label="Source Name">
+              <input
+                type="text"
+                name="referenceSource"
+                value={formData.referenceSource}
+                onChange={handleChange}
+                placeholder="Enter source name..."
+                className="w-full px-3 py-1.5 crm-input"
+              />
+            </FormField>
+          )}
 
           <FormField label="Visit Date" required>
             <input type="date" name="visitDate" value={formData.visitDate} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
           </FormField>
-
-          {formData.expoId === 'other' && (
-            <FormField label="Manual Expo Name">
-              <input type="text" name="manualExpoName" value={formData.manualExpoName} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
-            </FormField>
-          )}
 
           <FormField label="Company Name" required>
             <input type="text" name="companyName" value={formData.companyName} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
@@ -895,7 +902,13 @@ END:VCARD`;
           </FormField>
 
           <FormField label="City">
-            <input type="text" name="city" value={formData.city} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
+            <CityAutocomplete
+              name="city"
+              value={formData.city}
+              onChange={(city) => setFormData((prev) => ({ ...prev, city }))}
+              placeholder="Type to search city…"
+              inputClassName="w-full px-3 py-1.5 crm-input"
+            />
           </FormField>
 
           <FormField label="Address / Location">
@@ -904,7 +917,7 @@ END:VCARD`;
 
 
           <SectionHeader title="Point of Contact Details" />
-          
+
           <FormField label="Customer Name" required>
             <input type="text" name="customerName" value={formData.customerName} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
           </FormField>
@@ -918,20 +931,34 @@ END:VCARD`;
           </FormField>
 
           <FormField label="Phone / WhatsApp" required>
-            <input type="tel" name="phone1" value={formData.phone1} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" placeholder="+1234567890" />
+            <PhoneInput
+              name="phone1"
+              value={formData.phone1}
+              onChange={(phone1) => setFormData((prev) => ({ ...prev, phone1 }))}
+              required
+              inputClassName="flex-1 px-3 py-1.5 crm-input"
+              selectClassName="w-[7.5rem] shrink-0 px-2 py-1.5 crm-input text-sm"
+            />
           </FormField>
 
           <FormField label="Secondary Phone">
-            <input type="tel" name="phone2" value={formData.phone2} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
+            <PhoneInput
+              name="phone2"
+              value={formData.phone2}
+              onChange={(phone2) => setFormData((prev) => ({ ...prev, phone2 }))}
+              required={false}
+              inputClassName="flex-1 px-3 py-1.5 crm-input"
+              selectClassName="w-[7.5rem] shrink-0 px-2 py-1.5 crm-input text-sm"
+            />
           </FormField>
 
 
           <SectionHeader title="Enquiry & Follow-up Details" />
-          
+
           <FormField label="Enquiry Type" required>
             <select name="enquiryType" value={formData.enquiryType} onChange={handleChange} className="w-full px-3 py-1.5 crm-input">
               <option value="">— Select —</option>
-              {enquiryList.map((item, i) => (
+              {Array.from(new Map(enquiryList.map(item => [item.name.toLowerCase().trim(), item])).values()).map((item, i) => (
                 <option key={`enq-${i}-${item.name}`} value={item.name}>
                   {item.name}
                 </option>
@@ -961,33 +988,18 @@ END:VCARD`;
             <input type="date" name="nextFollowUpDate" value={formData.nextFollowUpDate} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
           </FormField>
 
-          {showSourceField && (
-            <FormField label="Reference Source">
-              <select
-                name="referenceSource"
-                value={formData.referenceSource}
-                onChange={handleChange}
-                className="w-full px-3 py-1.5 crm-input"
-              >
-                <option value="">— Select —</option>
-                {sourceOptions.map((item, i) => (
-                  <option key={`src-${i}-${item.name}`} value={item.name}>
-                    {item.name}
-                  </option>
-                ))}
-                <option value={OTHER_VALUE}>Others (custom)</option>
-              </select>
-              {formData.referenceSource === OTHER_VALUE && (
-                <input
-                  type="text"
-                  value={customSource}
-                  onChange={(e) => setCustomSource(e.target.value)}
-                  placeholder="How did they find us?"
-                  className="w-full px-3 py-1.5 crm-input mt-2"
-                />
-              )}
-            </FormField>
-          )}
+          <FormField label="Reference">
+            <input
+              type="text"
+              name="reference"
+              value={formData.reference}
+              onChange={handleChange}
+              placeholder="e.g. Employee Name, Friend, etc."
+              className="w-full px-3 py-1.5 crm-input"
+            />
+          </FormField>
+
+
 
           <FormField label="Remarks" isFullWidth>
             <textarea name="remarks" value={formData.remarks} onChange={handleChange} rows="2" className="w-full px-3 py-1.5 crm-input"></textarea>
@@ -1001,7 +1013,7 @@ END:VCARD`;
                   type="button"
                   onClick={() => {
                     const cleanPhone = formData.phone1.replace(/[^0-9]/g, '');
-                    let selectedExpoName = formData.expoId === 'other' ? formData.manualExpoName : (expos.find(e => String(e.id) === String(formData.expoId))?.expo_name || '');
+                    let selectedExpoName = expos.find(e => String(e.id) === String(formData.expoId))?.expo_name || '';
                     const resolvedMsg = formData.whatsappMessage.replace(/{customer_name}/g, formData.customerName || 'Customer').replace(/{company_name}/g, formData.companyName || 'your company').replace(/{expo_name}/g, selectedExpoName || 'our expo');
                     window.open(`https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(resolvedMsg)}`, '_blank');
                   }}
@@ -1015,25 +1027,25 @@ END:VCARD`;
 
           <SectionHeader title="Image Upload" />
           <FormField label="Visit Card Image" isFullWidth>
-             <div className="flex items-center gap-4">
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  onChange={handleImageChange} 
-                  className="w-full px-3 py-1.5 border border-gray-300 outline-none file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 cursor-pointer text-sm" 
-                />
-                {formData.image && (
-                  <div className="flex-shrink-0 relative">
-                    <img src={formData.image} alt="Preview" className="h-16 rounded border" />
-                    <button type="button" onClick={() => setFormData(prev => ({ ...prev, image: '' }))} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 text-[10px]">✕</button>
-                  </div>
-                )}
-             </div>
+            <div className="flex items-center gap-4">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="w-full px-3 py-1.5 border border-gray-300 outline-none file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 cursor-pointer text-sm"
+              />
+              {formData.image && (
+                <div className="flex-shrink-0 relative">
+                  <img src={formData.image} alt="Preview" className="h-16 rounded border" />
+                  <button type="button" onClick={() => setFormData(prev => ({ ...prev, image: '' }))} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 text-[10px]">✕</button>
+                </div>
+              )}
+            </div>
           </FormField>
-          
+
         </div>
 
-        <div className="flex justify-end items-center gap-3 mt-8 pt-6 border-t border-gray-200">
+        <div className="flex justify-end items-center gap-3 mt-8 pt-6  border-gray-200">
           <button
             type="button"
             onClick={resetMainForm}
@@ -1055,15 +1067,15 @@ END:VCARD`;
       {showScanModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200 overflow-y-auto">
           <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl w-full max-w-4xl overflow-hidden my-8 animate-in zoom-in-95 duration-300 flex flex-col max-h-[95vh]">
-            
+
             {/* Modal Header */}
             <div className="bg-gradient-to-r from-crm-primary to-crm-primaryDark px-6 py-4 flex items-center justify-between text-white shrink-0">
               <div className="flex items-center gap-2">
                 <i className="ph ph-scan text-2xl animate-pulse"></i>
                 <h3 className="text-lg font-semibold tracking-wide">📇 Visiting Card Scanner</h3>
               </div>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => { setShowScanModal(false); resetScanModalState(); }}
                 className="text-white hover:bg-white/10 p-1.5 rounded-full transition-colors text-lg"
               >
@@ -1073,29 +1085,27 @@ END:VCARD`;
 
             {/* Modal Content */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
-              
+
               {/* Option Tabs (Only show when no image has been selected or snapped yet) */}
               {!capturedImage && (
                 <div className="flex border-b border-gray-200 mb-4 shrink-0">
                   <button
                     type="button"
                     onClick={() => { setModalTab('upload'); stopCamera(); }}
-                    className={`flex-1 py-3 text-center font-semibold text-sm transition-all border-b-2 flex justify-center items-center gap-2 ${
-                      modalTab === 'upload' 
-                        ? 'border-crm-primary text-crm-primary bg-crm-primaryLighter/20' 
+                    className={`flex-1 py-3 text-center font-semibold text-sm transition-all border-b-2 flex justify-center items-center gap-2 ${modalTab === 'upload'
+                        ? 'border-crm-primary text-crm-primary bg-crm-primaryLighter/20'
                         : 'border-transparent text-gray-500 hover:text-crm-primary hover:bg-gray-50'
-                    }`}
+                      }`}
                   >
                     📁 Upload File
                   </button>
                   <button
                     type="button"
                     onClick={() => { setModalTab('camera'); startCamera(); }}
-                    className={`flex-1 py-3 text-center font-semibold text-sm transition-all border-b-2 flex justify-center items-center gap-2 ${
-                      modalTab === 'camera' 
-                        ? 'border-crm-primary text-crm-primary bg-crm-primaryLighter/20' 
+                    className={`flex-1 py-3 text-center font-semibold text-sm transition-all border-b-2 flex justify-center items-center gap-2 ${modalTab === 'camera'
+                        ? 'border-crm-primary text-crm-primary bg-crm-primaryLighter/20'
                         : 'border-transparent text-gray-500 hover:text-crm-primary hover:bg-gray-50'
-                    }`}
+                      }`}
                   >
                     📷 Use Camera
                   </button>
@@ -1105,7 +1115,7 @@ END:VCARD`;
               {/* Upload Tab Section (Only show when no image has been uploaded yet) */}
               {!capturedImage && modalTab === 'upload' && (
                 <div className="space-y-4 animate-in fade-in duration-150">
-                  <div 
+                  <div
                     onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
                     onDragLeave={() => setIsDragOver(false)}
                     onDrop={(e) => {
@@ -1132,9 +1142,8 @@ END:VCARD`;
                         reader.readAsDataURL(file);
                       }
                     }}
-                    className={`border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${
-                      isDragOver ? 'border-crm-primary bg-crm-primaryLighter/30 scale-98' : 'border-gray-300 hover:border-crm-primary bg-gray-50'
-                    }`}
+                    className={`border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center text-center cursor-pointer transition-all ${isDragOver ? 'border-crm-primary bg-crm-primaryLighter/30 scale-98' : 'border-gray-300 hover:border-crm-primary bg-gray-50'
+                      }`}
                   >
                     <div className="text-5xl mb-3 text-gray-400">📄</div>
                     <p className="font-semibold text-gray-700 text-sm">Drag & drop your visiting card image here</p>
@@ -1204,13 +1213,13 @@ END:VCARD`;
               {/* Centered clean preview & action area when image is captured/uploaded */}
               {capturedImage && !isProcessingOcr && (
                 <div className="space-y-6 max-w-2xl mx-auto animate-in zoom-in-95 duration-200">
-                  
+
                   {/* Single Clean Card Preview (no duplicate images) */}
                   <div className="border rounded-xl p-4 bg-gray-50 flex items-center justify-center min-h-[220px] max-h-72 relative">
                     <img src={capturedImage} alt="Visiting Card Preview" className="max-h-64 object-contain rounded shadow-sm border" />
                     {!parsedData && (
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         onClick={removeFile}
                         className="absolute top-4 right-4 bg-red-500 hover:bg-red-600 text-white rounded-full p-2 shadow-md transition-all text-xs font-bold"
                       >
@@ -1239,7 +1248,7 @@ END:VCARD`;
                           Extracted Information Successfully Captured
                         </h4>
                       </div>
-                      
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-semibold text-gray-700">
                         {parsedData.customerName && (
                           <div className="bg-white p-3 rounded-lg border">

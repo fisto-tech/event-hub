@@ -90,21 +90,21 @@ const Sidebar = ({ activeTab, setActiveTab, activeSubTab, setActiveSubTab, onLog
       className={`
         fixed lg:relative inset-y-0 left-0 w-80
         bg-crm-primaryDark text-crm-sidebarText
-        flex flex-col shrink-0 h-full shadow-2xl z-50
+        flex flex-col shrink-0 h-full  z-50
         transform transition-transform duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0
       `}
     >
       {/* Header */}
-      <div className="h-16 flex items-center justify-between px-6 bg-crm-primaryDark border-b border-white/10 shrink-0 w-full">
+      <div className="h-16 flex items-center justify-center bg-crm-primaryDark border-b border-white/10 shrink-0 w-full relative">
         <h1 className="text-white font-semibold tracking-wider">
-          <img src={logo} className="h-10 w-auto" style={{ filter: 'brightness(0) invert(1)' }} />
+          <img src={logo} className="h-10 w-auto" style={{ filter: 'brightness(0) invert(1)' }} alt="Logo" />
         </h1>
         {/* Close button visible on mobile + tablet */}
         <button
           onClick={() => setIsOpen(false)}
-          className="lg:hidden text-white/80 hover:text-white p-1 rounded-lg"
+          className="lg:hidden absolute right-4 text-white/80 hover:text-white p-1 rounded-lg"
         >
           <i className="ph-bold ph-x text-xl"></i>
         </button>

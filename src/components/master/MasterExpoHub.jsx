@@ -13,14 +13,14 @@ const EXPO_TABS = [
   { id: 'whatsapp-template', label: 'WhatsApp Templates', icon: 'ph-whatsapp-logo' },
 ];
 
-const MasterExpoHub = ({ activeSubTab, setActiveSubTab }) => {
+const MasterExpoHub = ({ activeSubTab, setActiveSubTab, currentUser }) => {
   const resolved = activeSubTab === 'master-expo' ? 'sources' : activeSubTab;
   const tab = EXPO_TABS.some((t) => t.id === resolved) ? resolved : 'sources';
 
   const renderPanel = () => {
     switch (tab) {
       case 'sources':
-        return <MasterSourcesView />;
+        return <MasterSourcesView currentUser={currentUser} />;
       case 'expo-details':
         return <ExpoDetails embedded />;
       case 'enquiry-details':
@@ -30,7 +30,7 @@ const MasterExpoHub = ({ activeSubTab, setActiveSubTab }) => {
       case 'whatsapp-template':
         return <WhatsappTemplates embedded />;
       default:
-        return <MasterSourcesView />;
+        return <MasterSourcesView currentUser={currentUser} />;
     }
   };
 
