@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import logo from "../assets/logo.png";
 import { isPrivilegedRole } from '../utils/roles';
 
 const Sidebar = ({ activeTab, setActiveTab, activeSubTab, setActiveSubTab, onLogout, isOpen, setIsOpen, userRole }) => {
-  const [openAccordion, setOpenAccordion] = useState('master-data');
+  const [openAccordion, setOpenAccordion] = useState('');
 
   const allMenuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: 'ph-squares-four' },
@@ -28,12 +28,11 @@ const Sidebar = ({ activeTab, setActiveTab, activeSubTab, setActiveSubTab, onLog
     },
     { 
       id: 'follow-up', 
-      label: 'Follow up', 
+      label: 'Customer Followup', 
       icon: 'ph-phone-call',
       subItems: [
-        { id: 'follow-up-missed', label: 'Missed Followup', icon: 'ph-warning' },
-        { id: 'follow-up-upcoming', label: 'Upcoming Followup', icon: 'ph-clock-counter-clockwise' },
-        { id: 'follow-up-completed', label: 'Completed Followup', icon: 'ph-check-circle' }
+        { id: 'follow-up-followup', label: 'Follow up', icon: 'ph-phone-call' },
+        { id: 'follow-up-reports', label: 'Followup Reports', icon: 'ph-chart-bar' }
       ]
     },
     { 
@@ -53,6 +52,12 @@ const Sidebar = ({ activeTab, setActiveTab, activeSubTab, setActiveSubTab, onLog
     return true;
   });
 
+  // Keep the sidebar accordion in sync with the active section (especially after refresh / URL navigation).
+  useEffect(() => {
+    const shouldOpen = ['master-data', 'registration', 'follow-up'].includes(activeTab);
+    setOpenAccordion(shouldOpen ? activeTab : '');
+  }, [activeTab]);
+
   // lg = 1024px — both mobile AND tablet behave the same (hidden by default)
   const isMobileOrTablet = () => window.innerWidth < 1024;
 
@@ -68,8 +73,9 @@ const Sidebar = ({ activeTab, setActiveTab, activeSubTab, setActiveSubTab, onLog
 
       // Desktop only: also navigate and auto-select first sub-item
       if (!isMobileOrTablet()) {
-        setActiveTab(item.id);
-        if (opening) setActiveSubTab(item.subItems[0].id);
+        // Important: use the same navigation entry-point so tab + subtab are applied together
+        // (prevents accidental redirects due to async state updates).
+        setActiveTab(item.id, opening ? item.subItems[0].id : '');
       }
     } else {
       setActiveTab(item.id);
@@ -79,8 +85,8 @@ const Sidebar = ({ activeTab, setActiveTab, activeSubTab, setActiveSubTab, onLog
 
   const handleSubItemClick = (e, item, sub) => {
     e.stopPropagation();
-    setActiveTab(item.id);
-    setActiveSubTab(sub.id);
+    // Important: navigate using the parent's handler so activeTab + activeSubTab stay in sync.
+    setActiveTab(item.id, sub.id);
     // Close sidebar only after the user has chosen a sub-item
     if (isMobileOrTablet()) setIsOpen(false);
   };

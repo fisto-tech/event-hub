@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { fetchApi, API_BASE_URL } from '../utils/api';
+import { fetchApi, resolvePublicUrl } from '../utils/api';
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { isPrivilegedRole } from '../utils/roles';
 import LoadingSpinner from './common/LoadingSpinner';
 import { confirmDelete } from '../utils/confirm';
 import { showToast } from '../utils/toast';
-import ReportModalShell, { DetailField, EditField, reportInputClass } from './common/ReportModalShell';
+import ReportModalShell, { EditField, reportInputClass } from './common/ReportModalShell';
+import CityAutocomplete from './common/CityAutocomplete';
 
 const ENQUIRY_OPTIONS = ['IDC', 'Website', 'Web page', 'Application', 'General Inquiry', 'Unknown'];
 
@@ -25,6 +26,7 @@ const CustomerReport = ({ currentUser, filterSource }) => {
 
   const [viewingCustomer, setViewingCustomer] = useState(null);
   const [editingCustomer, setEditingCustomer] = useState(null);
+  const [previewImage, setPreviewImage] = useState(null); // { url: string, title?: string, failed?: boolean }
 
   // UI Dropdown States
   const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
@@ -72,12 +74,27 @@ const CustomerReport = ({ currentUser, filterSource }) => {
 
   const expoLabel = (cust) => cust.linked_expo || cust.manual_expo_name || '—';
 
+  const expoOrSourceLabel = (cust) => {
+    if (cust.expo_id || cust.linked_expo || cust.manual_expo_name) return expoLabel(cust);
+    return cust.reference_source || '';
+  };
+
   const getExpoSelectValue = (cust) => {
     return cust.expo_id ? String(cust.expo_id) : '';
   };
 
   const patchEditingCustomer = (patch) =>
     setEditingCustomer((prev) => (prev ? { ...prev, ...patch } : prev));
+
+  const handleEditImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      patchEditingCustomer({ image: reader.result });
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleExpoChange = (value) => {
     patchEditingCustomer({ expo_id: value, manual_expo_name: '' });
@@ -171,14 +188,15 @@ const CustomerReport = ({ currentUser, filterSource }) => {
       alert("No data available to export");
       return;
     }
-    const headers = ["Date", "Expo", "Company Name", "Contact Person", "Phone", "City", "Enquiry Type", "Status"];
-    const rows = filteredCustomers.map(c => [
-      c.visit_date,
-      c.linked_expo || c.manual_expo_name || '-',
+    const headers = ["S.No", "Date", "Expo Name / Source Name", "Company Name", "Contact Person", "Phone", "City", "Enquiry Type", "Status"];
+    const rows = filteredCustomers.map((c, idx) => [
+      idx + 1,
+      c.visit_date || '',
+      `"${String(expoOrSourceLabel(c) || '').replace(/"/g, '""')}"`,
       `"${(c.company_name || '').replace(/"/g, '""')}"`,
       `"${(c.customer_name || '').replace(/"/g, '""')}"`,
-      c.phone_1,
-      c.city || '-',
+      c.phone_1 || '',
+      `"${String(c.city || '').replace(/"/g, '""')}"`,
       c.enquiry_type || 'Unknown',
       c.status === 'completed' ? 'Completed' : 'Pending'
     ]);
@@ -201,87 +219,58 @@ const CustomerReport = ({ currentUser, filterSource }) => {
       alert('No data to export');
       return;
     }
-    const doc = new jsPDF();
-    doc.setFontSize(16);
-    doc.text("Customer Leads Report", 14, 20);
-    doc.setFontSize(10);
-    doc.text(`Generated on: ${new Date().toLocaleDateString()} | Filter: ${activeTab.toUpperCase()}`, 14, 26);
+    try {
+      const doc = new jsPDF({ orientation: 'landscape' });
+      doc.setFontSize(16);
+      doc.text('Customer Leads Report', 14, 18);
+      doc.setFontSize(10);
+      doc.text(
+        `Generated on: ${new Date().toLocaleDateString()} | Filter: ${activeTab.toUpperCase()}`,
+        14,
+        24
+      );
 
-    const headers = ["Date", "Expo", "Company", "Contact Person", "Phone", "City", "Type", "Status"];
-    const rows = filteredCustomers.map(c => [
-      c.visit_date,
-      c.linked_expo || c.manual_expo_name || '-',
-      c.company_name,
-      c.customer_name,
-      c.phone_1,
-      c.city || '-',
-      c.enquiry_type || 'Unknown',
-      c.status === 'completed' ? 'Completed' : 'Pending'
-    ]);
+      const headers = [
+        'S.No',
+        'Date',
+        'Expo Name / Source Name',
+        'Company',
+        'Contact Person',
+        'Phone',
+        'City',
+        'Type',
+        'Status',
+      ];
+      const rows = filteredCustomers.map((c, idx) => [
+        idx + 1,
+        c.visit_date || '',
+        String(expoOrSourceLabel(c) || ''),
+        String(c.company_name || ''),
+        String(c.customer_name || ''),
+        String(c.phone_1 || ''),
+        String(c.city || ''),
+        String(c.enquiry_type || 'Unknown'),
+        c.status === 'completed' ? 'Completed' : 'Pending',
+      ]);
 
-    doc.autoTable({
-      startY: 32,
-      head: [headers],
-      body: rows,
-      theme: 'striped',
-      headStyles: { fillColor: [153, 0, 51] }, // CRM primary crimson
-      styles: { fontSize: 8, font: 'helvetica' }
-    });
+      autoTable(doc, {
+        startY: 30,
+        head: [headers],
+        body: rows,
+        theme: 'striped',
+        headStyles: { fillColor: [153, 0, 51] }, // CRM primary crimson
+        styles: { fontSize: 8, font: 'helvetica' },
+      });
 
-    doc.save(`customer_report_${new Date().toISOString().slice(0, 10)}.pdf`);
-    setIsExportDropdownOpen(false);
-  };
-
-  const handleExportWord = () => {
-    if (filteredCustomers.length === 0) {
-      alert('No data to export');
-      return;
+      doc.save(`customer_report_${new Date().toISOString().slice(0, 10)}.pdf`);
+      setIsExportDropdownOpen(false);
+    } catch (err) {
+      console.error('PDF export failed:', err);
+      showToast(err?.message || 'PDF export failed', 'error');
     }
-    const header = `
-      <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-      <head><title>Customer Leads Report</title>
-      <style>
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #ddd; padding: 8px; font-family: 'Open Sans', sans-serif; text-align: left; }
-        th { background-color: #990033; color: white; }
-      </style>
-      </head>
-      <body>
-      <h2>Customer Leads Report</h2>
-      <p>Generated on: ${new Date().toLocaleDateString()} | Filter: ${activeTab.toUpperCase()}</p>
-      <table>
-        <tr>
-          <th>Date</th>
-          <th>Expo</th>
-          <th>Company</th>
-          <th>Contact Person</th>
-          <th>Phone</th>
-          <th>City</th>
-          <th>Enquiry Type</th>
-          <th>Status</th>
-        </tr>`;
-    const rows = filteredCustomers.map(c => `
-        <tr>
-          <td>${c.visit_date}</td>
-          <td>${c.linked_expo || c.manual_expo_name || '-'}</td>
-          <td>${c.company_name}</td>
-          <td>${c.customer_name}</td>
-          <td>${c.phone_1}</td>
-          <td>${c.city || '-'}</td>
-          <td>${c.enquiry_type || 'Unknown'}</td>
-          <td>${c.status === 'completed' ? 'Completed' : 'Pending'}</td>
-        </tr>`).join('');
-    const footer = '</table></body></html>';
-    const blob = new Blob([header + rows + footer], { type: 'application/msword' });
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `customer_report_${new Date().toISOString().slice(0, 10)}.doc`;
-    a.click();
-    URL.revokeObjectURL(url);
-    setIsExportDropdownOpen(false);
   };
+
+  // Word export intentionally removed as requested.
 
   return (
     <div className="space-y-6 pb-12 font-sans animate-in fade-in duration-300">
@@ -314,37 +303,249 @@ const CustomerReport = ({ currentUser, filterSource }) => {
             </>
           }
         >
-          <div className="report-modal-grid">
-            <DetailField label="Visit Date" value={viewingCustomer.visit_date || '-'} />
-            <DetailField label="Expo" value={expoLabel(viewingCustomer)} />
-            <DetailField label="Company Name" value={viewingCustomer.company_name} colSpan={2} />
-            <DetailField label="Industry Type" value={viewingCustomer.industry_type || '-'} />
-            <DetailField label="Website" value={viewingCustomer.website || '-'} />
-            <DetailField label="Customer Name" value={viewingCustomer.customer_name} colSpan={2} />
-            <DetailField label="Designation" value={viewingCustomer.designation || '-'} />
-            <DetailField label="Phone 1" value={viewingCustomer.phone_1 || '-'} />
-            <DetailField label="Phone 2" value={viewingCustomer.phone_2 || '-'} />
-            <DetailField label="Email" value={viewingCustomer.email || '-'} />
-            <DetailField label="City" value={viewingCustomer.city || '-'} />
-            <DetailField label="Location / Address" value={viewingCustomer.location || '-'} colSpan={2} />
-            <DetailField label="Priority" value={viewingCustomer.priority ? viewingCustomer.priority.toUpperCase() : 'MEDIUM'} />
-            <DetailField label="Enquiry Type" value={viewingCustomer.enquiry_type || 'Unknown'} />
-            <DetailField label="Reference" value={viewingCustomer.reference_source || '-'} />
-            <DetailField label="Status" value={viewingCustomer.status === 'completed' ? 'Completed' : 'Pending'} />
-            <DetailField label="Registered By" value={registeredByLabel(viewingCustomer)} colSpan={2} />
-            <DetailField label="Remarks" value={viewingCustomer.remarks || '-'} colSpan={2} />
-            {viewingCustomer.image_path && (
-              <DetailField label="Business Card" colSpan={2}>
-                <a
-                  href={`${API_BASE_URL.replace('/api', '')}/${viewingCustomer.image_path}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-crm-primary hover:underline inline-flex items-center gap-1"
-                >
-                  <i className="ph-bold ph-image" /> View image
-                </a>
-              </DetailField>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-normal text-crm-primary">Visit Date</label>
+                <input
+                  type="text"
+                  disabled
+                  value={viewingCustomer.visit_date || ''}
+                  className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 bg-gray-50 text-gray-600 cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-normal text-crm-primary">Expo</label>
+                <input
+                  type="text"
+                  disabled
+                  value={expoLabel(viewingCustomer)}
+                  className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 bg-gray-50 text-gray-600 cursor-not-allowed"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-normal text-crm-primary">Company Name</label>
+                <input
+                  type="text"
+                  disabled
+                  value={viewingCustomer.company_name || ''}
+                  className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 bg-gray-50 text-gray-600 cursor-not-allowed"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-normal text-crm-primary">Customer Name</label>
+                <input
+                  type="text"
+                  disabled
+                  value={viewingCustomer.customer_name || ''}
+                  className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 bg-gray-50 text-gray-600 cursor-not-allowed"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-normal text-crm-primary">Phone 1</label>
+                <input
+                  type="text"
+                  disabled
+                  value={viewingCustomer.phone_1 || ''}
+                  className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 bg-gray-50 text-gray-600 cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-normal text-crm-primary">Phone 2</label>
+                <input
+                  type="text"
+                  disabled
+                  value={viewingCustomer.phone_2 || ''}
+                  className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 bg-gray-50 text-gray-600 cursor-not-allowed"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-normal text-crm-primary">Email</label>
+                <input
+                  type="text"
+                  disabled
+                  value={viewingCustomer.email || ''}
+                  className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 bg-gray-50 text-gray-600 cursor-not-allowed"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-normal text-crm-primary">City</label>
+                <input
+                  type="text"
+                  disabled
+                  value={viewingCustomer.city || ''}
+                  className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 bg-gray-50 text-gray-600 cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-normal text-crm-primary">Industry Type</label>
+                <input
+                  type="text"
+                  disabled
+                  value={viewingCustomer.industry_type || ''}
+                  className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 bg-gray-50 text-gray-600 cursor-not-allowed"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-normal text-crm-primary">Designation</label>
+                <input
+                  type="text"
+                  disabled
+                  value={viewingCustomer.designation || ''}
+                  className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 bg-gray-50 text-gray-600 cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-normal text-crm-primary">Website</label>
+                <input
+                  type="text"
+                  disabled
+                  value={viewingCustomer.website || ''}
+                  className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 bg-gray-50 text-gray-600 cursor-not-allowed"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-normal text-crm-primary">Enquiry Type</label>
+                <input
+                  type="text"
+                  disabled
+                  value={viewingCustomer.enquiry_type || 'Unknown'}
+                  className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 bg-gray-50 text-gray-600 cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-normal text-crm-primary">Priority</label>
+                <input
+                  type="text"
+                  disabled
+                  value={viewingCustomer.priority ? viewingCustomer.priority.toUpperCase() : 'MEDIUM'}
+                  className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 bg-gray-50 text-gray-600 cursor-not-allowed"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-normal text-crm-primary">Status</label>
+                <input
+                  type="text"
+                  disabled
+                  value={viewingCustomer.status === 'completed' ? 'Completed' : 'Pending'}
+                  className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 bg-gray-50 text-gray-600 cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-normal text-crm-primary">Reference</label>
+                <input
+                  type="text"
+                  disabled
+                  value={viewingCustomer.reference_source || ''}
+                  className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 bg-gray-50 text-gray-600 cursor-not-allowed"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-normal text-crm-primary">Location / Address</label>
+                <textarea
+                  disabled
+                  rows={3}
+                  value={viewingCustomer.location || ''}
+                  className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 resize-y bg-gray-50 text-gray-600 cursor-not-allowed"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-normal text-crm-primary">Remarks</label>
+                <textarea
+                  disabled
+                  rows={3}
+                  value={viewingCustomer.remarks || ''}
+                  className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 resize-y bg-gray-50 text-gray-600 cursor-not-allowed"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-normal text-crm-primary">Registered By</label>
+                <input
+                  type="text"
+                  disabled
+                  value={registeredByLabel(viewingCustomer)}
+                  className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 bg-gray-50 text-gray-600 cursor-not-allowed"
+                />
+              </div>
+
+              {viewingCustomer.image_path && (
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-normal text-crm-primary">Image</label>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPreviewImage({
+                        url: resolvePublicUrl(viewingCustomer.image_path),
+                        title: 'Image',
+                      })
+                    }
+                    className="mt-1 inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-sm text-crm-primary"
+                  >
+                    <i className="ph-bold ph-image" /> View image
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </ReportModalShell>
+      )}
+
+      {previewImage?.url && (
+        <ReportModalShell
+          title={previewImage.title || 'Image Preview'}
+          icon="ph-image"
+          onClose={() => setPreviewImage(null)}
+          maxWidth="max-w-3xl"
+          footer={
+            <button
+              type="button"
+              onClick={() => setPreviewImage(null)}
+              className="px-5 py-2.5 border border-gray-200 rounded-lg hover:bg-white text-sm font-medium text-gray-700"
+            >
+              Close
+            </button>
+          }
+        >
+          <div className="space-y-3">
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+              <img
+                src={previewImage.url}
+                alt={previewImage.title || 'Image'}
+                className="mx-auto max-h-[60vh] w-auto max-w-full rounded-lg object-contain"
+                loading="lazy"
+                onError={() =>
+                  setPreviewImage((prev) => (prev ? { ...prev, failed: true } : prev))
+                }
+              />
+            </div>
+            {previewImage.failed && (
+              <div className="text-sm text-red-600">
+                Image not found / not accessible. Please re-upload the image and save the customer
+                again.
+              </div>
             )}
+            {/* <div className="text-xs text-gray-500 break-all">
+              If the image does not load, open it in a new tab:{' '}
+              <a
+                href={previewImage.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-crm-primary underline"
+              >
+                {previewImage.url}
+              </a>
+            </div> */}
           </div>
         </ReportModalShell>
       )}
@@ -387,6 +588,39 @@ const CustomerReport = ({ currentUser, filterSource }) => {
                       </option>
                     ))}
                   </select>
+                </EditField>
+
+                <EditField label="Image" colSpan={2}>
+                  <div className="flex flex-col gap-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleEditImageChange}
+                      className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm"
+                    />
+                    {(editingCustomer.image || editingCustomer.image_path) && (
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={
+                            editingCustomer.image
+                              ? editingCustomer.image
+                              : resolvePublicUrl(editingCustomer.image_path)
+                          }
+                          alt="Image"
+                          className="h-14 w-auto max-w-[220px] rounded border bg-gray-50 object-contain"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            patchEditingCustomer({ image: '', image_path: null })
+                          }
+                          className="px-3 py-2 text-xs font-semibold rounded-lg border border-red-200 text-red-700 hover:bg-red-50"
+                        >
+                          Remove Image
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </EditField>
                 <EditField label="Company Name" required colSpan={2}>
                   <input
@@ -456,11 +690,11 @@ const CustomerReport = ({ currentUser, filterSource }) => {
                   />
                 </EditField>
                 <EditField label="City">
-                  <input
-                    type="text"
+                  <CityAutocomplete
                     value={editingCustomer.city || ''}
-                    onChange={(e) => patchEditingCustomer({ city: e.target.value })}
-                    className={reportInputClass}
+                    onChange={(city) => patchEditingCustomer({ city })}
+                    placeholder="Type to search city…"
+                    inputClassName={reportInputClass}
                   />
                 </EditField>
                 <EditField label="Location / Address" colSpan={2}>
@@ -616,13 +850,6 @@ const CustomerReport = ({ currentUser, filterSource }) => {
                 <i className="ph-fill ph-file-pdf text-red-600 text-xl group-hover:scale-110 transition-transform"></i>
                 Export to PDF (.pdf)
               </button>
-              <button
-                onClick={handleExportWord}
-                className="w-full px-5 py-3.5 text-left text-sm font-semibold text-gray-700 hover:bg-blue-50/30 flex items-center gap-3 transition-colors group"
-              >
-                <i className="ph-fill ph-file-doc text-blue-600 text-xl group-hover:scale-110 transition-transform"></i>
-                Export to Word (.doc)
-              </button>
             </div>
           )}
         </div>
@@ -714,7 +941,7 @@ const CustomerReport = ({ currentUser, filterSource }) => {
                 <tr className="bg-crm-primary border-b border-crm-primary text-white">
                   <th className="px-4 py-4 font-semibold text-xs uppercase tracking-wider border-r border-white/20 w-14">S.No</th>
                   <th className="px-5 py-4 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Date</th>
-                  <th className="px-5 py-4 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Expo</th>
+                  <th className="px-5 py-4 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Expo / Source</th>
                   <th className="px-5 py-4 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Company</th>
                   <th className="px-5 py-4 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Contact Person</th>
                   <th className="px-5 py-4 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Phone</th>
@@ -733,7 +960,17 @@ const CustomerReport = ({ currentUser, filterSource }) => {
                   <tr key={cust.id} className="border-b border-gray-300 hover:bg-crm-primaryLighter/40 transition-colors duration-150">
                     <td className="px-4 py-3.5 text-sm text-gray-600 border-r border-gray-300 text-center">{index + 1}</td>
                     <td className="px-5 py-3.5 text-sm text-gray-600 border-r border-gray-300">{cust.visit_date}</td>
-                    <td className="px-5 py-3.5 font-semibold text-crm-primary text-sm border-r border-gray-300">{expoLabel(cust)}</td>
+                    <td className="px-5 py-3.5 border-r border-gray-300">
+                      {cust.expo_id || cust.linked_expo || cust.manual_expo_name ? (
+                        <div className="font-semibold text-crm-primary text-sm leading-tight">
+                          {expoLabel(cust)}
+                        </div>
+                      ) : (
+                        <div className="text-purple-600 text-sm font-semibold leading-tight">
+                          {cust.reference_source || ''}
+                        </div>
+                      )}
+                    </td>
                     <td className="px-5 py-3.5 font-semibold text-sm text-gray-900 border-r border-gray-300">{cust.company_name}</td>
                     <td className="px-5 py-3.5 text-sm text-gray-700 border-r border-gray-300">{cust.customer_name}</td>
                     <td className="px-5 py-3.5 text-sm text-gray-600 font-mono border-r border-gray-300">{cust.phone_1}</td>
@@ -770,15 +1007,19 @@ const CustomerReport = ({ currentUser, filterSource }) => {
                     <td className="px-5 py-3.5 text-sm text-right whitespace-nowrap">
                       <div className="flex justify-end items-center gap-1">
                         {cust.image_path && (
-                          <a
-                            href={`${API_BASE_URL.replace('/api', '')}/${cust.image_path}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setPreviewImage({
+                                url: resolvePublicUrl(cust.image_path),
+                                title: 'Image',
+                              })
+                            }
                             className="text-gray-500 hover:text-gray-700 p-1.5 rounded-lg hover:bg-gray-100"
-                            title="View Card"
+                            title="View Image"
                           >
                             <i className="ph-bold ph-image text-lg"></i>
-                          </a>
+                          </button>
                         )}
                         <button onClick={() => setViewingCustomer(cust)} className="text-blue-600 hover:text-blue-800 p-1.5 rounded-lg hover:bg-blue-50" title="View"><i className="ph-bold ph-eye text-lg"></i></button>
                         <button onClick={() => setEditingCustomer({ ...cust })} className="text-crm-primary hover:text-crm-primaryDark p-1.5 rounded-lg hover:bg-crm-primaryLighter" title="Edit"><i className="ph-bold ph-pencil-simple text-lg"></i></button>

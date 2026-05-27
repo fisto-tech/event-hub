@@ -105,15 +105,15 @@ const WhatsappTemplates = ({ embedded = false }) => {
     }
   };
 
-  const pageClass = 'whatsapp-templates-page';
+  const pageClass = '';
 
   const formBlock = (
     <div className="bg-white rounded-xl border border-crm-primary/15 shadow-sm overflow-hidden">
       <div className="bg-crm-primaryLighter/80 px-5 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-crm-primary/10">
-        <span className="font-semibold text-crm-primary">
+        <span className="font-bold text-crm-primary text-base" style={{ fontFamily: "'Open Sans', sans-serif" }}>
           {isEditing ? 'Edit WhatsApp Template' : 'Add WhatsApp Template'}
         </span>
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-crm-primary/80">
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-crm-primary/80" style={{ fontFamily: "'Open Sans', sans-serif" }}>
           Leave expo blank = general (all expos)
         </span>
       </div>
@@ -121,7 +121,7 @@ const WhatsappTemplates = ({ embedded = false }) => {
       <form onSubmit={handleSubmit} className="p-5 space-y-5">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-wide text-gray-500 mb-1.5">
+            <label className="block text-xs font-semibold uppercase  text-gray-600 mb-1.5" style={{ fontFamily: "'Open Sans', sans-serif" }}>
               Expo (blank = all expos)
             </label>
             <select
@@ -139,7 +139,7 @@ const WhatsappTemplates = ({ embedded = false }) => {
             </select>
           </div>
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-wide text-gray-500 mb-1.5">
+            <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1.5" style={{ fontFamily: "'Open Sans', sans-serif" }}>
               Enquiry type (blank = all)
             </label>
             <select
@@ -159,7 +159,7 @@ const WhatsappTemplates = ({ embedded = false }) => {
         </div>
 
         <div>
-          <label className="block text-[10px] font-bold uppercase tracking-wide text-gray-500 mb-1.5">Title</label>
+          <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1.5" style={{ fontFamily: "'Open Sans', sans-serif" }}>Title</label>
           <input
             type="text"
             name="templateTitle"
@@ -172,7 +172,7 @@ const WhatsappTemplates = ({ embedded = false }) => {
         </div>
 
         <div>
-          <label className="block text-[10px] font-bold uppercase tracking-wide text-gray-500 mb-1.5">Content</label>
+          <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1.5" style={{ fontFamily: "'Open Sans', sans-serif" }}>Content</label>
           <textarea
             name="messageContent"
             required
@@ -213,7 +213,7 @@ const WhatsappTemplates = ({ embedded = false }) => {
               <th className="px-4 py-3 font-medium border border-gray-300">Title</th>
               <th className="px-4 py-3 font-medium border border-gray-300">Expo Name</th>
               <th className="px-4 py-3 font-medium border border-gray-300">Enquiry Type</th>
-              <th className="px-4 py-3 font-medium border border-gray-300">Message Preview</th>
+              <th className="px-4 py-3 font-medium border border-gray-300">Content</th>
               <th className="px-4 py-3 font-medium border border-gray-300 text-center">Actions</th>
             </tr>
           </thead>
@@ -266,7 +266,7 @@ const WhatsappTemplates = ({ embedded = false }) => {
           <i className="ph-fill ph-whatsapp-logo text-3xl text-crm-primary shrink-0" />
           <div>
             <h2 className="text-xl font-bold text-crm-textDark">WhatsApp Templates</h2>
-            <p className="text-sm text-crm-textMuted">WhatsApp message templates</p>
+            {/* <p className="text-sm text-crm-textMuted">WhatsApp message templates</p> */}
           </div>
         </div>
         {formBlock}

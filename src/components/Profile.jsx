@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { fetchApi } from '../utils/api';
+import CityAutocomplete from './common/CityAutocomplete';
+import PhoneInput from './common/PhoneInput';
+import { parseStoredPhone, digitsOnly, normalizePhoneForSubmit } from '../utils/phoneUtils';
 
 const Profile = ({ user, onProfileUpdate }) => {
   const [activeSection, setActiveSection] = useState('view'); // view | edit | password
@@ -8,6 +11,13 @@ const Profile = ({ user, onProfileUpdate }) => {
   const [passwordData, setPasswordData] = useState({ current_password: '', new_password: '', confirm_password: '' });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+
+  const formatPhoneForDisplay = (val) => {
+    const parsed = parseStoredPhone(val);
+    const nat = digitsOnly(parsed.national, 15);
+    if (!nat) return '—';
+    return `+${parsed.dial} ${nat}`;
+  };
 
   useEffect(() => {
     if (user?.id) loadProfile();
@@ -51,9 +61,23 @@ const Profile = ({ user, onProfileUpdate }) => {
     e.preventDefault();
     setLoading(true);
     try {
+      // Employee phone must be exactly 10 digits if provided.
+      if (editData.phone) {
+        const parsed = parseStoredPhone(editData.phone);
+        const nat = digitsOnly(parsed.national, 15);
+        if (nat && nat.length !== 10) {
+          showMessage('error', 'Phone number must be exactly 10 digits.');
+          setLoading(false);
+          return;
+        }
+      }
+
       const res = await fetchApi('auth.php?action=profile', {
         method: 'POST',
-        body: JSON.stringify(editData)
+        body: JSON.stringify({
+          ...editData,
+          phone: normalizePhoneForSubmit(editData.phone),
+        })
       });
       if (res.status === 'success') {
         showMessage('success', 'Profile updated successfully!');
@@ -176,7 +200,7 @@ const Profile = ({ user, onProfileUpdate }) => {
               { label: 'Full Name', value: profileData.name, icon: 'ph-user' },
               { label: 'Username', value: profileData.username, icon: 'ph-at' },
               { label: 'Email Address', value: profileData.email, icon: 'ph-envelope' },
-              { label: 'Phone Number', value: profileData.phone, icon: 'ph-phone' },
+                { label: 'Phone Number', value: formatPhoneForDisplay(profileData.phone), icon: 'ph-phone' },
               { label: 'City', value: profileData.city, icon: 'ph-map-pin' },
               { label: 'Department', value: profileData.department, icon: 'ph-buildings' },
               { label: 'Role', value: profileData.role, icon: 'ph-shield-check' },
@@ -189,7 +213,11 @@ const Profile = ({ user, onProfileUpdate }) => {
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 font-medium">{item.label}</p>
-                  <p className="text-sm font-semibold text-gray-800 capitalize">{item.value || '—'}</p>
+                  <p className={`text-sm font-semibold text-gray-800 ${item.label === 'Email Address' ? '' : 'capitalize'}`}>
+                    {item.label === 'Email Address'
+                      ? (item.value ? String(item.value).toLowerCase() : '—')
+                      : (item.value || '—')}
+                  </p>
                 </div>
               </div>
             ))}
@@ -216,13 +244,30 @@ const Profile = ({ user, onProfileUpdate }) => {
             </div>
             <div>
               <label className="block text-sm font-normal text-crm-primary mb-1">Phone Number</label>
-              <input type="tel" name="phone" value={editData.phone} onChange={handleEditChange}
-                className="w-full px-4 py-2.5 rounded-lg outline-none crm-input" placeholder="+91 XXXXX XXXXX" />
+              <div className="mt-1">
+                <PhoneInput
+                  name="phone"
+                  value={editData.phone}
+                  onChange={(phone) => setEditData((prev) => ({ ...prev, phone }))}
+                  inputClassName="flex-1 px-4 py-2.5 rounded-lg outline-none crm-input"
+                  selectClassName="w-[7.5rem] shrink-0 px-2 py-2.5 rounded-lg outline-none crm-input text-sm text-center"
+                  placeholder="Phone number"
+                  showError={false}
+                  maxLength={10}
+                />
+              </div>
             </div>
             <div>
               <label className="block text-sm font-normal text-crm-primary mb-1">City</label>
-              <input type="text" name="city" value={editData.city} onChange={handleEditChange}
-                className="w-full px-4 py-2.5 rounded-lg outline-none crm-input" placeholder="e.g. Mumbai" />
+              <div className="mt-1">
+                <CityAutocomplete
+                  name="city"
+                  value={editData.city}
+                  onChange={(city) => setEditData((prev) => ({ ...prev, city }))}
+                  placeholder="Type to search city…"
+                  inputClassName="w-full px-4 py-2.5 rounded-lg outline-none crm-input"
+                />
+              </div>
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-normal text-crm-primary mb-1">Department</label>

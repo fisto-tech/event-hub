@@ -181,10 +181,10 @@ const MasterScopedLookupView = ({ lookupType }) => {
 
       <div className="bg-white rounded-xl border border-crm-primary/15 shadow-sm overflow-hidden">
         <div className="bg-crm-primaryLighter/80 px-5 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-crm-primary/10">
-          <span className="font-semibold text-crm-primary">
+          <span className="font-bold text-crm-primary text-base" style={{ fontFamily: "'Open Sans', sans-serif" }}>
             {editingId ? `Edit ${cfg.title.slice(0, -1)}` : cfg.addLabel}
           </span>
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-crm-primary/80">
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-crm-primary/80" style={{ fontFamily: "'Open Sans', sans-serif" }}>
             Leave expo blank = general (all expos)
           </span>
         </div>
@@ -192,7 +192,7 @@ const MasterScopedLookupView = ({ lookupType }) => {
         <form onSubmit={handleSave} className="p-5 space-y-4 border-b border-gray-100">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wide text-gray-500 mb-1.5">
+              <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1.5" style={{ fontFamily: "'Open Sans', sans-serif" }}>
                 Expo (blank = all expos)
               </label>
               <select
@@ -209,7 +209,7 @@ const MasterScopedLookupView = ({ lookupType }) => {
               </select>
             </div>
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wide text-gray-500 mb-1.5">
+              <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1.5" style={{ fontFamily: "'Open Sans', sans-serif" }}>
                 Name
               </label>
               <input

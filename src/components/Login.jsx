@@ -31,8 +31,15 @@ const Login = ({ onLogin }) => {
         } else {
           localStorage.removeItem('rememberUsername');
         }
-        // Force a page reload to ensure the app mounts with full session context, fixing the blank screen bug
-        window.location.reload();
+        onLogin?.(res.user);
+
+        // Always land on Dashboard after login (not the previously opened route).
+        // Using BASE_URL keeps this safe if the app is hosted under a sub-path.
+        const base = import.meta.env.BASE_URL || '/';
+        const dashUrl = base.endsWith('/') ? `${base}dashboard` : `${base}/dashboard`;
+
+        // Full page navigation ensures a clean mount with session + avoids the blank-screen bug.
+        window.location.replace(dashUrl);
       } else {
         setError(res.message || 'Login failed. Please try again.');
       }

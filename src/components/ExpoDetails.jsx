@@ -134,7 +134,7 @@ const ExpoDetails = ({ embedded = false }) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="">
       {embedded && (
         <div className="flex items-start gap-3">
           <i className="ph-fill ph-storefront text-3xl text-crm-primary shrink-0" />

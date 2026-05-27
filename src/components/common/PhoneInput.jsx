@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { parseStoredPhone, getDialByIso, DEFAULT_PHONE_ISO } from '../../utils/phoneUtils';
 
 const PhoneInput = ({
   value = '',
@@ -14,18 +15,10 @@ const PhoneInput = ({
 }) => {
   // Parse initial value
   const parseInitial = (val) => {
-    const str = String(val || '').trim();
-    if (str.startsWith('+')) {
-      const spaceIdx = str.indexOf(' ');
-      if (spaceIdx > 0) {
-        return { dial: str.slice(0, spaceIdx), nat: str.slice(spaceIdx + 1).replace(/\D/g, '') };
-      }
-      // If no space, guess first 3 chars or just fallback to +91
-      const match = str.match(/^(\+\d{1,3})\s*(.*)$/);
-      if (match) return { dial: match[1], nat: match[2].replace(/\D/g, '') };
-    }
-    // If just digits, assume +91
-    return { dial: '+91', nat: str.replace(/\D/g, '') };
+    const parsed = parseStoredPhone(val, DEFAULT_PHONE_ISO);
+    const dial = parsed?.dial ? `+${parsed.dial}` : `+${getDialByIso(DEFAULT_PHONE_ISO)}`;
+    const nat = String(parsed?.national || '').replace(/\D/g, '');
+    return { dial, nat };
   };
 
   const initial = parseInitial(value);

@@ -5,19 +5,14 @@ import Dashboard from './components/Dashboard';
 import RegistrationForm from './components/RegistrationForm';
 import CustomerReport from './components/CustomerReport';
 import FollowupManagement from './components/FollowupManagement';
-import CustomerFollowup from './components/CustomerFollowup';
 import EmployeeRegistration from './components/EmployeeRegistration';
 import { isPrivilegedRole } from './utils/roles';
 import ToastHost from './components/common/ToastHost';
 import Profile from './components/Profile';
 import MasterExpoHub from './components/master/MasterExpoHub';
 import MasterPageShell from './components/master/MasterPageShell';
-import { useLocation, useNavigate } from 'react-router-dom';
 
 const App = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
-
   const [isLoggedIn, setIsLoggedIn] = useState(() => !!sessionStorage.getItem('isLoggedIn'));
   const [currentUser, setCurrentUser] = useState(() => {
     try {
@@ -57,114 +52,24 @@ const App = () => {
   const userName = currentUser.name || currentUser.username || 'User';
   const userInitials = userName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
 
-  const getPathFromState = (tabId, subTabId) => {
-    if (tabId === 'dashboard') return '/dashboard';
-    if (tabId === 'profile') return '/profile';
-
-    if (tabId === 'registration') {
-      if (subTabId === 'customer-report') return '/registration/customer-report';
-      return '/registration/customer-registration';
-    }
-
-    if (tabId === 'follow-up') {
-      if (subTabId === 'follow-up-reports') return '/follow-up/reports';
-      return '/follow-up/followup';
-    }
-
-    if (tabId === 'date-wise-analyse') {
-      return '/date-wise-analyse/today';
-    }
-
-    if (tabId === 'master-data') {
-      if (subTabId === 'employee-registration') return '/master-data/employee-registration';
-
-      // Expo (master-expo + internal tabs)
-      const expoTab =
-        subTabId === 'sources' ||
-        subTabId === 'expo-details' ||
-        subTabId === 'enquiry-details' ||
-        subTabId === 'industry-types' ||
-        subTabId === 'whatsapp-template'
-          ? subTabId
-          : 'sources';
-
-      return `/master-data/expo/${expoTab}`;
-    }
-
-    return '/dashboard';
-  };
-
-  const getStateFromPath = (pathname) => {
-    const clean = String(pathname || '/').split('?')[0].split('#')[0];
-    const parts = clean.split('/').filter(Boolean);
-    const root = parts[0] || 'dashboard';
-
-    if (root === 'dashboard') return { tab: 'dashboard', subTab: '' };
-    if (root === 'profile') return { tab: 'profile', subTab: '' };
-
-    if (root === 'registration') {
-      const leaf = parts[1] || 'customer-registration';
-      return {
-        tab: 'registration',
-        subTab: leaf === 'customer-report' ? 'customer-report' : 'customer-registration',
-      };
-    }
-
-    if (root === 'follow-up') {
-      const leaf = parts[1] || 'followup';
-      return {
-        tab: 'follow-up',
-        subTab:
-          leaf === 'reports'
-            ? 'follow-up-reports'
-            : 'follow-up-followup',
-      };
-    }
-
-    if (root === 'date-wise-analyse') {
-      return { tab: 'date-wise-analyse', subTab: 'today-analyse' };
-    }
-
-    if (root === 'master-data') {
-      if (parts[1] === 'employee-registration') {
-        return { tab: 'master-data', subTab: 'employee-registration' };
-      }
-      if (parts[1] === 'expo') {
-        const expoLeaf = parts[2] || 'sources';
-        const allowed = ['sources', 'expo-details', 'enquiry-details', 'industry-types', 'whatsapp-template'];
-        return { tab: 'master-data', subTab: allowed.includes(expoLeaf) ? expoLeaf : 'sources' };
-      }
-      return { tab: 'master-data', subTab: 'master-expo' };
-    }
-
-    // Unknown route => keep behaviour (Dashboard)
-    return { tab: 'dashboard', subTab: '' };
-  };
-
   const handleTabChange = (tabId, subTab = '') => {
     setActiveTab(tabId);
     // Only close sidebar for leaf items — dropdowns are handled inside Sidebar itself
     // so we don't close here unconditionally anymore
     if (subTab) {
       setActiveSubTab(subTab);
-      navigate(getPathFromState(tabId, subTab));
       return;
     }
     if (tabId === 'master-data') {
       setActiveSubTab('master-expo');
-      navigate(getPathFromState(tabId, 'master-expo'));
     } else if (tabId === 'registration') {
       setActiveSubTab('customer-registration');
-      navigate(getPathFromState(tabId, 'customer-registration'));
     } else if (tabId === 'follow-up') {
-      setActiveSubTab('follow-up-followup');
-      navigate(getPathFromState(tabId, 'follow-up-followup'));
+      setActiveSubTab('follow-up-missed');
     } else if (tabId === 'date-wise-analyse') {
       setActiveSubTab('today-analyse');
-      navigate(getPathFromState(tabId, 'today-analyse'));
     } else {
       setActiveSubTab('');
-      navigate(getPathFromState(tabId, ''));
     }
   };
 
@@ -172,32 +77,8 @@ const App = () => {
     if (activeTab === 'master-data' && !isPrivilegedRole(userRole)) {
       setActiveTab('dashboard');
       setActiveSubTab('');
-      navigate('/dashboard', { replace: true });
     }
   }, [activeTab, userRole]);
-
-  // Sync URL -> state (supports refresh + back/forward) without changing functionality.
-  useEffect(() => {
-    if (!isLoggedIn || !currentUser) return;
-
-    const next = getStateFromPath(location.pathname);
-
-    // Prevent non-admins from landing on master-data routes via URL.
-    if (next.tab === 'master-data' && !isPrivilegedRole(userRole)) {
-      if (location.pathname !== '/dashboard') navigate('/dashboard', { replace: true });
-      if (activeTab !== 'dashboard') setActiveTab('dashboard');
-      if (activeSubTab !== '') setActiveSubTab('');
-      return;
-    }
-
-    if (activeTab !== next.tab) setActiveTab(next.tab);
-    if (activeSubTab !== next.subTab) setActiveSubTab(next.subTab);
-  }, [location.pathname, isLoggedIn, currentUser, userRole]);
-
-  const handleSubTabChange = (subTabId) => {
-    setActiveSubTab(subTabId);
-    navigate(getPathFromState(activeTab, subTabId));
-  };
 
   const getPageTitle = () => {
     if (activeTab === 'master-data') {
@@ -224,7 +105,7 @@ const App = () => {
         activeSubTab === 'industry-types' ||
         activeSubTab === 'whatsapp-template'
       ) {
-        return <MasterExpoHub activeSubTab={activeSubTab} setActiveSubTab={handleSubTabChange} currentUser={currentUser} />;
+        return <MasterExpoHub activeSubTab={activeSubTab} setActiveSubTab={setActiveSubTab} currentUser={currentUser} />;
       }
       switch (activeSubTab) {
         case 'employee-registration':
@@ -238,7 +119,7 @@ const App = () => {
             </MasterPageShell>
           );
         default:
-          return <MasterExpoHub activeSubTab="sources" setActiveSubTab={handleSubTabChange} currentUser={currentUser} />;
+          return <MasterExpoHub activeSubTab="sources" setActiveSubTab={setActiveSubTab} currentUser={currentUser} />;
       }
     }
 
@@ -247,10 +128,12 @@ const App = () => {
         return <RegistrationForm currentUser={currentUser} />;
       case 'customer-report':
         return <CustomerReport currentUser={currentUser} />;
-      case 'follow-up-followup':
-        return <CustomerFollowup currentUser={currentUser} />;
-      case 'follow-up-reports':
-        return <FollowupManagement key="reports" defaultFilter="all" currentUser={currentUser} />;
+      case 'follow-up-missed':
+        return <FollowupManagement key="missed" defaultFilter="missed" currentUser={currentUser} />;
+      case 'follow-up-upcoming':
+        return <FollowupManagement key="upcoming" defaultFilter="upcoming" currentUser={currentUser} />;
+      case 'follow-up-completed':
+        return <FollowupManagement key="completed" defaultFilter="completed" currentUser={currentUser} />;
       case 'today-analyse':
         return <FollowupManagement key="today" defaultFilter="today" currentUser={currentUser} />;
       default:
@@ -277,7 +160,7 @@ const App = () => {
         activeTab={activeTab}
         setActiveTab={handleTabChange}
         activeSubTab={activeSubTab}
-        setActiveSubTab={handleSubTabChange}
+        setActiveSubTab={setActiveSubTab}
         onLogout={handleLogout}
         isOpen={isSidebarOpen}
         setIsOpen={setIsSidebarOpen}

@@ -16,12 +16,16 @@ const DEFAULT_WHATSAPP_MESSAGE =
 const FormField = ({ label, children, isFullWidth, required }) => {
   const labelText = String(label).replace(/\s*\*+\s*$/, '').trim();
   return (
-    <div className={`flex items-start ${isFullWidth ? 'col-span-1 md:col-span-2' : ''}`}>
-      <label className="w-1/3 text-right pr-4 text-sm text-gray-600 pt-2 font-medium">
+    <div
+      className={`flex flex-col sm:flex-row sm:items-start ${
+        isFullWidth ? 'col-span-1 md:col-span-2' : ''
+      }`}
+    >
+      <label className="w-full sm:w-1/3 text-left sm:text-right sm:pr-4 text-sm text-gray-600 sm:pt-2 font-medium mb-1.5 sm:mb-0">
         {labelText}
         {required && <span className="text-red-600 ml-0.5" aria-hidden="true">*</span>}
       </label>
-      <div className="w-2/3">{children}</div>
+      <div className="w-full sm:w-2/3">{children}</div>
     </div>
   );
 };
@@ -125,6 +129,7 @@ const RegistrationForm = ({ currentUser }) => {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
+  const imageInputRef = useRef(null);
 
   // Camera stream mounting hook to prevent race-conditions of blank video elements
   useEffect(() => {
@@ -300,6 +305,12 @@ const RegistrationForm = ({ currentUser }) => {
       enquiryType: 'IDC',
       referenceSource: '', reference: '', nextFollowUpDate: '', remarks: '', priority: 'medium', image: ''
     }));
+
+    // Also clear the underlying <input type="file"> value so the old path/filename
+    // doesn't remain selected (and same-file reselect triggers onChange correctly).
+    if (imageInputRef.current) {
+      imageInputRef.current.value = '';
+    }
   };
 
   const enquiryOptions = useMemo(
@@ -814,7 +825,7 @@ END:VCARD`;
   };
 
   return (
-    <div className="space-y-6 pb-20 relative bg-white min-h-screen p-6">
+    <div className="space-y-6 pb-20 relative bg-white rounded-xl p-6">
 
       {/* Top Bar matching Zoho Header style */}
       <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
@@ -824,9 +835,9 @@ END:VCARD`;
         <button
           type="button"
           onClick={() => { setShowScanModal(true); resetScanModalState(); }}
-          className="flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-4 py-1.5 rounded text-sm hover:bg-gray-50 transition-all"
+          className="scan-card-btn flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold transition-all"
         >
-          <i className="ph-bold ph-scan text-lg"></i>
+          <i className="ph-bold ph-scan text-base"></i>
           Scan Card
         </button>
       </div>
@@ -937,7 +948,7 @@ END:VCARD`;
               onChange={(phone1) => setFormData((prev) => ({ ...prev, phone1 }))}
               required
               inputClassName="flex-1 px-3 py-1.5 crm-input"
-              selectClassName="w-[7.5rem] shrink-0 px-2 py-1.5 crm-input text-sm"
+              selectClassName="w-[2.5rem] shrink-0 px-2 py-1.5 crm-input text-sm"
             />
           </FormField>
 
@@ -948,7 +959,7 @@ END:VCARD`;
               onChange={(phone2) => setFormData((prev) => ({ ...prev, phone2 }))}
               required={false}
               inputClassName="flex-1 px-3 py-1.5 crm-input"
-              selectClassName="w-[7.5rem] shrink-0 px-2 py-1.5 crm-input text-sm"
+              selectClassName="w-[3rem] shrink-0 px-2 py-1.5 crm-input text-sm"
             />
           </FormField>
 
@@ -1029,6 +1040,7 @@ END:VCARD`;
           <FormField label="Visit Card Image" isFullWidth>
             <div className="flex items-center gap-4">
               <input
+                ref={imageInputRef}
                 type="file"
                 accept="image/*"
                 onChange={handleImageChange}
@@ -1037,7 +1049,16 @@ END:VCARD`;
               {formData.image && (
                 <div className="flex-shrink-0 relative">
                   <img src={formData.image} alt="Preview" className="h-16 rounded border" />
-                  <button type="button" onClick={() => setFormData(prev => ({ ...prev, image: '' }))} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 text-[10px]">✕</button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormData(prev => ({ ...prev, image: '' }));
+                      if (imageInputRef.current) imageInputRef.current.value = '';
+                    }}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 text-[10px]"
+                  >
+                    ✕
+                  </button>
                 </div>
               )}
             </div>

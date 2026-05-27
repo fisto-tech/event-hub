@@ -6,12 +6,13 @@ import { confirmDelete } from '../utils/confirm';
 import {
   loadCustomDepartments,
   saveCustomDepartment,
+  removeCustomDepartment,
   mergeDepartmentOptions,
 } from '../utils/departments';
-import ReportModalShell, { DetailField, EditField, reportInputClass } from './common/ReportModalShell';
+import ReportModalShell, { EditField, reportInputClass } from './common/ReportModalShell';
 import CityAutocomplete from './common/CityAutocomplete';
 import PhoneInput from './common/PhoneInput';
-import { validateStoredPhone, normalizePhoneForSubmit } from '../utils/phoneUtils';
+import { validateStoredPhone, normalizePhoneForSubmit, parseStoredPhone, digitsOnly } from '../utils/phoneUtils';
 
 const EmployeeRegistration = () => {
   const [employees, setEmployees] = useState([]);
@@ -81,6 +82,15 @@ const EmployeeRegistration = () => {
       if (phoneErr) {
         setSubmitError(phoneErr);
         showToast(phoneErr, 'error');
+        return;
+      }
+      // Employee phone must be exactly 10 digits (national number)
+      const parsed = parseStoredPhone(formData.phone);
+      const nat = digitsOnly(parsed.national, 15);
+      if (nat && nat.length !== 10) {
+        const msg = 'Phone number must be exactly 10 digits';
+        setSubmitError(msg);
+        showToast(msg, 'error');
         return;
       }
     }
@@ -179,6 +189,24 @@ const EmployeeRegistration = () => {
     showToast(isNew ? 'Department added to list' : 'Department already exists', isNew ? 'success' : 'info');
   };
 
+  const handleRemoveDepartment = (deptName) => {
+    const updated = removeCustomDepartment(deptName);
+    setDepartmentOptions(mergeDepartmentOptions(employees, updated));
+
+    setFormData((prev) =>
+      String(prev.department || '').trim().toLowerCase() === String(deptName || '').trim().toLowerCase()
+        ? { ...prev, department: '' }
+        : prev
+    );
+    setEditingEmployee((prev) =>
+      prev && String(prev.department || '').trim().toLowerCase() === String(deptName || '').trim().toLowerCase()
+        ? { ...prev, department: '' }
+        : prev
+    );
+
+    showToast('Department removed from dropdown', 'success');
+  };
+
   const openEditEmployeeModal = (emp) => {
     setEditingEmployee({
       id: emp.id,
@@ -201,6 +229,12 @@ const EmployeeRegistration = () => {
       const phoneErr = validateStoredPhone(editingEmployee.phone, { required: false });
       if (phoneErr) {
         showToast(phoneErr, 'error');
+        return;
+      }
+      const parsed = parseStoredPhone(editingEmployee.phone);
+      const nat = digitsOnly(parsed.national, 15);
+      if (nat && nat.length !== 10) {
+        showToast('Phone number must be exactly 10 digits', 'error');
         return;
       }
     }
@@ -236,7 +270,7 @@ const EmployeeRegistration = () => {
   );
 
   return (
-    <div className="space-y-8">
+    <div className="">
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
           <h3 className="text-lg font-semibold text-crm-primary flex items-center gap-2">
@@ -290,7 +324,8 @@ const EmployeeRegistration = () => {
                 value={formData.phone}
                 onChange={(phone) => setFormData((prev) => ({ ...prev, phone }))}
                 inputClassName="flex-1 px-4 py-2 rounded-lg outline-none crm-input"
-                selectClassName="w-[7.5rem] shrink-0 px-2 py-2 rounded-lg outline-none crm-input text-sm"
+                selectClassName="w-[3rem] shrink-0 px-2 py-2 rounded-lg outline-none crm-input text-sm"
+                maxLength={10}
               />
             </div>
           </div>
@@ -388,35 +423,35 @@ const EmployeeRegistration = () => {
         {listLoading ? (
           <LoadingSpinner label="Loading employees..." />
         ) : (
-          <div className="report-table-wrap mx-6 mb-6">
+          <div className="report-table-wrap">
             <div className="report-table-scroll">
-              <table className="w-full text-left border-collapse text-crm-textDark min-w-[800px]">
+              <table className="w-full text-left border-collapse text-crm-textDark min-w-[900px] border border-gray-300">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200">
-                    <th className="px-4 py-3 text-crm-primary font-semibold text-xs uppercase tracking-wide border-r border-gray-200 w-14">S.No</th>
-                    <th className="px-4 py-3 text-crm-primary font-semibold text-xs uppercase tracking-wide border-r border-gray-200">Employee ID</th>
-                    <th className="px-4 py-3 text-crm-primary font-semibold text-xs uppercase tracking-wide border-r border-gray-200">Name</th>
-                    <th className="px-4 py-3 text-crm-primary font-semibold text-xs uppercase tracking-wide border-r border-gray-200">Email / Phone</th>
-                    <th className="px-4 py-3 text-crm-primary font-semibold text-xs uppercase tracking-wide border-r border-gray-200">Department</th>
-                    <th className="px-4 py-3 text-crm-primary font-semibold text-xs uppercase tracking-wide border-r border-gray-200">Role</th>
-                    <th className="px-4 py-3 text-crm-primary font-semibold text-xs uppercase tracking-wide border-r border-gray-200">Status</th>
-                    <th className="px-4 py-3 text-crm-primary font-semibold text-xs uppercase tracking-wide text-right">Actions</th>
+                  <tr className="bg-crm-primary border-b border-crm-primary text-white">
+                    <th className="px-4 py-3 font-normal border-r border-white/20 w-14 text-center">S.No</th>
+                    <th className="px-4 py-3 font-normal border-r border-white/20">Employee ID</th>
+                    <th className="px-4 py-3 font-normal border-r border-white/20">Name</th>
+                    <th className="px-4 py-3 font-normal border-r border-white/20">Email / Phone</th>
+                    <th className="px-4 py-3 font-normal border-r border-white/20">Department</th>
+                    <th className="px-4 py-3 font-normal border-r border-white/20">Role</th>
+                    <th className="px-4 py-3 font-normal border-r border-white/20">Status</th>
+                    <th className="px-4 py-3 font-normal text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredEmployees.map((emp, index) => (
-                    <tr key={emp.id} className="border-b border-gray-100 hover:bg-crm-primaryLighter/50 transition-colors">
-                      <td className="px-4 py-3.5 text-sm border-r border-gray-100 text-center text-gray-600">{index + 1}</td>
-                      <td className="px-4 py-3.5 font-medium text-sm border-r border-gray-100">{emp.employee_id || '-'}</td>
-                      <td className="px-4 py-3.5 font-medium text-sm border-r border-gray-100">{emp.name}</td>
-                      <td className="px-4 py-3.5 text-sm border-r border-gray-100">
+                    <tr key={emp.id} className="border-b border-gray-300 hover:bg-crm-primaryLighter transition-colors">
+                      <td className="px-4 py-3 text-sm border-r border-gray-300 text-center text-gray-600">{index + 1}</td>
+                      <td className="px-4 py-3 font-normal text-sm border-r border-gray-300">{emp.employee_id || '-'}</td>
+                      <td className="px-4 py-3 font-medium text-sm border-r border-gray-300">{emp.name}</td>
+                      <td className="px-4 py-3 text-sm border-r border-gray-300">
                         {emp.email}
                         <br />
                         <span className="text-gray-500 text-xs">{emp.phone || '-'}</span>
                       </td>
-                      <td className="px-4 py-3.5 text-sm border-r border-gray-100">{emp.department || '-'}</td>
-                      <td className="px-4 py-3.5 text-sm font-medium text-crm-primary border-r border-gray-100">{roleLabel(emp.role)}</td>
-                      <td className="px-4 py-3.5 text-sm border-r border-gray-100">
+                      <td className="px-4 py-3 text-sm border-r border-gray-300">{emp.department || '-'}</td>
+                      <td className="px-4 py-3 text-sm font-medium text-crm-primary border-r border-gray-300">{roleLabel(emp.role)}</td>
+                      <td className="px-4 py-3 text-sm border-r border-gray-300">
                         <span
                           className={`px-2.5 py-1 rounded-full text-xs font-medium ${
                             emp.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-800'
@@ -425,7 +460,7 @@ const EmployeeRegistration = () => {
                           {emp.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
                         <button
                           type="button"
                           onClick={() => setViewingEmployee(emp)}
@@ -455,7 +490,7 @@ const EmployeeRegistration = () => {
                   ))}
                   {filteredEmployees.length === 0 && (
                     <tr>
-                      <td colSpan={8} className="px-4 py-12 text-center text-gray-400">
+                      <td colSpan={8} className="px-4 py-12 text-center text-gray-400 border-t border-gray-300">
                         No employees found.
                       </td>
                     </tr>
@@ -469,7 +504,7 @@ const EmployeeRegistration = () => {
 
       {showDeptModal && (
         <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 " style={{ marginTop: 0 }}
           onClick={() => setShowDeptModal(false)}
         >
           <div
@@ -478,7 +513,7 @@ const EmployeeRegistration = () => {
           >
             <div className="bg-crm-primaryLighter border-b border-crm-primary/10 px-6 py-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-crm-primary flex items-center gap-2">
-                <i className="ph-fill ph-buildings" /> Add Department
+                <i className="ph-fill ph-buildings" /> Manage Departments
               </h3>
               <button type="button" onClick={() => setShowDeptModal(false)} className="text-gray-400 hover:text-gray-600">
                 <i className="ph-bold ph-x text-lg" />
@@ -512,6 +547,26 @@ const EmployeeRegistration = () => {
                       <span key={d} className="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-700">
                         {d}
                       </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {loadCustomDepartments().length > 0 && (
+                <div className="pt-2 border-t border-gray-100">
+                  <p className="text-xs font-semibold text-gray-400 uppercase mb-2">Custom departments (click to remove)</p>
+                  <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto custom-scrollbar">
+                    {loadCustomDepartments().map((d) => (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => handleRemoveDepartment(d)}
+                        className="text-xs px-2.5 py-1 rounded-full bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 inline-flex items-center gap-1"
+                        title="Remove from dropdown"
+                      >
+                        <i className="ph-bold ph-x" />
+                        {d}
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -553,136 +608,114 @@ const EmployeeRegistration = () => {
             </>
           }
         >
-          <div className="report-modal-grid">
-            <DetailField label="Employee ID" value={viewingEmployee.employee_id || '-'} />
-            <DetailField label="Full Name" value={viewingEmployee.name} />
-            <DetailField label="Email" value={viewingEmployee.email} colSpan={2} />
-            <DetailField label="Phone" value={viewingEmployee.phone || '-'} />
-            <DetailField label="City" value={viewingEmployee.city || '-'} />
-            <DetailField label="Department" value={viewingEmployee.department || '-'} />
-            <DetailField label="Role" value={roleLabel(viewingEmployee.role)} />
-            <DetailField label="Username" value={viewingEmployee.username} />
-            <DetailField label="Status" value={viewingEmployee.status} />
-            <DetailField label="Registered On" value={viewingEmployee.created_at || '-'} colSpan={2} />
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-normal text-crm-primary">Employee ID</label>
+                <input
+                  type="text"
+                  disabled
+                  value={viewingEmployee.employee_id || ''}
+                  className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 bg-gray-50 text-gray-600 cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-normal text-crm-primary">Status</label>
+                <input
+                  type="text"
+                  disabled
+                  value={viewingEmployee.status || ''}
+                  className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 bg-gray-50 text-gray-600 cursor-not-allowed capitalize"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-normal text-crm-primary">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  disabled
+                  value={viewingEmployee.name || ''}
+                  className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 bg-gray-50 text-gray-600 cursor-not-allowed"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-normal text-crm-primary">Email</label>
+                <input
+                  type="text"
+                  disabled
+                  value={viewingEmployee.email || ''}
+                  className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 bg-gray-50 text-gray-600 cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-normal text-crm-primary">Phone</label>
+                <input
+                  type="text"
+                  disabled
+                  value={viewingEmployee.phone || ''}
+                  className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 bg-gray-50 text-gray-600 cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-normal text-crm-primary">City</label>
+                <input
+                  type="text"
+                  disabled
+                  value={viewingEmployee.city || ''}
+                  className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 bg-gray-50 text-gray-600 cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-normal text-crm-primary">Department</label>
+                <input
+                  type="text"
+                  disabled
+                  value={viewingEmployee.department || ''}
+                  className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 bg-gray-50 text-gray-600 cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-normal text-crm-primary">Role</label>
+                <input
+                  type="text"
+                  disabled
+                  value={roleLabel(viewingEmployee.role)}
+                  className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 bg-gray-50 text-gray-600 cursor-not-allowed"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-normal text-crm-primary">Username</label>
+                <input
+                  type="text"
+                  disabled
+                  value={viewingEmployee.username || ''}
+                  className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 bg-gray-50 text-gray-600 cursor-not-allowed"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-normal text-crm-primary">Registered On</label>
+                <input
+                  type="text"
+                  disabled
+                  value={viewingEmployee.created_at || ''}
+                  className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 bg-gray-50 text-gray-600 cursor-not-allowed"
+                />
+              </div>
+            </div>
           </div>
         </ReportModalShell>
       )}
 
       {editingEmployee && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setEditingEmployee(null)}>
-          <form
-            onSubmit={handleReportEditSubmit}
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="shrink-0 px-6 py-4 flex items-center justify-between border-b bg-crm-primary/5 border-crm-primary/15">
-              <h3 className="text-lg font-semibold text-crm-primary flex items-center gap-2">
-                <i className="ph-fill ph-pencil-simple" /> Edit Employee
-              </h3>
-              <button type="button" onClick={() => setEditingEmployee(null)} className="h-9 w-9 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100">
-                <i className="ph-bold ph-x text-lg" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-5">
-          <div className="report-modal-grid">
-            <EditField label="Employee ID">
-              <input
-                type="text"
-                value={editingEmployee.employeeId}
-                onChange={(e) => setEditingEmployee({ ...editingEmployee, employeeId: e.target.value })}
-                className={reportInputClass}
-              />
-            </EditField>
-            <EditField label="Full Name" required>
-              <input
-                type="text"
-                required
-                value={editingEmployee.name}
-                onChange={(e) => setEditingEmployee({ ...editingEmployee, name: e.target.value })}
-                className={reportInputClass}
-              />
-            </EditField>
-            <EditField label="Email" required colSpan={2}>
-              <input
-                type="email"
-                required
-                value={editingEmployee.email}
-                onChange={(e) => setEditingEmployee({ ...editingEmployee, email: e.target.value })}
-                className={reportInputClass}
-              />
-            </EditField>
-            <EditField label="Phone" colSpan={2}>
-              <PhoneInput
-                value={editingEmployee.phone}
-                onChange={(phone) => setEditingEmployee((prev) => ({ ...prev, phone }))}
-                inputClassName={`flex-1 ${reportInputClass}`}
-                selectClassName={`w-[7.5rem] shrink-0 ${reportInputClass} text-sm`}
-              />
-            </EditField>
-            <EditField label="City">
-              <CityAutocomplete
-                value={editingEmployee.city}
-                onChange={(city) => setEditingEmployee((prev) => ({ ...prev, city }))}
-                placeholder="Type to search city…"
-                inputClassName={reportInputClass}
-              />
-            </EditField>
-            <EditField label="Department">
-              <select
-                value={editingEmployee.department}
-                onChange={(e) => setEditingEmployee({ ...editingEmployee, department: e.target.value })}
-                className={reportInputClass}
-              >
-                <option value="">Select department</option>
-                {departmentOptions.map((dept) => (
-                  <option key={dept} value={dept}>
-                    {dept}
-                  </option>
-                ))}
-              </select>
-            </EditField>
-            <EditField label="Role">
-              <select
-                value={editingEmployee.role}
-                onChange={(e) => setEditingEmployee({ ...editingEmployee, role: e.target.value })}
-                className={reportInputClass}
-              >
-                <option value="employee">Employee / Staff</option>
-                <option value="admin">Admin</option>
-                <option value="super_admin">Super Admin</option>
-              </select>
-            </EditField>
-            <EditField label="Username" required>
-              <input
-                type="text"
-                required
-                value={editingEmployee.username}
-                onChange={(e) => setEditingEmployee({ ...editingEmployee, username: e.target.value })}
-                className={reportInputClass}
-              />
-            </EditField>
-            <EditField label="Status">
-              <select
-                value={editingEmployee.status}
-                onChange={(e) => setEditingEmployee({ ...editingEmployee, status: e.target.value })}
-                className={reportInputClass}
-              >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </EditField>
-            <EditField label="Password (leave blank to keep)" colSpan={2}>
-              <input
-                type="password"
-                value={editingEmployee.password}
-                onChange={(e) => setEditingEmployee({ ...editingEmployee, password: e.target.value })}
-                className={reportInputClass}
-                placeholder="••••••••"
-              />
-            </EditField>
-          </div>
-            </div>
-            <div className="shrink-0 px-6 py-4 bg-gray-50/90 border-t border-gray-100 flex justify-end gap-3">
+        <ReportModalShell
+          title="Edit Employee"
+          icon="ph-pencil-simple"
+          variant="edit"
+          maxWidth="max-w-3xl"
+          onClose={() => setEditingEmployee(null)}
+          footer={
+            <>
               <button
                 type="button"
                 onClick={() => setEditingEmployee(null)}
@@ -692,14 +725,115 @@ const EmployeeRegistration = () => {
               </button>
               <button
                 type="submit"
+                form="employee-report-edit-form"
                 disabled={loading}
                 className="px-5 py-2.5 bg-crm-primary text-white rounded-lg hover:bg-crm-primaryDark text-sm font-medium disabled:opacity-60"
               >
                 {loading ? 'Saving...' : 'Save Changes'}
               </button>
+            </>
+          }
+        >
+          <form id="employee-report-edit-form" onSubmit={handleReportEditSubmit}>
+            <div className="report-modal-grid">
+              <EditField label="Employee ID">
+                <input
+                  type="text"
+                  value={editingEmployee.employeeId}
+                  onChange={(e) => setEditingEmployee({ ...editingEmployee, employeeId: e.target.value })}
+                  className={reportInputClass}
+                />
+              </EditField>
+              <EditField label="Full Name" required>
+                <input
+                  type="text"
+                  required
+                  value={editingEmployee.name}
+                  onChange={(e) => setEditingEmployee({ ...editingEmployee, name: e.target.value })}
+                  className={reportInputClass}
+                />
+              </EditField>
+              <EditField label="Email" required colSpan={2}>
+                <input
+                  type="email"
+                  required
+                  value={editingEmployee.email}
+                  onChange={(e) => setEditingEmployee({ ...editingEmployee, email: e.target.value })}
+                  className={reportInputClass}
+                />
+              </EditField>
+              <EditField label="Phone" colSpan={2}>
+                <PhoneInput
+                  value={editingEmployee.phone}
+                  onChange={(phone) => setEditingEmployee((prev) => ({ ...prev, phone }))}
+                  inputClassName={`flex-1 ${reportInputClass}`}
+                  selectClassName={`w-[7.5rem] shrink-0 ${reportInputClass} text-sm`}
+                />
+              </EditField>
+              <EditField label="City">
+                <CityAutocomplete
+                  value={editingEmployee.city}
+                  onChange={(city) => setEditingEmployee((prev) => ({ ...prev, city }))}
+                  placeholder="Type to search city…"
+                  inputClassName={reportInputClass}
+                />
+              </EditField>
+              <EditField label="Department">
+                <select
+                  value={editingEmployee.department}
+                  onChange={(e) => setEditingEmployee({ ...editingEmployee, department: e.target.value })}
+                  className={reportInputClass}
+                >
+                  <option value="">Select department</option>
+                  {departmentOptions.map((dept) => (
+                    <option key={dept} value={dept}>
+                      {dept}
+                    </option>
+                  ))}
+                </select>
+              </EditField>
+              <EditField label="Role">
+                <select
+                  value={editingEmployee.role}
+                  onChange={(e) => setEditingEmployee({ ...editingEmployee, role: e.target.value })}
+                  className={reportInputClass}
+                >
+                  <option value="employee">Employee / Staff</option>
+                  <option value="admin">Admin</option>
+                  <option value="super_admin">Super Admin</option>
+                </select>
+              </EditField>
+              <EditField label="Username" required>
+                <input
+                  type="text"
+                  required
+                  value={editingEmployee.username}
+                  onChange={(e) => setEditingEmployee({ ...editingEmployee, username: e.target.value })}
+                  className={reportInputClass}
+                />
+              </EditField>
+              <EditField label="Status">
+                <select
+                  value={editingEmployee.status}
+                  onChange={(e) => setEditingEmployee({ ...editingEmployee, status: e.target.value })}
+                  className={reportInputClass}
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </EditField>
+              <EditField label="Password (leave blank to keep)" colSpan={2}>
+                <input
+                  type="password"
+                  value={editingEmployee.password}
+                  onChange={(e) => setEditingEmployee({ ...editingEmployee, password: e.target.value })}
+                  className={reportInputClass}
+                  placeholder="••••••••"
+                />
+              </EditField>
             </div>
           </form>
-        </div>
+        </ReportModalShell>
       )}
     </div>
   );

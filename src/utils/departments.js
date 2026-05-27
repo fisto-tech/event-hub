@@ -23,6 +23,16 @@ export function saveCustomDepartment(name) {
   return next;
 }
 
+export function removeCustomDepartment(name) {
+  const trimmed = String(name || '').trim();
+  if (!trimmed) return loadCustomDepartments();
+  const lower = trimmed.toLowerCase();
+  const existing = loadCustomDepartments();
+  const next = existing.filter((d) => String(d).trim().toLowerCase() !== lower);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  return next;
+}
+
 export function mergeDepartmentOptions(employees = [], customList = null) {
   const custom = customList ?? loadCustomDepartments();
   const fromEmployees = employees

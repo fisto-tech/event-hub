@@ -7,21 +7,84 @@ button,
 input,
 select,
 textarea,
-optgroup {
+optgroup,
+label,
+p,
+span,
+h1, h2, h3, h4, h5, h6 {
   font-family: 'Open Sans', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-.whatsapp-templates-page,
-.whatsapp-templates-page input,
-.whatsapp-templates-page select,
-.whatsapp-templates-page textarea,
-.whatsapp-templates-page button {
-  font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+/* Ensure Tailwind's font-sans also uses Open Sans across the app (Master Data + forms) */
+.font-sans {
+  font-family: 'Open Sans', sans-serif !important;
 }
 
-/* Branded scrollbars — theme blue (#1558d6) */
+/* ─── Scan Card Button ─────────────────────────────────── */
+.scan-card-btn {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #1558d6 0%, #377dff 100%);
+  color: #fff;
+  border: none;
+  /* box-shadow: 0 4px 14px rgba(21, 88, 214, 0.4); */
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: transform 180ms ease, box-shadow 180ms ease, background 250ms ease;
+}
+
+.scan-card-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(
+    120deg,
+    transparent 0%,
+    rgba(255,255,255,0.35) 50%,
+    transparent 100%
+  );
+  animation: scan-shine 2.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes scan-shine {
+  0%   { left: -100%; }
+  60%  { left: 150%; }
+  100% { left: 150%; }
+}
+
+.scan-card-btn:hover {
+  background: linear-gradient(135deg, #0f44ad 0%, #1558d6 100%);
+  /* box-shadow: 0 6px 20px rgba(21, 88, 214, 0.55); */
+  transform: translateY(-1px);
+}
+
+.scan-card-btn:active {
+  transform: translateY(0px);
+  box-shadow: 0 2px 8px rgba(21, 88, 214, 0.35);
+}
+
+.scan-card-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(55, 125, 255, 0.28), 0 6px 20px rgba(21, 88, 214, 0.55);
+}
+
+/* Scan icon pulse animation */
+.scan-card-btn i {
+  animation: scan-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes scan-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%       { transform: scale(1.2); opacity: 0.8; }
+}
+
+/* ─── Branded scrollbars — theme blue (#1558d6) ────────── */
 .custom-scrollbar::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -45,7 +108,7 @@ optgroup {
   scrollbar-color: #1558d6 #f0f5ff;
 }
 
-/* Report tables: clean corners, single border */
+/* ─── Report tables ────────────────────────────────────── */
 .report-table-wrap {
   border-radius: 0.75rem;
   border: 1px solid #e2e8f0;
@@ -82,6 +145,8 @@ optgroup {
 .report-table-wrap thead tr:first-child th:first-child {
   border-top-left-radius: 0;
 }
+
+/* ─── Report modal grid ────────────────────────────────── */
 .report-modal-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
