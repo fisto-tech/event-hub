@@ -40,6 +40,7 @@ const EmployeeRegistration = () => {
   const [departmentOptions, setDepartmentOptions] = useState([]);
   const [showDeptModal, setShowDeptModal] = useState(false);
   const [newDeptName, setNewDeptName] = useState('');
+  const [view, setView] = useState('register');
 
   useEffect(() => {
     loadEmployees();
@@ -270,237 +271,282 @@ const EmployeeRegistration = () => {
   );
 
   return (
-    <div className="">
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-          <h3 className="text-lg font-semibold text-crm-primary flex items-center gap-2">
-            <i className="ph-fill ph-user-plus text-crm-primary" />
-            {isEditing ? 'Edit Employee Details' : 'Register New Employee'}
-          </h3>
-          <button
-            type="button"
-            onClick={() => setShowDeptModal(true)}
-            className="self-end sm:self-auto inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-crm-primary/30 text-crm-primary text-sm font-medium hover:bg-crm-primaryLighter transition-colors"
-            title="Add custom departments"
-          >
-            <i className="ph-bold ph-buildings" />
-            Departments
-          </button>
-        </div>
-        {loadError && (
-          <div className="mb-4 flex items-center gap-2 bg-amber-50 text-amber-800 px-4 py-3 rounded-lg text-sm border border-amber-200">
-            <i className="ph-fill ph-warning-circle shrink-0" />
-            <span>{loadError}</span>
-          </div>
-        )}
-        {submitError && (
-          <div className="mb-4 flex items-center gap-2 bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm border border-red-200">
-            <i className="ph-fill ph-warning-circle shrink-0" />
-            <span>{submitError}</span>
-          </div>
-        )}
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-normal text-crm-primary">Employee ID</label>
-            <input type="text" name="employeeId" value={formData.employeeId} onChange={handleChange} placeholder="e.g. EMP02" className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1" />
-          </div>
-          <div>
-            <label className="block text-sm font-normal text-crm-primary">
-              Full Name <span className="text-red-600">*</span>
-            </label>
-            <input type="text" name="name" required value={formData.name} onChange={handleChange} placeholder="John Doe" className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1" />
-          </div>
-          <div>
-            <label className="block text-sm font-normal text-crm-primary">
-              Email Address <span className="text-red-600">*</span>
-            </label>
-            <input type="email" name="email" required value={formData.email} onChange={handleChange} placeholder="email@domain.com" className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1" />
-          </div>
-          <div>
-            <label className="block text-sm font-normal text-crm-primary">Phone Number</label>
-            <div className="mt-1">
-              <PhoneInput
-                name="phone"
-                value={formData.phone}
-                onChange={(phone) => setFormData((prev) => ({ ...prev, phone }))}
-                inputClassName="flex-1 px-4 py-2 rounded-lg outline-none crm-input"
-                selectClassName="w-[3rem] shrink-0 px-2 py-2 rounded-lg outline-none crm-input text-sm"
-                maxLength={10}
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-normal text-crm-primary">City</label>
-            <div className="mt-1">
-              <CityAutocomplete
-                name="city"
-                value={formData.city}
-                onChange={(city) => setFormData((prev) => ({ ...prev, city }))}
-                placeholder="Type to search city…"
-                className="w-full"
-                inputClassName="w-full px-4 py-2 rounded-lg outline-none crm-input"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-normal text-crm-primary">Department</label>
-            <select
-              name="department"
-              value={formData.department}
-              onChange={handleChange}
-              className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1"
+    <div className="space-y-4">
+      {view === 'register' ? (
+        <div className="space-y-4">
+          {/* Page title row — outside the white card */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <h3 className="text-lg font-semibold text-crm-primary flex items-center gap-2">
+              <i className="ph-fill ph-user-plus text-crm-primary" />
+              {isEditing ? 'Edit Employee Details' : 'Register New Employee'}
+            </h3>
+            <button
+              type="button"
+              onClick={() => setView('report')}
+              className="self-start sm:self-auto inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-crm-primary text-white text-sm font-semibold hover:bg-crm-primaryDark transition-colors shadow"
+              title="View and Edit Employee Reports"
             >
-              <option value="">Select department</option>
-              {departmentOptions.map((dept) => (
-                <option key={dept} value={dept}>
-                  {dept}
-                </option>
-              ))}
-            </select>
+              <i className="ph-bold ph-users-three" />
+              View & Edit Employees
+            </button>
           </div>
-          <div>
-            <label className="block text-sm font-normal text-crm-primary">Role</label>
-            <select name="role" value={formData.role} onChange={handleChange} className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1">
-              <option value="employee">Employee / Staff</option>
-              <option value="admin">Admin</option>
-              <option value="super_admin">Super Admin</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-normal text-crm-primary">
-              Username <span className="text-red-600">*</span>
-            </label>
-            <input type="text" name="username" required value={formData.username} onChange={handleChange} placeholder="username123" className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1" />
-          </div>
-          <div>
-            <label className="block text-sm font-normal text-crm-primary">
-              Password {isEditing ? '(leave blank to keep current)' : <span className="text-red-600">*</span>}
-            </label>
-            <input type="password" name="password" required={!isEditing} value={formData.password} onChange={handleChange} placeholder="••••••••" className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1" />
-          </div>
-          {isEditing && (
-            <div>
-              <label className="block text-sm font-normal text-crm-primary">Status</label>
-              <select name="status" value={formData.status} onChange={handleChange} className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1">
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
+          {/* White card — form only */}
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+          {loadError && (
+            <div className="mb-4 flex items-center gap-2 bg-amber-50 text-amber-800 px-4 py-3 rounded-lg text-sm border border-amber-200">
+              <i className="ph-fill ph-warning-circle shrink-0" />
+              <span>{loadError}</span>
             </div>
           )}
-
-          <div className="lg:col-span-3 flex justify-end gap-3 mt-2">
-            <button type="button" onClick={resetForm} className="px-6 py-2 text-crm-primary font-normal hover:bg-crm-primaryLighter rounded-lg">
-              Cancel
-            </button>
-            <button type="submit" disabled={loading} className="btn-running-border text-white px-8 py-2 rounded-lg font-normal shadow-md disabled:opacity-60">
-              {loading ? 'Saving...' : isEditing ? 'Update Employee' : 'Register Employee'}
+          {submitError && (
+            <div className="mb-4 flex items-center gap-2 bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm border border-red-200">
+              <i className="ph-fill ph-warning-circle shrink-0" />
+              <span>{submitError}</span>
+            </div>
+          )}
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-normal text-crm-primary">Employee ID</label>
+              <input type="text" name="employeeId" value={formData.employeeId} onChange={handleChange} placeholder="e.g. EMP02" className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1" />
+            </div>
+            <div>
+              <label className="block text-sm font-normal text-crm-primary">
+                Full Name <span className="text-red-600">*</span>
+              </label>
+              <input type="text" name="name" required value={formData.name} onChange={handleChange} placeholder="John Doe" className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1" />
+            </div>
+            <div>
+              <label className="block text-sm font-normal text-crm-primary">
+                Email Address <span className="text-red-600">*</span>
+              </label>
+              <input type="email" name="email" required value={formData.email} onChange={handleChange} placeholder="email@domain.com" className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1" />
+            </div>
+            <div>
+              <label className="block text-sm font-normal text-crm-primary">Phone Number</label>
+              <div className="mt-1">
+                <PhoneInput
+                  name="phone"
+                  value={formData.phone}
+                  onChange={(phone) => setFormData((prev) => ({ ...prev, phone }))}
+                  inputClassName="flex-1 px-4 py-2 rounded-lg outline-none crm-input"
+                  selectClassName="w-[3rem] shrink-0 px-2 py-2 rounded-lg outline-none crm-input text-sm"
+                  maxLength={10}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-normal text-crm-primary">City</label>
+              <div className="mt-1">
+                <CityAutocomplete
+                  name="city"
+                  value={formData.city}
+                  onChange={(city) => setFormData((prev) => ({ ...prev, city }))}
+                  placeholder="Type to search city…"
+                  className="w-full"
+                  inputClassName="w-full px-4 py-2 rounded-lg outline-none crm-input"
+                />
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between items-center">
+                <label className="block text-sm font-normal text-crm-primary">Department</label>
+                <button
+                  type="button"
+                  onClick={() => setShowDeptModal(true)}
+                  className="text-xs text-crm-primary hover:text-crm-primaryDark hover:underline inline-flex items-center gap-1 font-semibold"
+                  title="Manage departments"
+                >
+                  <i className="ph ph-buildings" /> Manage
+                </button>
+              </div>
+              <select
+                name="department"
+                value={formData.department}
+                onChange={handleChange}
+                className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1"
+              >
+                <option value="">Select department</option>
+                {departmentOptions.map((dept) => (
+                  <option key={dept} value={dept}>
+                    {dept}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-normal text-crm-primary">Role</label>
+              <select name="role" value={formData.role} onChange={handleChange} className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1">
+                <option value="employee">Employee / Staff</option>
+                <option value="admin">Admin</option>
+                <option value="super_admin">Super Admin</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-normal text-crm-primary">
+                Username <span className="text-red-600">*</span>
+              </label>
+              <input
+                type="text"
+                name="username"
+                required
+                value={formData.username}
+                onChange={handleChange}
+                placeholder="username123"
+                autoComplete="new-username"
+                className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-normal text-crm-primary">
+                Password {isEditing ? '(leave blank to keep current)' : <span className="text-red-600">*</span>}
+              </label>
+              <input
+                type="password"
+                name="password"
+                required={!isEditing}
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="••••••••"
+                autoComplete="new-password"
+                className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1"
+              />
+            </div>
+            {isEditing && (
+              <div>
+                <label className="block text-sm font-normal text-crm-primary">Status</label>
+                <select name="status" value={formData.status} onChange={handleChange} className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1">
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+            )}
+  
+            <div className="lg:col-span-3 flex justify-end gap-3 mt-2">
+              <button type="button" onClick={resetForm} className="px-6 py-2 text-crm-primary font-normal hover:bg-crm-primaryLighter rounded-lg">
+                Cancel
+              </button>
+              <button type="submit" disabled={loading} className="btn-running-border text-white px-8 py-2 rounded-lg font-normal shadow-md disabled:opacity-60">
+                {loading ? 'Saving...' : isEditing ? 'Update Employee' : 'Register Employee'}
+              </button>
+            </div>
+          </form>
+        </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <button
+              type="button"
+              onClick={() => setView('register')}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 text-sm font-semibold hover:bg-gray-50 transition-colors shadow-sm"
+            >
+              <i className="ph-bold ph-arrow-left" />
+              Back to Registration
             </button>
           </div>
-        </form>
-      </div>
-
-      {/* Employee report (moved from Master Data sidebar) */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-end gap-4">
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold text-crm-primary flex items-center gap-2">
-              <i className="ph-fill ph-users-three" /> Employee Report
-            </h3>
-            <p className="text-sm text-gray-500 mt-1">View all registered staff accounts</p>
-          </div>
-          <div className="relative flex-1 max-w-md">
-            <i className="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search by name, ID, department..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-lg outline-none crm-input"
-            />
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-end gap-4">
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-crm-primary flex items-center gap-2">
+                  <i className="ph-fill ph-users-three" /> Employee Report
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">View all registered staff accounts</p>
+              </div>
+              <div className="relative flex-1 max-w-md">
+                <i className="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search by name, ID, department..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 rounded-lg outline-none crm-input"
+                />
+              </div>
+            </div>
+  
+            {listLoading ? (
+              <LoadingSpinner label="Loading employees..." />
+            ) : (
+              <div className="report-table-wrap">
+                <div className="report-table-scroll">
+                  <table className="w-full text-left border-collapse text-crm-textDark min-w-[900px] border border-gray-300">
+                    <thead>
+                      <tr className="bg-crm-primary border-b border-crm-primary text-white">
+                        <th className="px-4 py-3 font-normal border-r border-white/20 w-14 text-center">S.No</th>
+                        <th className="px-4 py-3 font-normal border-r border-white/20">Employee ID</th>
+                        <th className="px-4 py-3 font-normal border-r border-white/20">Name</th>
+                        <th className="px-4 py-3 font-normal border-r border-white/20">Email / Phone</th>
+                        <th className="px-4 py-3 font-normal border-r border-white/20">Department</th>
+                        <th className="px-4 py-3 font-normal border-r border-white/20">Role</th>
+                        <th className="px-4 py-3 font-normal border-r border-white/20">Status</th>
+                        <th className="px-4 py-3 font-normal text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredEmployees.map((emp, index) => (
+                        <tr key={emp.id} className="border-b border-gray-300 hover:bg-crm-primaryLighter transition-colors">
+                          <td className="px-4 py-3 text-sm border-r border-gray-300 text-center text-gray-600">{index + 1}</td>
+                          <td className="px-4 py-3 font-normal text-sm border-r border-gray-300">{emp.employee_id || '-'}</td>
+                          <td className="px-4 py-3 font-medium text-sm border-r border-gray-300">{emp.name}</td>
+                          <td className="px-4 py-3 text-sm border-r border-gray-300">
+                            {emp.email}
+                            <br />
+                            <span className="text-gray-500 text-xs">{emp.phone || '-'}</span>
+                          </td>
+                          <td className="px-4 py-3 text-sm border-r border-gray-300">{emp.department || '-'}</td>
+                          <td className="px-4 py-3 text-sm font-medium text-crm-primary border-r border-gray-300">{roleLabel(emp.role)}</td>
+                          <td className="px-4 py-3 text-sm border-r border-gray-300">
+                            <span
+                              className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                                emp.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-800'
+                              }`}
+                            >
+                              {emp.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right whitespace-nowrap">
+                            <button
+                              type="button"
+                              onClick={() => setViewingEmployee(emp)}
+                              className="text-blue-600 hover:text-blue-800 p-1.5 rounded-lg hover:bg-blue-50"
+                              title="View"
+                            >
+                              <i className="ph-bold ph-eye text-lg" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openEditEmployeeModal(emp)}
+                              className="text-crm-primary hover:text-crm-primaryDark p-1.5 rounded-lg hover:bg-crm-primaryLighter ml-1"
+                              title="Edit"
+                            >
+                              <i className="ph-bold ph-pencil-simple text-lg" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(emp.id, emp.name)}
+                              className="text-red-600 hover:text-red-800 p-1.5 rounded-lg hover:bg-red-50 ml-1"
+                              title="Delete"
+                            >
+                              <i className="ph-bold ph-trash text-lg" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {filteredEmployees.length === 0 && (
+                        <tr>
+                          <td colSpan={8} className="px-4 py-12 text-center text-gray-400 border-t border-gray-300">
+                            No employees found.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-
-        {listLoading ? (
-          <LoadingSpinner label="Loading employees..." />
-        ) : (
-          <div className="report-table-wrap">
-            <div className="report-table-scroll">
-              <table className="w-full text-left border-collapse text-crm-textDark min-w-[900px] border border-gray-300">
-                <thead>
-                  <tr className="bg-crm-primary border-b border-crm-primary text-white">
-                    <th className="px-4 py-3 font-normal border-r border-white/20 w-14 text-center">S.No</th>
-                    <th className="px-4 py-3 font-normal border-r border-white/20">Employee ID</th>
-                    <th className="px-4 py-3 font-normal border-r border-white/20">Name</th>
-                    <th className="px-4 py-3 font-normal border-r border-white/20">Email / Phone</th>
-                    <th className="px-4 py-3 font-normal border-r border-white/20">Department</th>
-                    <th className="px-4 py-3 font-normal border-r border-white/20">Role</th>
-                    <th className="px-4 py-3 font-normal border-r border-white/20">Status</th>
-                    <th className="px-4 py-3 font-normal text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredEmployees.map((emp, index) => (
-                    <tr key={emp.id} className="border-b border-gray-300 hover:bg-crm-primaryLighter transition-colors">
-                      <td className="px-4 py-3 text-sm border-r border-gray-300 text-center text-gray-600">{index + 1}</td>
-                      <td className="px-4 py-3 font-normal text-sm border-r border-gray-300">{emp.employee_id || '-'}</td>
-                      <td className="px-4 py-3 font-medium text-sm border-r border-gray-300">{emp.name}</td>
-                      <td className="px-4 py-3 text-sm border-r border-gray-300">
-                        {emp.email}
-                        <br />
-                        <span className="text-gray-500 text-xs">{emp.phone || '-'}</span>
-                      </td>
-                      <td className="px-4 py-3 text-sm border-r border-gray-300">{emp.department || '-'}</td>
-                      <td className="px-4 py-3 text-sm font-medium text-crm-primary border-r border-gray-300">{roleLabel(emp.role)}</td>
-                      <td className="px-4 py-3 text-sm border-r border-gray-300">
-                        <span
-                          className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                            emp.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-800'
-                          }`}
-                        >
-                          {emp.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right whitespace-nowrap">
-                        <button
-                          type="button"
-                          onClick={() => setViewingEmployee(emp)}
-                          className="text-blue-600 hover:text-blue-800 p-1.5 rounded-lg hover:bg-blue-50"
-                          title="View"
-                        >
-                          <i className="ph-bold ph-eye text-lg" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => openEditEmployeeModal(emp)}
-                          className="text-crm-primary hover:text-crm-primaryDark p-1.5 rounded-lg hover:bg-crm-primaryLighter ml-1"
-                          title="Edit"
-                        >
-                          <i className="ph-bold ph-pencil-simple text-lg" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(emp.id, emp.name)}
-                          className="text-red-600 hover:text-red-800 p-1.5 rounded-lg hover:bg-red-50 ml-1"
-                          title="Delete"
-                        >
-                          <i className="ph-bold ph-trash text-lg" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {filteredEmployees.length === 0 && (
-                    <tr>
-                      <td colSpan={8} className="px-4 py-12 text-center text-gray-400 border-t border-gray-300">
-                        No employees found.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </div>
+      )}
 
       {showDeptModal && (
         <div

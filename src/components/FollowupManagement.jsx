@@ -118,7 +118,7 @@ const FollowupManagement = ({ defaultFilter = 'all', currentUser }) => {
             <thead>
               <tr className="bg-gray-100 border-b border-gray-700">
                 <th className="px-4 py-3 text-crm-primary font-normal border-r border-gray-700 w-14">S.No</th>
-                <th className="px-4 py-3 text-crm-primary font-normal border-r border-gray-700">Follow-up Date</th>
+                <th className="px-4 py-3 text-crm-primary font-normal border-r border-gray-700">Next Follow-up Date</th>
                 <th className="px-4 py-3 text-crm-primary font-normal border-r border-gray-700">Customer Name</th>
                 <th className="px-4 py-3 text-crm-primary font-normal border-r border-gray-700">Company</th>
                 <th className="px-4 py-3 text-crm-primary font-normal border-r border-gray-700">Phone</th>

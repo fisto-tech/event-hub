@@ -927,7 +927,7 @@ END:VCARD`;
           </FormField>
 
 
-          <SectionHeader title="Point of Contact Details" />
+          <SectionHeader title="Contact Details" />
 
           <FormField label="Customer Name" required>
             <input type="text" name="customerName" value={formData.customerName} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
@@ -987,7 +987,7 @@ END:VCARD`;
             )}
           </FormField>
 
-          <FormField label="Priority Level">
+          <FormField label="Priority Level" required>
             <select name="priority" value={formData.priority} onChange={handleChange} className="w-full px-3 py-1.5 crm-input">
               <option value="high">High Priority</option>
               <option value="medium">Medium Priority</option>
@@ -995,7 +995,7 @@ END:VCARD`;
             </select>
           </FormField>
 
-          <FormField label="Next Follow-up">
+          <FormField label="Next Follow-up" required>
             <input type="date" name="nextFollowUpDate" value={formData.nextFollowUpDate} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
           </FormField>
 

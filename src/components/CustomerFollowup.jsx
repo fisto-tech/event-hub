@@ -336,7 +336,7 @@ const CustomerFollowup = ({ currentUser }) => {
       {loading ? (
         <LoadingSpinner label="Loading followups..." />
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-5">
           {cards.map((c) => (
             <div key={c.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
               <div className="flex items-start justify-between gap-3">
@@ -345,9 +345,9 @@ const CustomerFollowup = ({ currentUser }) => {
                     Company: {c.company_name || '—'}
                   </div>
                   <div className="text-xs text-gray-500 mt-1">
-                    Follow-up Date: <span className="font-semibold text-gray-700">{c.follow_up_date}</span>
+                    Next Follow-up Date: <span className="font-semibold text-gray-700">{c.follow_up_date}</span>
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">
+                  <div className="text-xs text-gray-800 mt-1">
                     Contact Person:{' '}
                     <span className="font-semibold text-gray-700">
                       {c.display_contact_person || c.customer_name || '—'}
@@ -441,10 +441,10 @@ const FollowupFormModal = ({ card, currentUser, onClose, onSaved }) => {
     followup_reason: defaultReason,
     next_follow_up_date: card.follow_up_date || todayISO(),
     remarks: '',
-    contact_person: card.display_contact_person || card.customer_name || '',
-    contact_designation: card.display_contact_designation || card.designation || '',
-    contact_phone: card.display_contact_phone || card.phone_1 || '',
-    contact_email: card.display_contact_email || card.email || '',
+    contact_person: '',
+    contact_designation: '',
+    contact_phone: '',
+    contact_email: '',
     voice_note_base64: '',
   });
 
@@ -502,30 +502,36 @@ const FollowupFormModal = ({ card, currentUser, onClose, onSaved }) => {
         contact_email: form.contact_email,
       };
 
-      // If user wants a new contact, create it first (reusable).
-      if (useNewContact) {
-        if (!String(form.contact_person || '').trim()) {
-          showToast('Contact Person is required', 'error');
-          setSubmitting(false);
-          return;
-        }
+      const contactPersonTrimmed = String(form.contact_person || '').trim();
+      const contactPhoneNormalized = normalizePhoneForSubmit(form.contact_phone);
+
+      // Check if the submitted contact details already exist in the list
+      const alreadyExists = contacts.some(
+        (c) =>
+          String(c.person_name || '').trim().toLowerCase() === contactPersonTrimmed.toLowerCase() &&
+          normalizePhoneForSubmit(c.phone) === contactPhoneNormalized
+      );
+
+      // Also check against the default/main customer contact details in the card
+      const isMainCustomer =
+        String(card.customer_name || '').trim().toLowerCase() === contactPersonTrimmed.toLowerCase() &&
+        normalizePhoneForSubmit(card.phone_1) === contactPhoneNormalized;
+
+      // Automatically add/save entered contact details if they are new/not in existing list
+      if (!alreadyExists && !isMainCustomer && contactPersonTrimmed !== '') {
         const resContact = await fetchApi('customer_contacts.php', {
           method: 'POST',
           body: JSON.stringify({
             customer_id: Number(card.customer_id),
-            person_name: finalContact.contact_person,
-            designation: finalContact.contact_designation,
-            phone: normalizePhoneForSubmit(finalContact.contact_phone),
-            email: finalContact.contact_email,
+            person_name: form.contact_person,
+            designation: form.contact_designation,
+            phone: contactPhoneNormalized,
+            email: form.contact_email,
           }),
         });
         if (resContact.status === 'success') {
           contactIdToUse = Number(resContact.id);
           await loadContacts();
-        } else {
-          showToast(resContact.message || 'Failed to save contact', 'error');
-          setSubmitting(false);
-          return;
         }
       } else if (contactIdToUse) {
         const selected = contacts.find((c) => String(c.id) === String(contactIdToUse));
@@ -589,26 +595,91 @@ const FollowupFormModal = ({ card, currentUser, onClose, onSaved }) => {
         </div>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-5 space-y-6">
-          {/* Company info row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-normal text-crm-primary">Event name</label>
-              <input disabled value={card.expo_name || card.manual_expo_name || '—'} className="w-full px-4 py-2.5 rounded-lg crm-input mt-1 bg-gray-50 text-gray-600" />
+          {/* Customer Profile Details (Automatically fetched and displayed) */}
+          <div className="rounded-2xl border border-gray-200 bg-gray-50/50 p-5 space-y-4">
+            <div className="flex items-center gap-2 border-b border-gray-200 pb-2">
+              <i className="ph-fill ph-identification-card text-crm-primary text-xl" />
+              <h4 className="text-sm font-semibold text-crm-primary uppercase tracking-wider">
+                Customer Profile Details
+              </h4>
             </div>
-            <div>
-              <label className="block text-sm font-normal text-crm-primary">
-                Company Name <span className="text-crm-primary">*</span>
-              </label>
-              <input disabled value={card.company_name || ''} className="w-full px-4 py-2.5 rounded-lg crm-input mt-1 bg-gray-50 text-gray-600" />
-            </div>
-            <div>
-              <label className="block text-sm font-normal text-crm-primary">Remarks</label>
-              <input
-                value={form.remarks}
-                onChange={(e) => setForm((p) => ({ ...p, remarks: e.target.value }))}
-                className="w-full px-4 py-2.5 rounded-lg crm-input mt-1"
-                placeholder="Remarks"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+              <div>
+                <label className="block text-gray-500 font-medium">Event Name</label>
+                <div className="mt-1 p-2.5 bg-white rounded-lg border border-gray-200 text-gray-800 font-semibold truncate">
+                  {card.expo_name || card.manual_expo_name || '—'}
+                </div>
+              </div>
+              <div>
+                <label className="block text-gray-500 font-medium">Visit Date</label>
+                <div className="mt-1 p-2.5 bg-white rounded-lg border border-gray-200 text-gray-800 font-semibold">
+                  {card.visit_date || '—'}
+                </div>
+              </div>
+              <div>
+                <label className="block text-gray-500 font-medium">Company Name</label>
+                <div className="mt-1 p-2.5 bg-white rounded-lg border border-gray-200 text-gray-800 font-semibold truncate">
+                  {card.company_name || '—'}
+                </div>
+              </div>
+              <div>
+                <label className="block text-gray-500 font-medium">Industry Type</label>
+                <div className="mt-1 p-2.5 bg-white rounded-lg border border-gray-200 text-gray-800 font-semibold">
+                  {card.industry_type || '—'}
+                </div>
+              </div>
+              <div>
+                <label className="block text-gray-500 font-medium">Website</label>
+                <div className="mt-1 p-2.5 bg-white rounded-lg border border-gray-200 text-gray-800 font-semibold truncate">
+                  {card.website ? (
+                    <a href={card.website.startsWith('http') ? card.website : `https://${card.website}`} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
+                      {card.website}
+                    </a>
+                  ) : '—'}
+                </div>
+              </div>
+              <div>
+                <label className="block text-gray-500 font-medium">City</label>
+                <div className="mt-1 p-2.5 bg-white rounded-lg border border-gray-200 text-gray-800 font-semibold">
+                  {card.city || '—'}
+                </div>
+              </div>
+              <div>
+                <label className="block text-gray-500 font-medium">Secondary Phone</label>
+                <div className="mt-1 p-2.5 bg-white rounded-lg border border-gray-200 text-gray-800 font-semibold">
+                  {card.phone_2 || '—'}
+                </div>
+              </div>
+              <div>
+                <label className="block text-gray-500 font-medium">Priority Level</label>
+                <div className="mt-1 p-2.5 bg-white rounded-lg border border-gray-200 text-gray-800 font-semibold capitalize">
+                  {card.priority || '—'}
+                </div>
+              </div>
+              <div>
+                <label className="block text-gray-500 font-medium">Enquiry Type</label>
+                <div className="mt-1 p-2.5 bg-white rounded-lg border border-gray-200 text-gray-800 font-semibold">
+                  {card.enquiry_type || '—'}
+                </div>
+              </div>
+              <div>
+                <label className="block text-gray-500 font-medium">Reference</label>
+                <div className="mt-1 p-2.5 bg-white rounded-lg border border-gray-200 text-gray-800 font-semibold">
+                  {card.reference_source || card.reference || '—'}
+                </div>
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-gray-500 font-medium">Address / Location</label>
+                <div className="mt-1 p-2.5 bg-white rounded-lg border border-gray-200 text-gray-800 font-semibold">
+                  {card.location || '—'}
+                </div>
+              </div>
+              <div className="md:col-span-4">
+                <label className="block text-gray-500 font-medium">Registration Remarks</label>
+                <div className="mt-1 p-2.5 bg-white rounded-lg border border-gray-200 text-gray-800 font-semibold">
+                  {card.customer_remarks || '—'}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -659,7 +730,7 @@ const FollowupFormModal = ({ card, currentUser, onClose, onSaved }) => {
           <div className="rounded-2xl border border-crm-primary/15 bg-crm-primaryLighter/40 p-4">
             <div className="flex items-center justify-between gap-3">
               <div className="text-sm font-semibold text-gray-800">
-                Existing Contacts <span className="text-crm-primary">*</span>
+                Existing Contacts
               </div>
               <button
                 type="button"
@@ -700,17 +771,6 @@ const FollowupFormModal = ({ card, currentUser, onClose, onSaved }) => {
                 ))
               )}
             </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                setUseNewContact(true);
-                setSelectedContactId(null);
-              }}
-              className="mt-4 w-full px-4 py-3 rounded-xl bg-crm-primary hover:bg-crm-primaryDark text-white text-sm font-semibold"
-            >
-              Add New Contact
-            </button>
           </div>
 
           {/* Contact fields */}
@@ -719,12 +779,13 @@ const FollowupFormModal = ({ card, currentUser, onClose, onSaved }) => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-normal text-crm-primary">
-                  Contact Person <span className="text-crm-primary">*</span>
+                  Contact Person Name <span className="text-crm-primary">*</span>
                 </label>
                 <input
                   value={form.contact_person}
                   onChange={(e) => setForm((p) => ({ ...p, contact_person: e.target.value }))}
                   className="w-full px-4 py-2.5 rounded-lg crm-input mt-1"
+                  placeholder="Contact Person Name"
                 />
               </div>
               <div>
@@ -733,11 +794,12 @@ const FollowupFormModal = ({ card, currentUser, onClose, onSaved }) => {
                   value={form.contact_designation}
                   onChange={(e) => setForm((p) => ({ ...p, contact_designation: e.target.value }))}
                   className="w-full px-4 py-2.5 rounded-lg crm-input mt-1"
+                  placeholder="Designation"
                 />
               </div>
               <div>
                 <label className="block text-sm font-normal text-crm-primary">
-                  Mobile No <span className="text-crm-primary">*</span>
+                  Phone Number <span className="text-crm-primary">*</span>
                 </label>
                 <div className="mt-1">
                   <PhoneInput
@@ -745,39 +807,19 @@ const FollowupFormModal = ({ card, currentUser, onClose, onSaved }) => {
                     onChange={(v) => setForm((p) => ({ ...p, contact_phone: v }))}
                     required
                     inputClassName="flex-1 min-w-0 px-4 py-2.5 rounded-lg crm-input"
-                    selectClassName="w-[5.5rem] shrink-0 px-3 py-2.5 rounded-lg crm-input text-sm text-center"
+                    selectClassName="w-[3.5rem] shrink-0 px-3 py-2.5 rounded-lg crm-input text-sm text-center"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-normal text-crm-primary">Email ID</label>
+                <label className="block text-sm font-normal text-crm-primary">Email</label>
                 <input
                   value={form.contact_email}
                   onChange={(e) => setForm((p) => ({ ...p, contact_email: e.target.value }))}
                   className="w-full px-4 py-2.5 rounded-lg crm-input mt-1"
+                  placeholder="Email"
                 />
               </div>
-            </div>
-            {useNewContact && (
-              <p className="text-xs text-gray-600 mt-2">
-                This contact will be saved and shown in “Existing Contacts” after submit.
-              </p>
-            )}
-          </div>
-
-          {/* Enquiry & followup details */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-normal text-crm-primary">Enquiry Type</label>
-              <input disabled value={card.enquiry_type || '—'} className="w-full px-4 py-2.5 rounded-lg crm-input mt-1 bg-gray-50 text-gray-600" />
-            </div>
-            <div>
-              <label className="block text-sm font-normal text-crm-primary">Priority</label>
-              <input disabled value={(card.priority || '—').toString()} className="w-full px-4 py-2.5 rounded-lg crm-input mt-1 bg-gray-50 text-gray-600 capitalize" />
-            </div>
-            <div>
-              <label className="block text-sm font-normal text-crm-primary">Reference</label>
-              <input disabled value={card.reference_source || card.reference || '—'} className="w-full px-4 py-2.5 rounded-lg crm-input mt-1 bg-gray-50 text-gray-600" />
             </div>
           </div>
 
