@@ -155,25 +155,7 @@ const VoiceNoteControl = ({ value, onChange }) => {
         >
           <i className="ph-bold ph-trash text-lg" />
         </button>
-        <label
-          className="h-10 w-10 rounded-lg border border-gray-200 text-sm font-semibold cursor-pointer hover:bg-gray-50 flex items-center justify-center"
-          aria-label="Upload voice note"
-          title="Upload"
-        >
-          <i className="ph-bold ph-upload-simple text-lg" />
-          <input
-            type="file"
-            accept="audio/*"
-            className="hidden"
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              const dataUrl = await toDataUrl(file);
-              onChange?.(dataUrl);
-              e.target.value = '';
-            }}
-          />
-        </label>
+
       </div>
       {value ? (
         <audio controls className="w-full">
@@ -181,6 +163,51 @@ const VoiceNoteControl = ({ value, onChange }) => {
         </audio>
       ) : (
         <p className="text-xs text-gray-500">No voice note added.</p>
+      )}
+    </div>
+  );
+};
+
+const CustomContactSelect = ({ value, onChange, options }) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const click = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', click);
+    return () => document.removeEventListener('mousedown', click);
+  }, []);
+
+  const selected = options.find((o) => String(o.value) === String(value));
+
+  return (
+    <div className="relative w-full" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full px-4 py-2.5 rounded-lg crm-input bg-white text-left flex items-center justify-between"
+      >
+        <span className="truncate">{selected ? selected.displayName : 'Select Contact Person'}</span>
+        <i className="ph-bold ph-caret-down text-gray-400" />
+      </button>
+      {open && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-[999] max-h-60 overflow-y-auto">
+          {options.map((o) => (
+            <button
+              key={o.value}
+              type="button"
+              className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${
+                String(o.value) === String(value) ? 'bg-crm-primary/5 text-crm-primary font-bold' : 'text-gray-700'
+              }`}
+              onClick={() => {
+                onChange(o.value);
+                setOpen(false);
+              }}
+            >
+              {o.listName}
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );
@@ -202,32 +229,80 @@ const FollowupHistoryModal = ({ customer, history, onClose }) => (
       </button>
     }
   >
-    <div className="">
+    <div>
       {history.length === 0 ? (
-        <div className="text-sm text-gray-500">No history found.</div>
+        <div className="flex flex-col items-center justify-center py-10 text-gray-400">
+          <i className="ph-bold ph-clock-counter-clockwise text-3xl mb-2" />
+          <p className="text-sm">No followup history found.</p>
+        </div>
       ) : (
-        <div className="space-y-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {history.map((h) => (
-            <div key={h.id} className="p-3 rounded-xl border border-gray-200 bg-white">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="text-sm font-semibold text-gray-800">
-                  {h.follow_up_date} • {h.followup_reason || '—'}
-                </div>
-                <div className="text-xs font-semibold px-2 py-1 rounded-full bg-gray-100 text-gray-700">
-                  {h.followup_status || h.status || '—'}
-                </div>
+            <div key={h.id} className="rounded-2xl overflow-hidden border border-crm-primary/20 shadow-sm">
+
+              {/* ── Card Header ── */}
+              <div className="bg-crm-primary px-5 py-3 flex items-center gap-3">
+                <span className="text-white text-sm font-bold capitalize">
+                  {h.followup_status || h.status || 'Unknown'}
+                </span>
+                <span className="px-3 py-0.5 rounded-md bg-red-500 text-white text-xs font-bold tracking-wide">
+                  Current Status
+                </span>
               </div>
-              <div className="text-xs text-gray-500 mt-1">
-                Contact: {h.contact_person || '—'} {h.contact_phone ? `(${h.contact_phone})` : ''}
-              </div>
-              {h.remarks && <div className="text-sm text-gray-700 mt-2">{h.remarks}</div>}
-              {h.voice_note_base64 && (
-                <div className="mt-2">
-                  <audio controls className="w-full">
-                    <source src={h.voice_note_base64} />
-                  </audio>
+
+              {/* ── Card Body ── */}
+              <div className="bg-white px-5 py-4 space-y-4">
+
+                {/* Title + timestamp */}
+                <div>
+                  <div className="text-base font-semibold text-black">
+                    Followup Reason : <span className="capitalize">{h.followup_reason || '—'}</span>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    <span className="font-semibold text-gray-700">Followup Taken :</span>{' '}
+                    {h.created_at
+                      ? new Date(h.created_at).toLocaleString()
+                      : h.follow_up_date || '—'}
+                  </div>
                 </div>
-              )}
+
+                {/* Info grid */}
+                <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                  <div>
+                    <div className="text-xs font-semibold text-gray-500 mb-0.5">Contact Person</div>
+                    <div className="text-sm font-medium text-gray-900">{h.contact_person || '—'}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-gray-500 mb-0.5">Contact No</div>
+                    <div className="text-sm font-medium text-gray-900">{h.contact_phone || '—'}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-gray-500 mb-0.5">Next Follow-up</div>
+                    <div className="text-sm font-medium text-gray-900">{h.follow_up_date || '—'}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-gray-500 mb-0.5">Reason</div>
+                    <div className="text-sm font-medium text-gray-900 capitalize">{h.followup_reason || '—'}</div>
+                  </div>
+                </div>
+
+                {/* Remarks */}
+                {h.remarks && (
+                  <div className="border-t border-gray-100 pt-3">
+                    <div className="text-xs font-semibold text-gray-500 mb-1">Remarks</div>
+                    <div className="text-sm text-gray-700">{h.remarks}</div>
+                  </div>
+                )}
+
+                {/* Voice note (if any) */}
+                {h.voice_note_base64 && (
+                  <div className="mt-2">
+                    <audio controls className="w-full">
+                      <source src={h.voice_note_base64} />
+                    </audio>
+                  </div>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -316,11 +391,10 @@ const CustomerFollowup = ({ currentUser }) => {
                 key={t.value}
                 type="button"
                 onClick={() => setActiveReason(t.value)}
-                className={`px-6 py-2 rounded-full border text-sm font-semibold transition-colors ${
-                  activeReason === t.value
-                    ? 'bg-crm-primary text-white border-crm-primary'
-                    : 'bg-white text-gray-800 border-gray-300 hover:bg-crm-primaryLighter/60'
-                }`}
+                className={`px-6 py-2 rounded-full border text-sm font-semibold transition-colors ${activeReason === t.value
+                  ? 'bg-crm-primary text-white border-crm-primary'
+                  : 'bg-white text-gray-800 border-gray-300 hover:bg-crm-primaryLighter/60'
+                  }`}
               >
                 {t.label}
               </button>
@@ -494,7 +568,7 @@ const FollowupFormModal = ({ card, currentUser, onClose, onSaved }) => {
 
     setSubmitting(true);
     try {
-      let contactIdToUse = selectedContactId ? Number(selectedContactId) : null;
+      let contactIdToUse = (selectedContactId && selectedContactId !== 'main') ? Number(selectedContactId) : null;
       let finalContact = {
         contact_person: form.contact_person,
         contact_designation: form.contact_designation,
@@ -582,7 +656,7 @@ const FollowupFormModal = ({ card, currentUser, onClose, onSaved }) => {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <form
         onSubmit={submit}
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[92vh]"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl overflow-hidden flex flex-col max-h-[92vh]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="shrink-0 px-6 py-4 flex items-center justify-between border-b bg-crm-primary/5 border-crm-primary/15">
@@ -683,144 +757,207 @@ const FollowupFormModal = ({ card, currentUser, onClose, onSaved }) => {
             </div>
           </div>
 
-          {/* Existing contact strip */}
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-sm font-semibold text-gray-800">
-                Existing contact details
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setUseNewContact(false);
-                  const base = {
-                    person_name: card.customer_name || '',
-                    designation: card.designation || '',
-                    phone: card.phone_1 || '',
-                    email: card.email || '',
-                  };
-                  applyContact(base);
-                }}
-                className="px-4 py-1.5 rounded-full bg-crm-primary hover:bg-crm-primaryDark text-white text-xs font-semibold"
-              >
-                Apply
-              </button>
-            </div>
-            <div className="mt-2 text-xs text-gray-600 grid grid-cols-1 md:grid-cols-4 gap-2">
-              <div className="flex items-center gap-2">
-                <i className="ph-bold ph-user" />
-                <span>Contact Person: {card.customer_name || '—'}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <i className="ph-bold ph-briefcase" />
-                <span>Designation: {card.designation || '—'}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <i className="ph-bold ph-phone" />
-                <span>Mobile: {card.phone_1 || '—'}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <i className="ph-bold ph-envelope" />
-                <span>Email: {card.email || '—'}</span>
-              </div>
-            </div>
-          </div>
+          {/* ── Contact Details ───────────────────────────── */}
+          <div className="rounded-2xl border border-crm-primary/20 bg-white shadow-sm p-5">
 
-          {/* Existing contacts picker */}
-          <div className="rounded-2xl border border-crm-primary/15 bg-crm-primaryLighter/40 p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-sm font-semibold text-gray-800">
-                Existing Contacts
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  const selected = contacts.find((c) => String(c.id) === String(selectedContactId));
-                  if (!selected) {
-                    showToast('Select a contact first', 'error');
-                    return;
-                  }
-                  setUseNewContact(false);
-                  applyContact(selected);
-                  showToast('Contact applied', 'success');
-                }}
-                className="px-4 py-1.5 rounded-full bg-crm-primary hover:bg-crm-primaryDark text-white text-xs font-semibold"
-              >
-                Apply Selected
-              </button>
+            {/* Section label */}
+            <div className="flex items-center gap-2 mb-4">
+              <i className="ph-fill ph-address-book text-crm-primary text-lg" />
+              <span className="text-sm font-semibold text-gray-800">Contact Details</span>
             </div>
 
-            <div className="mt-3 space-y-2">
-              {contactsLoading ? (
-                <div className="text-sm text-gray-500">Loading contacts...</div>
-              ) : contacts.length === 0 ? (
-                <div className="text-sm text-gray-500">No contacts found.</div>
-              ) : (
-                contacts.map((c) => (
-                  <label key={c.id} className="flex items-center gap-3 text-sm text-gray-800">
+            {/* ── SELECT MODE: dropdown + disabled sibling fields ── */}
+            {!useNewContact && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  {/* Contact Person Name — IS the dropdown */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Contact Person Name <span className="text-red-500">*</span>
+                    </label>
+                    {contactsLoading ? (
+                      <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-gray-200 bg-gray-50 text-sm text-gray-400">
+                        <i className="ph-bold ph-spinner animate-spin text-xs" /> Loading…
+                      </div>
+                    ) : (
+                      <CustomContactSelect
+                        value={selectedContactId || ''}
+                        onChange={(val) => {
+                          setSelectedContactId(val);
+                          if (val === 'main') {
+                            applyContact({
+                              person_name: card.customer_name || '',
+                              designation: card.designation || '',
+                              phone: card.phone_1 || '',
+                              email: card.email || '',
+                            });
+                          } else if (val) {
+                            const found = contacts.find((c) => String(c.id) === String(val));
+                            if (found) applyContact(found);
+                          } else {
+                            setForm((p) => ({
+                              ...p,
+                              contact_person: '',
+                              contact_designation: '',
+                              contact_phone: '',
+                              contact_email: '',
+                            }));
+                          }
+                        }}
+                        options={[
+                          { value: '', displayName: 'Select Contact Person', listName: 'Select Contact Person' },
+                          ...(card.customer_name || card.phone_1
+                            ? [
+                                {
+                                  value: 'main',
+                                  displayName: card.customer_name || '—',
+                                  listName: `${card.customer_name || '—'}${card.phone_1 ? ` (${card.phone_1})` : ''}`,
+                                },
+                              ]
+                            : []),
+                          ...contacts.map((c) => ({
+                            value: String(c.id),
+                            displayName: c.person_name || '—',
+                            listName: `${c.person_name || '—'}${c.phone ? ` (${c.phone})` : ''}`,
+                          })),
+                        ]}
+                      />
+                    )}
+                  </div>
+
+                  {/* Phone Number */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
                     <input
-                      type="radio"
-                      name="contactPick"
-                      checked={String(selectedContactId) === String(c.id)}
-                      onChange={() => setSelectedContactId(c.id)}
+                      value={form.contact_phone}
+                      readOnly
+                      className="w-full px-4 py-2.5 rounded-lg crm-input bg-gray-50 text-gray-500 cursor-default"
+                      placeholder={selectedContactId ? form.contact_phone || '—' : 'Select Contact Person First'}
                     />
-                    <span className="font-semibold">
-                      {c.person_name} {c.phone ? `(${c.phone})` : ''}
-                    </span>
-                  </label>
-                ))
-              )}
-            </div>
-          </div>
+                  </div>
 
-          {/* Contact fields */}
-          <div className="rounded-2xl border border-blue-100 bg-blue-50/30 p-5">
-            <div className="text-sm font-semibold text-gray-800 mb-3">Contact Section</div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-sm font-normal text-crm-primary">
-                  Contact Person Name <span className="text-crm-primary">*</span>
-                </label>
-                <input
-                  value={form.contact_person}
-                  onChange={(e) => setForm((p) => ({ ...p, contact_person: e.target.value }))}
-                  className="w-full px-4 py-2.5 rounded-lg crm-input mt-1"
-                  placeholder="Contact Person Name"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-normal text-crm-primary">Designation</label>
-                <input
-                  value={form.contact_designation}
-                  onChange={(e) => setForm((p) => ({ ...p, contact_designation: e.target.value }))}
-                  className="w-full px-4 py-2.5 rounded-lg crm-input mt-1"
-                  placeholder="Designation"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-normal text-crm-primary">
-                  Phone Number <span className="text-crm-primary">*</span>
-                </label>
-                <div className="mt-1">
-                  <PhoneInput
-                    value={form.contact_phone}
-                    onChange={(v) => setForm((p) => ({ ...p, contact_phone: v }))}
-                    required
-                    inputClassName="flex-1 min-w-0 px-4 py-2.5 rounded-lg crm-input"
-                    selectClassName="w-[3.5rem] shrink-0 px-3 py-2.5 rounded-lg crm-input text-sm text-center"
-                  />
+                  {/* Email ID */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Email ID</label>
+                    <input
+                      value={form.contact_email}
+                      readOnly
+                      className="w-full px-4 py-2.5 rounded-lg crm-input bg-gray-50 text-gray-500 cursor-default"
+                      placeholder={selectedContactId ? form.contact_email || '—' : 'Select Contact Person First'}
+                    />
+                  </div>
+
+                  {/* Designation */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Designation</label>
+                    <input
+                      value={form.contact_designation}
+                      readOnly
+                      className="w-full px-4 py-2.5 rounded-lg crm-input bg-gray-50 text-gray-500 cursor-default"
+                      placeholder={selectedContactId ? form.contact_designation || '—' : 'Select Contact Person First'}
+                    />
+                  </div>
                 </div>
-              </div>
-              <div>
-                <label className="block text-sm font-normal text-crm-primary">Email</label>
-                <input
-                  value={form.contact_email}
-                  onChange={(e) => setForm((p) => ({ ...p, contact_email: e.target.value }))}
-                  className="w-full px-4 py-2.5 rounded-lg crm-input mt-1"
-                  placeholder="Email"
-                />
-              </div>
-            </div>
+
+                {/* + Add Contact button */}
+                <div className="mt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUseNewContact(true);
+                      setSelectedContactId('');
+                      setForm((p) => ({
+                        ...p,
+                        contact_person: '',
+                        contact_designation: '',
+                        contact_phone: '',
+                        contact_email: '',
+                      }));
+                    }}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-crm-primary hover:bg-crm-primaryDark text-white text-sm font-semibold shadow-sm transition-colors"
+                  >
+                    <i className="ph-bold ph-plus" />
+                    Add Contact
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* ── MANUAL ENTRY MODE: all editable inputs ── */}
+            {useNewContact && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  {/* Contact Person Name */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Contact Person Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      value={form.contact_person}
+                      onChange={(e) => setForm((p) => ({ ...p, contact_person: e.target.value }))}
+                      className="w-full px-4 py-2.5 rounded-lg crm-input"
+                      placeholder="Enter Contact Person Name"
+                      autoFocus
+                    />
+                  </div>
+
+                  {/* Phone Number */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                    <PhoneInput
+                      value={form.contact_phone}
+                      onChange={(v) => setForm((p) => ({ ...p, contact_phone: v }))}
+                      required
+                      inputClassName="flex-1 min-w-0 px-4 py-2.5 rounded-lg crm-input"
+                      selectClassName="w-[3.5rem] shrink-0 px-3 py-2.5 rounded-lg crm-input text-sm text-center"
+                    />
+                  </div>
+
+                  {/* Email ID */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Email ID</label>
+                    <input
+                      value={form.contact_email}
+                      onChange={(e) => setForm((p) => ({ ...p, contact_email: e.target.value }))}
+                      className="w-full px-4 py-2.5 rounded-lg crm-input"
+                      placeholder="Enter Email ID"
+                    />
+                  </div>
+
+                  {/* Designation */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Designation</label>
+                    <input
+                      value={form.contact_designation}
+                      onChange={(e) => setForm((p) => ({ ...p, contact_designation: e.target.value }))}
+                      className="w-full px-4 py-2.5 rounded-lg crm-input"
+                      placeholder="Enter Designation"
+                    />
+                  </div>
+                </div>
+
+                {/* Cancel button */}
+                <div className="mt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUseNewContact(false);
+                      setSelectedContactId('');
+                      setForm((p) => ({
+                        ...p,
+                        contact_person: '',
+                        contact_designation: '',
+                        contact_phone: '',
+                        contact_email: '',
+                      }));
+                    }}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-semibold shadow-sm transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Follow up fields */}
