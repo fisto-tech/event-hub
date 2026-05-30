@@ -20,7 +20,7 @@ const STATUS_OPTIONS = [
   { label: 'Confirmed', value: 'confirmed' },
 ];
 
-const REASON_OPTIONS = ['First Followup', 'Proposal', 'Lead', 'Drop', 'Project Confirmed'];
+const REASON_OPTIONS = ['None', 'Proposal', 'Followup', 'Quotation', 'Lead', 'Dropped', 'Project Onboard'];
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
@@ -114,8 +114,8 @@ const VoiceNoteControl = ({ value, onChange }) => {
   };
 
   return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 shrink-0">
         <button
           type="button"
           onClick={start}
@@ -124,7 +124,7 @@ const VoiceNoteControl = ({ value, onChange }) => {
           aria-label="Start recording"
           title="Start"
         >
-          <i className="ph-bold ph-play text-lg" />
+          <i className="ph-bold ph-microphone text-lg" />
         </button>
         <button
           type="button"
@@ -155,14 +155,13 @@ const VoiceNoteControl = ({ value, onChange }) => {
         >
           <i className="ph-bold ph-trash text-lg" />
         </button>
-
       </div>
       {value ? (
-        <audio controls className="w-full">
+        <audio controls controlsList="nodownload noplaybackrate" className="h-10 flex-1 min-w-[200px]">
           <source src={value} />
         </audio>
       ) : (
-        <p className="text-xs text-gray-500">No voice note added.</p>
+        <p className="text-xs text-gray-500 shrink-0">No voice note added.</p>
       )}
     </div>
   );
@@ -511,16 +510,24 @@ const FollowupFormModal = ({ card, currentUser, onClose, onSaved }) => {
     : 'first followup';
 
   const [form, setForm] = useState({
-    followup_status: 'inprogress',
-    followup_reason: defaultReason,
     next_follow_up_date: card.follow_up_date || todayISO(),
+    followup_reason: defaultReason,
+    followup_status: 'inprogress',
     remarks: '',
+    voice_note_base64: '',
     contact_person: '',
     contact_designation: '',
     contact_phone: '',
     contact_email: '',
-    voice_note_base64: '',
   });
+
+  useEffect(() => {
+    if (form.followup_status === 'confirmed') {
+      setForm((p) => ({ ...p, followup_reason: 'Project Onboard' }));
+    } else if (form.followup_status === 'not interested' || form.followup_status === 'not picking') {
+      setForm((p) => ({ ...p, followup_reason: 'None' }));
+    }
+  }, [form.followup_status]);
 
   const loadContacts = async () => {
     setContactsLoading(true);

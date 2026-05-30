@@ -5,6 +5,7 @@ import Dashboard from './components/Dashboard';
 import RegistrationForm from './components/RegistrationForm';
 import CustomerReport from './components/CustomerReport';
 import FollowupManagement from './components/FollowupManagement';
+import FollowupReport from './components/FollowupReport';
 import CustomerFollowup from './components/CustomerFollowup';
 import EmployeeRegistration from './components/EmployeeRegistration';
 import { isPrivilegedRole } from './utils/roles';
@@ -250,7 +251,7 @@ const App = () => {
       case 'follow-up-followup':
         return <CustomerFollowup currentUser={currentUser} />;
       case 'follow-up-reports':
-        return <FollowupManagement key="reports" defaultFilter="all" currentUser={currentUser} />;
+        return <FollowupReport currentUser={currentUser} />;
       case 'today-analyse':
         return <FollowupManagement key="today" defaultFilter="today" currentUser={currentUser} />;
       default:
