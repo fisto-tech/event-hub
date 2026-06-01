@@ -169,15 +169,7 @@ const ExpoDetails = ({ embedded = false }) => {
                     className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 bg-gray-50 text-gray-600 cursor-not-allowed"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-normal text-crm-primary">Status</label>
-                  <input
-                    type="text"
-                    disabled
-                    value={viewingExpo.status ? viewingExpo.status.charAt(0).toUpperCase() + viewingExpo.status.slice(1) : ''}
-                    className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 bg-gray-50 text-gray-600 cursor-not-allowed"
-                  />
-                </div>
+
                 <div>
                   <label className="block text-sm font-normal text-crm-primary mb-2">Dates</label>
                   <div className="w-full px-4 py-2 rounded-lg outline-none crm-input bg-gray-50 text-gray-600 cursor-not-allowed min-h-[42px] flex flex-wrap gap-1.5 items-center">
@@ -231,20 +223,7 @@ const ExpoDetails = ({ embedded = false }) => {
                   className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-normal text-crm-primary">Status</label>
-                <select
-                  name="status"
-                  value={formData.status}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1"
-                >
-                  <option value="upcoming">Upcoming</option>
-                  <option value="ongoing">Ongoing</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
-              </div>
+
               <div>
                 <label className="block text-sm font-normal text-crm-primary">Remarks</label>
                 <textarea
@@ -294,7 +273,7 @@ const ExpoDetails = ({ embedded = false }) => {
                 <th className="px-4 py-3 font-normal border-r border-white/20 w-14">S.No</th>
                 <th className="px-4 py-3 font-normal border-r border-white/20">Expo Name</th>
                 <th className="px-4 py-3 font-normal border-r border-white/20">Dates</th>
-                <th className="px-4 py-3 font-normal border-r border-white/20">Status</th>
+
                 <th className="px-4 py-3 font-normal border-r border-white/20 text-center">Default</th>
                 <th className="px-4 py-3 font-normal text-right">Actions</th>
               </tr>
@@ -313,11 +292,7 @@ const ExpoDetails = ({ embedded = false }) => {
                       ))
                       : '-'}
                   </td>
-                  <td className="px-4 py-3 capitalize text-sm border-r border-gray-300">
-                    <span className="px-2.5 py-1 rounded-full text-xs bg-crm-primaryLighter text-crm-primary">
-                      {expo.status}
-                    </span>
-                  </td>
+
                   <td className="px-4 py-3 text-center border-r border-gray-300">
                     <input
                       type="radio"

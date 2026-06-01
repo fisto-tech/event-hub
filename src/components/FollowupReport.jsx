@@ -27,12 +27,32 @@ const FollowupReport = ({ currentUser }) => {
       const p1 = fetchApi(`follow_ups.php?filter=all&role=${encodeURIComponent(userRole)}&user_id=${currentUser.id}`);
       const p2 = fetchApi('expos.php');
       const p3 = showAll ? fetchApi('users.php') : Promise.resolve({ data: [] });
+      const p4 = fetchApi(`customers.php?role=${encodeURIComponent(userRole)}&user_id=${currentUser.id}`);
 
-      const [resF, resE, resU] = await Promise.all([p1, p2, p3]);
+      const [resF, resE, resU, resC] = await Promise.all([p1, p2, p3, p4]);
       
-      if (resF.status === 'success') setFollowups(resF.data || []);
+      const usersData = resU.status === 'success' ? (resU.data || []) : [];
+      const customersData = resC.status === 'success' ? (resC.data || []) : [];
+      let followupsData = resF.status === 'success' ? (resF.data || []) : [];
+
+      // Enrich followups with customer's expo_id and created_by so filters work
+      followupsData = followupsData.map(f => {
+        const customer = customersData.find(c => String(c.id) === String(f.customer_id));
+        const createdBy = f.created_by || (customer ? customer.created_by : null);
+        const user = usersData.find(u => String(u.id) === String(createdBy));
+        
+        return {
+          ...f,
+          expo_id: f.expo_id || (customer ? customer.expo_id : null),
+          created_by: createdBy,
+          registered_by_name: f.registered_by_name || (user ? (user.name || user.username) : '')
+        };
+      });
+
+      setFollowups(followupsData);
+      
       if (resE.status === 'success') setExpos(resE.data || []);
-      if (showAll && resU.status === 'success') setEmployees(resU.data || []);
+      if (showAll) setEmployees(usersData);
     } catch (e) {
       console.error('Error fetching data:', e);
     } finally {
@@ -69,23 +89,41 @@ const FollowupReport = ({ currentUser }) => {
     // Date Range Filter
     const parseDate = (dStr) => {
       if (!dStr) return 0;
-      if (dStr.includes('-') && dStr.split('-')[0].length === 2) {
-        const [day, month, year] = dStr.split('-');
-        return new Date(`${year}-${month}-${day}`).getTime();
+      let str = String(dStr).trim();
+      
+      // Handle DD-MM-YYYY or DD-MM-YYYY HH:mm:ss
+      if (str.includes('-') && str.split('-')[0].length <= 2) {
+        const parts = str.split(/[\\sT]+/);
+        const [day, month, year] = parts[0].split('-');
+        str = `${year}-${month}-${day}${parts[1] ? ' ' + parts[1] : ''}`;
       }
-      return new Date(dStr).getTime();
+      
+      // If it's strictly YYYY-MM-DD, append time to force local parsing
+      if (/^\\d{4}-\\d{2}-\\d{2}$/.test(str)) {
+        str += ' 00:00:00';
+      }
+      
+      // Replace - with / only for YYYY-MM-DD HH:mm:ss format, not ISO!
+      if (!str.includes('T') && !str.includes('Z')) {
+          str = str.replace(/-/g, '/');
+      }
+
+      const time = new Date(str).getTime();
+      return isNaN(time) ? 0 : time;
     };
 
-    if (startDate && f.follow_up_date) {
-      if (parseDate(f.follow_up_date) < parseDate(startDate)) return false;
+    if (startDate) {
+      if (!f.follow_up_date || parseDate(f.follow_up_date) < parseDate(startDate)) return false;
     }
-    if (endDate && f.follow_up_date) {
-      if (parseDate(f.follow_up_date) > parseDate(endDate)) return false;
+    if (endDate) {
+      // Add 24 hours minus 1 millisecond to include the whole end day
+      const endOfDay = parseDate(endDate) + 86399999;
+      if (!f.follow_up_date || parseDate(f.follow_up_date) > endOfDay) return false;
     }
 
     // Search text Filter
     if (searchText.trim()) {
-      const q = searchText.toLowerCase();
+      const q = searchText.trim().toLowerCase();
       const comp = (f.company_name || '').toLowerCase();
       const phone = (f.phone_1 || '').toLowerCase();
       const cust = (f.customer_name || '').toLowerCase();
@@ -252,7 +290,7 @@ const FollowupReport = ({ currentUser }) => {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden overflow-x-auto">
             <table className="w-full text-left border-collapse whitespace-nowrap">
               <thead>
-                <tr className="bg-[#1eaeb5] text-white">
+                <tr className="bg-crm-primary text-white">
                   <th className="px-4 py-3 font-semibold text-sm border-r border-white/20">S.No.</th>
                   <th className="px-4 py-3 font-semibold text-sm border-r border-white/20">Details</th>
                   <th className="px-4 py-3 font-semibold text-sm border-r border-white/20">Followup Date</th>

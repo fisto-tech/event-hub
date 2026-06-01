@@ -783,45 +783,7 @@ const CustomerReport = ({ currentUser, filterSource }) => {
 
       {/* Top Section: Pill Tabs & Premium Interactive Export Menu */}
       <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4 bg-white p-4 rounded-xl border border-gray-200/80 shadow-sm">
-        {/* Completed / Pending Tabs with Dynamic Badges */}
-        <div className="flex bg-gray-100 p-1.5 rounded-xl border border-gray-200/30 overflow-x-auto scrollbar-none">
-          <button
-            onClick={() => setActiveTab('all')}
-            className={`px-4 py-2.5 text-sm font-semibold transition-all rounded-lg flex items-center gap-2 whitespace-nowrap ${activeTab === 'all'
-                ? 'bg-crm-primary text-white shadow-md'
-                : 'text-gray-600 hover:text-crm-primary hover:bg-gray-200/50'
-              }`}
-          >
-            <i className="ph-bold ph-list-bullets text-base"></i> All Leads
-            <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${activeTab === 'all' ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-700'}`}>
-              {customers.length}
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveTab('completed')}
-            className={`px-4 py-2.5 text-sm font-semibold transition-all rounded-lg flex items-center gap-2 whitespace-nowrap ${activeTab === 'completed'
-                ? 'bg-emerald-600 text-white shadow-md'
-                : 'text-gray-600 hover:text-emerald-600 hover:bg-emerald-50/50'
-              }`}
-          >
-            <i className="ph-bold ph-check-circle text-base"></i> Completed
-            <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${activeTab === 'completed' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'}`}>
-              {customers.filter(c => c.status === 'completed').length}
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveTab('pending')}
-            className={`px-4 py-2.5 text-sm font-semibold transition-all rounded-lg flex items-center gap-2 whitespace-nowrap ${activeTab === 'pending'
-                ? 'bg-amber-500 text-white shadow-md'
-                : 'text-gray-600 hover:text-amber-600 hover:bg-amber-50/50'
-              }`}
-          >
-            <i className="ph-bold ph-clock text-base"></i> Pending
-            <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${activeTab === 'pending' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-800'}`}>
-              {customers.filter(c => c.status !== 'completed').length}
-            </span>
-          </button>
-        </div>
+
 
         {/* Premium Interactive Dropdown Export Button */}
         <div className="relative" ref={dropdownRef}>

@@ -114,7 +114,7 @@ const VoiceNoteControl = ({ value, onChange }) => {
   };
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex flex-wrap items-center gap-3">
       <div className="flex items-center gap-2 shrink-0">
         <button
           type="button"
@@ -161,7 +161,7 @@ const VoiceNoteControl = ({ value, onChange }) => {
           <source src={value} />
         </audio>
       ) : (
-        <p className="text-xs text-gray-500 shrink-0">No voice note added.</p>
+        <p className="text-xs text-gray-500 w-full sm:w-auto mt-1 sm:mt-0">No voice note added.</p>
       )}
     </div>
   );
@@ -331,7 +331,21 @@ const CustomerFollowup = ({ currentUser }) => {
         activeReason
       )}&role=${encodeURIComponent(userRole)}&user_id=${currentUser.id}`;
       const res = await fetchApi(url);
-      if (res.status === 'success') setCards(res.data || []);
+      if (res.status === 'success') {
+        let data = res.data || [];
+        
+        // The API currently returns all records ignoring query parameters, so we must filter locally
+        if (selectedDate) {
+          data = data.filter(c => c.follow_up_date === selectedDate);
+        }
+        if (activeReason) {
+          data = data.filter(c => {
+            const reason = String(c.followup_reason || 'first followup').toLowerCase().trim();
+            return reason === String(activeReason).toLowerCase().trim();
+          });
+        }
+        setCards(data);
+      }
       else setCards([]);
     } catch (e) {
       console.error(e);
@@ -353,7 +367,10 @@ const CustomerFollowup = ({ currentUser }) => {
         )}&user_id=${currentUser.id}`
       );
       if (res.status === 'success') {
-        setHistoryModal({ customer: card, rows: res.data || [] });
+        let data = res.data || [];
+        // The API currently returns all history ignoring customer_id, so we filter locally
+        data = data.filter(h => String(h.customer_id) === String(card.customer_id));
+        setHistoryModal({ customer: card, rows: data });
       } else {
         showToast(res.message || 'Failed to load history', 'error');
       }
@@ -644,8 +661,21 @@ const FollowupFormModal = ({ card, currentUser, onClose, onSaved }) => {
         role: userRole,
       };
 
-      const res = await fetchApi('follow_ups.php', { method: 'POST', body: JSON.stringify(payload) });
-      if (res.status === 'success') {
+      // Use fetch directly: the backend sometimes returns an empty body on
+      // successful inserts (PHP output issue) so we can't rely on fetchApi
+      // which returns {} for empty responses, causing status check to fail.
+      const { API_BASE_URL } = await import('../utils/api');
+      const response = await fetch(`${API_BASE_URL}/follow_ups.php`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const text = await response.text();
+      let res = {};
+      try { res = text ? JSON.parse(text) : {}; } catch { /* ignore parse error */ }
+
+      if (response.ok && (res.status === 'success' || !text || !res.status)) {
+        // HTTP 2xx + either explicit success OR empty body (backend inserted but didn't echo)
         showToast('Followup saved');
         onSaved?.();
       } else {
