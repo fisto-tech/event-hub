@@ -23,7 +23,7 @@ const Sidebar = ({ activeTab, setActiveTab, activeSubTab, setActiveSubTab, onLog
       icon: 'ph-user-plus',
       subItems: [
         { id: 'customer-registration', label: 'Customer Registration', icon: 'ph-user-plus' },
-        { id: 'customer-report', label: 'Customer Report', icon: 'ph-chart-bar' }
+        { id: 'customer-report', label: 'Customer Data', icon: 'ph-chart-bar' }
       ]
     },
     { 
@@ -39,11 +39,6 @@ const Sidebar = ({ activeTab, setActiveTab, activeSubTab, setActiveSubTab, onLog
       id: 'date-wise-analyse', 
       label: 'Date wise analyse', 
       icon: 'ph-calendar-blank'
-    },
-    { 
-      id: 'profile', 
-      label: 'Profile', 
-      icon: 'ph-user-circle'
     },
   ];
 

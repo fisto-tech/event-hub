@@ -54,7 +54,7 @@ const ReportModalShell = ({
         <button
           type="button"
           onClick={onClose}
-          className="h-9 w-9 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+          className="h-9 w-9 rounded-lg flex items-center justify-center text-gray-400 hover:bg-red-500 hover:text-white transition-colors"
           aria-label="Close"
         >
           <i className="ph-bold ph-x text-lg" />

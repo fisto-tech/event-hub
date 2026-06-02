@@ -8,9 +8,8 @@ import { normalizePhoneForSubmit, validateStoredPhone } from '../utils/phoneUtil
 
 const REASON_TABS = [
   { label: 'Followup', value: 'first followup' },
-  { label: 'Proposal', value: 'proposal' },
-  { label: 'Lead', value: 'lead' },
-  { label: 'Project Confirm', value: 'project confirmed' },
+  { label: 'Project Onboard', value: 'project onboard' },
+  { label: 'Dropped', value: 'dropped' },
 ];
 
 const STATUS_OPTIONS = [
@@ -18,6 +17,7 @@ const STATUS_OPTIONS = [
   { label: 'Not Interested', value: 'not interested' },
   { label: 'Not Picking', value: 'not picking' },
   { label: 'Confirmed', value: 'confirmed' },
+  { label: 'Others', value: 'others' },
 ];
 
 const REASON_OPTIONS = ['None', 'Proposal', 'Followup', 'Quotation', 'Lead', 'Dropped', 'Project Onboard'];
@@ -35,8 +35,25 @@ const toDataUrl = (file) =>
 const VoiceNoteControl = ({ value, onChange }) => {
   const [recording, setRecording] = useState(false);
   const [paused, setPaused] = useState(false);
+  const [timer, setTimer] = useState(0);
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    if (recording && !paused) {
+      timerRef.current = setInterval(() => setTimer((t) => t + 1), 1000);
+    } else {
+      clearInterval(timerRef.current);
+    }
+    return () => clearInterval(timerRef.current);
+  }, [recording, paused]);
+
+  const formatTime = (s) => {
+    const mins = Math.floor(s / 60).toString().padStart(2, '0');
+    const secs = (s % 60).toString().padStart(2, '0');
+    return `${mins}:${secs}`;
+  };
 
   const stopTracks = () => {
     try {
@@ -52,6 +69,7 @@ const VoiceNoteControl = ({ value, onChange }) => {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const rec = new MediaRecorder(stream);
       chunksRef.current = [];
+      setTimer(0);
       rec.ondataavailable = (e) => {
         if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
       };
@@ -109,59 +127,68 @@ const VoiceNoteControl = ({ value, onChange }) => {
       chunksRef.current = [];
       setRecording(false);
       setPaused(false);
+      setTimer(0);
       onChange?.('');
     }
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
       <div className="flex items-center gap-2 shrink-0">
         <button
           type="button"
           onClick={start}
-          disabled={recording}
+          disabled={recording || !!value}
           className="h-10 w-10 rounded-lg bg-crm-primary text-white text-sm font-semibold disabled:opacity-60 flex items-center justify-center"
           aria-label="Start recording"
           title="Start"
         >
           <i className="ph-bold ph-microphone text-lg" />
         </button>
-        <button
-          type="button"
-          onClick={pause}
-          disabled={!recording}
-          className="h-10 w-10 rounded-lg border border-gray-200 text-sm font-semibold disabled:opacity-60 flex items-center justify-center"
-          aria-label={paused ? 'Resume recording' : 'Pause recording'}
-          title={paused ? 'Resume' : 'Pause'}
-        >
-          <i className={`ph-bold ${paused ? 'ph-play' : 'ph-pause'} text-lg`} />
-        </button>
-        <button
-          type="button"
-          onClick={stop}
-          disabled={!recording}
-          className="h-10 w-10 rounded-lg bg-crm-primaryDark text-white text-sm font-semibold disabled:opacity-60 flex items-center justify-center"
-          aria-label="Stop recording"
-          title="Stop"
-        >
-          <i className="ph-bold ph-stop text-lg" />
-        </button>
-        <button
-          type="button"
-          onClick={clear}
-          className="h-10 w-10 rounded-lg border border-crm-primary/20 text-crm-primary text-sm font-semibold hover:bg-crm-primaryLighter/60 flex items-center justify-center"
-          aria-label="Delete voice note"
-          title="Delete"
-        >
-          <i className="ph-bold ph-trash text-lg" />
-        </button>
+        {recording && (
+          <>
+            <button
+              type="button"
+              onClick={pause}
+              className="h-10 w-10 rounded-lg border border-gray-200 text-sm font-semibold flex items-center justify-center"
+              aria-label={paused ? 'Resume recording' : 'Pause recording'}
+              title={paused ? 'Resume' : 'Pause'}
+            >
+              <i className={`ph-bold ${paused ? 'ph-play' : 'ph-pause'} text-lg`} />
+            </button>
+            <button
+              type="button"
+              onClick={stop}
+              className="h-10 w-10 rounded-lg bg-crm-primaryDark text-white text-sm font-semibold flex items-center justify-center"
+              aria-label="Stop recording"
+              title="Stop"
+            >
+              <i className="ph-bold ph-stop text-lg" />
+            </button>
+            <span className="text-sm font-semibold text-red-500 animate-pulse w-12 text-center">
+              {formatTime(timer)}
+            </span>
+          </>
+        )}
+        {!!value && !recording && (
+          <button
+            type="button"
+            onClick={clear}
+            className="h-10 w-10 rounded-lg border border-crm-primary/20 text-crm-primary text-sm font-semibold hover:bg-crm-primaryLighter/60 flex items-center justify-center"
+            aria-label="Delete voice note"
+            title="Delete"
+          >
+            <i className="ph-bold ph-trash text-lg" />
+          </button>
+        )}
       </div>
-      {value ? (
+      {value && !recording && (
         <audio controls controlsList="nodownload noplaybackrate" className="h-10 flex-1 min-w-[200px]">
           <source src={value} />
         </audio>
-      ) : (
-        <p className="text-xs text-gray-500 w-full sm:w-auto mt-1 sm:mt-0">No voice note added.</p>
+      )}
+      {!value && !recording && (
+        <p className="text-xs text-gray-500 w-full sm:w-auto mt-1 sm:mt-0">Click microphone to record voice note.</p>
       )}
     </div>
   );
@@ -222,7 +249,7 @@ const FollowupHistoryModal = ({ customer, history, onClose }) => (
       <button
         type="button"
         onClick={onClose}
-        className="px-5 py-2.5 border border-gray-200 rounded-lg hover:bg-white text-sm font-medium text-gray-700"
+        className="px-5 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors"
       >
         Close
       </button>
@@ -257,7 +284,7 @@ const FollowupHistoryModal = ({ customer, history, onClose }) => (
                   <div className="text-base font-semibold text-black">
                     Followup Reason : <span className="capitalize">{h.followup_reason || '—'}</span>
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">
+                  <div className="text-xs text-gray-800 mt-1">
                     <span className="font-semibold text-gray-700">Followup Taken :</span>{' '}
                     {h.created_at
                       ? new Date(h.created_at).toLocaleString()
@@ -268,20 +295,20 @@ const FollowupHistoryModal = ({ customer, history, onClose }) => (
                 {/* Info grid */}
                 <div className="grid grid-cols-2 gap-x-6 gap-y-3">
                   <div>
-                    <div className="text-xs font-semibold text-gray-500 mb-0.5">Contact Person</div>
-                    <div className="text-sm font-medium text-gray-900">{h.contact_person || '—'}</div>
+                    <div className="text-sm font-semibold text-gray-900 mb-0.5">Contact Person</div>
+                    <div className="text-sm font-medium text-gray-700">{h.contact_person || '—'}</div>
                   </div>
                   <div>
-                    <div className="text-xs font-semibold text-gray-500 mb-0.5">Contact No</div>
-                    <div className="text-sm font-medium text-gray-900">{h.contact_phone || '—'}</div>
+                    <div className="text-sm font-semibold text-gray-900 mb-0.5">Contact No</div>
+                    <div className="text-sm font-medium text-gray-700">{h.contact_phone || '—'}</div>
                   </div>
                   <div>
-                    <div className="text-xs font-semibold text-gray-500 mb-0.5">Next Follow-up</div>
-                    <div className="text-sm font-medium text-gray-900">{h.follow_up_date || '—'}</div>
+                    <div className="text-sm font-semibold text-gray-900 mb-0.5">Next Follow-up</div>
+                    <div className="text-sm font-medium text-gray-700">{h.follow_up_date || '—'}</div>
                   </div>
                   <div>
-                    <div className="text-xs font-semibold text-gray-500 mb-0.5">Reason</div>
-                    <div className="text-sm font-medium text-gray-900 capitalize">{h.followup_reason || '—'}</div>
+                    <div className="text-sm font-semibold text-gray-900 mb-0.5">Reason</div>
+                    <div className="text-sm font-medium text-gray-700 capitalize">{h.followup_reason || '—'}</div>
                   </div>
                 </div>
 
@@ -296,7 +323,7 @@ const FollowupHistoryModal = ({ customer, history, onClose }) => (
                 {/* Voice note (if any) */}
                 {h.voice_note_base64 && (
                   <div className="mt-2">
-                    <audio controls className="w-full">
+                    <audio controls controlsList="nodownload noplaybackrate" className="w-full">
                       <source src={h.voice_note_base64} />
                     </audio>
                   </div>
@@ -344,6 +371,11 @@ const CustomerFollowup = ({ currentUser }) => {
             return reason === String(activeReason).toLowerCase().trim();
           });
         }
+        
+        if (userRole !== 'super_admin' && userRole !== 'admin') {
+          data = data.filter(c => String(c.created_by || c.registered_by) === String(currentUser.id));
+        }
+        
         setCards(data);
       }
       else setCards([]);
@@ -430,30 +462,38 @@ const CustomerFollowup = ({ currentUser }) => {
           {cards.map((c) => (
             <div key={c.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
               <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="text-sm font-semibold text-gray-900">
-                    Company: {c.company_name || '—'}
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    Next Follow-up Date: <span className="font-semibold text-gray-700">{c.follow_up_date}</span>
-                  </div>
-                  <div className="text-xs text-gray-800 mt-1">
-                    Contact Person:{' '}
-                    <span className="font-semibold text-gray-700">
-                      {c.display_contact_person || c.customer_name || '—'}
+                <div className="flex-1 space-y-4">
+                  <div>
+                    <span className="text-sm font-bold text-gray-800 uppercase tracking-wider block mb-0.5">Company Name</span>
+                    <span className="text-sm font-medium text-gray-600 block leading-tight">
+                      {c.company_name || '—'}
                     </span>
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    Remarks:{' '}
-                    <span className="font-semibold text-gray-700">
-                      {c.remarks || c.notes || '—'}
-                    </span>
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    Status:{' '}
-                    <span className="font-semibold text-gray-700">
-                      {c.followup_status || c.status || '—'}
-                    </span>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-3 mt-4 border-t border-gray-100 pt-4">
+                    <div>
+                      <span className="text-sm font-bold text-gray-800 uppercase tracking-wider block mb-0.5">Contact Person</span>
+                      <span className="text-sm font-medium text-gray-600 block">
+                        {c.display_contact_person || c.customer_name || '—'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-sm font-bold text-gray-800 uppercase tracking-wider block mb-0.5">Status</span>
+                      <span className="text-sm font-medium text-gray-600 block capitalize">
+                        {c.followup_status || c.status || '—'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-sm font-bold text-gray-800 uppercase tracking-wider block mb-0.5">Next Follow-up</span>
+                      <span className="text-sm font-medium text-gray-600 block">
+                        {c.follow_up_date || '—'}
+                      </span>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="text-sm font-bold text-gray-800 uppercase tracking-wider block mb-0.5">Remarks</span>
+                      <span className="text-sm font-medium text-gray-600 block">
+                        {c.remarks || c.notes || '—'}
+                      </span>
+                    </div>
                   </div>
                 </div>
                 {stageBadge(c) && (
@@ -542,7 +582,7 @@ const FollowupFormModal = ({ card, currentUser, onClose, onSaved }) => {
     if (form.followup_status === 'confirmed') {
       setForm((p) => ({ ...p, followup_reason: 'Project Onboard' }));
     } else if (form.followup_status === 'not interested' || form.followup_status === 'not picking') {
-      setForm((p) => ({ ...p, followup_reason: 'None' }));
+      setForm((p) => ({ ...p, followup_reason: form.followup_status === 'not interested' ? 'Dropped' : 'None' }));
     }
   }, [form.followup_status]);
 
@@ -700,7 +740,7 @@ const FollowupFormModal = ({ card, currentUser, onClose, onSaved }) => {
           <h3 className="text-lg font-semibold text-crm-primary flex items-center gap-2">
             <i className="ph-fill ph-phone-call" /> Customer Follow-Up
           </h3>
-          <button type="button" onClick={onClose} className="h-9 w-9 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100">
+          <button type="button" onClick={onClose} className="h-9 w-9 rounded-lg flex items-center justify-center text-gray-400 hover:bg-red-500 hover:text-white transition-colors">
             <i className="ph-bold ph-x text-lg" />
           </button>
         </div>
@@ -714,80 +754,46 @@ const FollowupFormModal = ({ card, currentUser, onClose, onSaved }) => {
                 Customer Profile Details
               </h4>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
-                <label className="block text-gray-500 font-medium">Event Name</label>
-                <div className="mt-1 p-2.5 bg-white rounded-lg border border-gray-200 text-gray-800 font-semibold truncate">
+                <label className="block text-gray-500 font-bold text-xs uppercase tracking-wider mb-1">Event Name</label>
+                <div className="p-2.5 bg-white rounded-lg border border-gray-200 text-gray-900 font-bold text-sm truncate shadow-sm">
                   {card.expo_name || card.manual_expo_name || '—'}
                 </div>
               </div>
               <div>
-                <label className="block text-gray-500 font-medium">Visit Date</label>
-                <div className="mt-1 p-2.5 bg-white rounded-lg border border-gray-200 text-gray-800 font-semibold">
+                <label className="block text-gray-500 font-bold text-xs uppercase tracking-wider mb-1">Visit Date</label>
+                <div className="p-2.5 bg-white rounded-lg border border-gray-200 text-gray-900 font-bold text-sm shadow-sm">
                   {card.visit_date || '—'}
                 </div>
               </div>
               <div>
-                <label className="block text-gray-500 font-medium">Company Name</label>
-                <div className="mt-1 p-2.5 bg-white rounded-lg border border-gray-200 text-gray-800 font-semibold truncate">
+                <label className="block text-gray-500 font-bold text-xs uppercase tracking-wider mb-1">Company Name</label>
+                <div className="p-2.5 bg-white rounded-lg border border-gray-200 text-gray-900 font-bold text-sm truncate shadow-sm">
                   {card.company_name || '—'}
                 </div>
               </div>
               <div>
-                <label className="block text-gray-500 font-medium">Industry Type</label>
-                <div className="mt-1 p-2.5 bg-white rounded-lg border border-gray-200 text-gray-800 font-semibold">
+                <label className="block text-gray-500 font-bold text-xs uppercase tracking-wider mb-1">Industry Type</label>
+                <div className="p-2.5 bg-white rounded-lg border border-gray-200 text-gray-900 font-bold text-sm shadow-sm">
                   {card.industry_type || '—'}
                 </div>
               </div>
               <div>
-                <label className="block text-gray-500 font-medium">Website</label>
-                <div className="mt-1 p-2.5 bg-white rounded-lg border border-gray-200 text-gray-800 font-semibold truncate">
-                  {card.website ? (
-                    <a href={card.website.startsWith('http') ? card.website : `https://${card.website}`} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
-                      {card.website}
-                    </a>
-                  ) : '—'}
-                </div>
-              </div>
-              <div>
-                <label className="block text-gray-500 font-medium">City</label>
-                <div className="mt-1 p-2.5 bg-white rounded-lg border border-gray-200 text-gray-800 font-semibold">
-                  {card.city || '—'}
-                </div>
-              </div>
-              <div>
-                <label className="block text-gray-500 font-medium">Secondary Phone</label>
-                <div className="mt-1 p-2.5 bg-white rounded-lg border border-gray-200 text-gray-800 font-semibold">
-                  {card.phone_2 || '—'}
-                </div>
-              </div>
-              <div>
-                <label className="block text-gray-500 font-medium">Priority Level</label>
-                <div className="mt-1 p-2.5 bg-white rounded-lg border border-gray-200 text-gray-800 font-semibold capitalize">
-                  {card.priority || '—'}
-                </div>
-              </div>
-              <div>
-                <label className="block text-gray-500 font-medium">Enquiry Type</label>
-                <div className="mt-1 p-2.5 bg-white rounded-lg border border-gray-200 text-gray-800 font-semibold">
+                <label className="block text-gray-500 font-bold text-xs uppercase tracking-wider mb-1">Enquiry Type</label>
+                <div className="p-2.5 bg-white rounded-lg border border-gray-200 text-gray-900 font-bold text-sm shadow-sm">
                   {card.enquiry_type || '—'}
                 </div>
               </div>
-              <div>
-                <label className="block text-gray-500 font-medium">Reference</label>
-                <div className="mt-1 p-2.5 bg-white rounded-lg border border-gray-200 text-gray-800 font-semibold">
-                  {card.reference_source || card.reference || '—'}
-                </div>
-              </div>
               <div className="md:col-span-2">
-                <label className="block text-gray-500 font-medium">Address / Location</label>
-                <div className="mt-1 p-2.5 bg-white rounded-lg border border-gray-200 text-gray-800 font-semibold">
+                <label className="block text-gray-500 font-bold text-xs uppercase tracking-wider mb-1">Address / Location</label>
+                <div className="p-2.5 bg-white rounded-lg border border-gray-200 text-gray-900 font-bold text-sm shadow-sm">
                   {card.location || '—'}
                 </div>
               </div>
               <div className="md:col-span-4">
-                <label className="block text-gray-500 font-medium">Registration Remarks</label>
-                <div className="mt-1 p-2.5 bg-white rounded-lg border border-gray-200 text-gray-800 font-semibold">
+                <label className="block text-gray-500 font-bold text-xs uppercase tracking-wider mb-1">Registration Remarks</label>
+                <div className="p-2.5 bg-white rounded-lg border border-gray-200 text-gray-900 font-bold text-sm shadow-sm">
                   {card.customer_remarks || '—'}
                 </div>
               </div>
@@ -1067,7 +1073,7 @@ const FollowupFormModal = ({ card, currentUser, onClose, onSaved }) => {
           <button
             type="button"
             onClick={onClose}
-            className="px-6 py-2.5 border border-gray-200 rounded-lg hover:bg-white text-sm font-semibold text-gray-700"
+            className="px-6 py-2.5 border border-gray-200 rounded-lg text-sm font-semibold text-gray-700 hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors"
           >
             Cancel
           </button>

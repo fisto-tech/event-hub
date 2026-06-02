@@ -35,6 +35,7 @@ const EmployeeRegistration = () => {
   const [loading, setLoading] = useState(false);
   const [listLoading, setListLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchField, setSearchField] = useState('all');
   const [viewingEmployee, setViewingEmployee] = useState(null);
   const [editingEmployee, setEditingEmployee] = useState(null);
   const [departmentOptions, setDepartmentOptions] = useState([]);
@@ -78,8 +79,8 @@ const EmployeeRegistration = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitError('');
-    if (formData.phone) {
-      const phoneErr = validateStoredPhone(formData.phone, { required: false });
+    if (true) {
+      const phoneErr = validateStoredPhone(formData.phone, { required: true });
       if (phoneErr) {
         setSubmitError(phoneErr);
         showToast(phoneErr, 'error');
@@ -226,8 +227,8 @@ const EmployeeRegistration = () => {
 
   const handleReportEditSubmit = async (e) => {
     e.preventDefault();
-    if (editingEmployee?.phone) {
-      const phoneErr = validateStoredPhone(editingEmployee.phone, { required: false });
+    if (true) {
+      const phoneErr = validateStoredPhone(editingEmployee.phone, { required: true });
       if (phoneErr) {
         showToast(phoneErr, 'error');
         return;
@@ -264,14 +265,26 @@ const EmployeeRegistration = () => {
   };
 
   const filteredEmployees = employees.filter(
-    (emp) =>
-      emp.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (emp.employee_id && emp.employee_id.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (emp.department && emp.department.toLowerCase().includes(searchTerm.toLowerCase()))
+    (emp) => {
+      const term = searchTerm.toLowerCase();
+      if (!term) return true;
+      if (searchField === 'name') return emp.name?.toLowerCase().includes(term);
+      if (searchField === 'employee_id') return emp.employee_id?.toLowerCase().includes(term);
+      if (searchField === 'department') return emp.department?.toLowerCase().includes(term);
+      if (searchField === 'email') return emp.email?.toLowerCase().includes(term);
+      if (searchField === 'phone') return emp.phone?.toLowerCase().includes(term);
+      return (
+        emp.name?.toLowerCase().includes(term) ||
+        emp.employee_id?.toLowerCase().includes(term) ||
+        emp.department?.toLowerCase().includes(term) ||
+        emp.email?.toLowerCase().includes(term) ||
+        emp.phone?.toLowerCase().includes(term)
+      );
+    }
   );
 
   return (
-    <div className="space-y-4">
+    <div className="">
       {view === 'register' ? (
         <div className="space-y-4">
           {/* Page title row — outside the white card */}
@@ -292,145 +305,153 @@ const EmployeeRegistration = () => {
           </div>
           {/* White card — form only */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-          {loadError && (
-            <div className="mb-4 flex items-center gap-2 bg-amber-50 text-amber-800 px-4 py-3 rounded-lg text-sm border border-amber-200">
-              <i className="ph-fill ph-warning-circle shrink-0" />
-              <span>{loadError}</span>
-            </div>
-          )}
-          {submitError && (
-            <div className="mb-4 flex items-center gap-2 bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm border border-red-200">
-              <i className="ph-fill ph-warning-circle shrink-0" />
-              <span>{submitError}</span>
-            </div>
-          )}
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-normal text-crm-primary">Employee ID</label>
-              <input type="text" name="employeeId" value={formData.employeeId} onChange={handleChange} placeholder="e.g. EMP02" className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1" />
-            </div>
-            <div>
-              <label className="block text-sm font-normal text-crm-primary">
-                Full Name <span className="text-red-600">*</span>
-              </label>
-              <input type="text" name="name" required value={formData.name} onChange={handleChange} placeholder="John Doe" className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1" />
-            </div>
-            <div>
-              <label className="block text-sm font-normal text-crm-primary">
-                Email Address <span className="text-red-600">*</span>
-              </label>
-              <input type="email" name="email" required value={formData.email} onChange={handleChange} placeholder="email@domain.com" className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1" />
-            </div>
-            <div>
-              <label className="block text-sm font-normal text-crm-primary">Phone Number</label>
-              <div className="mt-1">
-                <PhoneInput
-                  name="phone"
-                  value={formData.phone}
-                  onChange={(phone) => setFormData((prev) => ({ ...prev, phone }))}
-                  inputClassName="flex-1 px-4 py-2 rounded-lg outline-none crm-input"
-                  selectClassName="w-[3rem] shrink-0 px-2 py-2 rounded-lg outline-none crm-input text-sm"
-                  maxLength={10}
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-normal text-crm-primary">City</label>
-              <div className="mt-1">
-                <CityAutocomplete
-                  name="city"
-                  value={formData.city}
-                  onChange={(city) => setFormData((prev) => ({ ...prev, city }))}
-                  placeholder="Type to search city…"
-                  className="w-full"
-                  inputClassName="w-full px-4 py-2 rounded-lg outline-none crm-input"
-                />
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between items-center">
-                <label className="block text-sm font-normal text-crm-primary">Department</label>
-                <button
-                  type="button"
-                  onClick={() => setShowDeptModal(true)}
-                  className="text-xs text-crm-primary hover:text-crm-primaryDark hover:underline inline-flex items-center gap-1 font-semibold"
-                  title="Manage departments"
-                >
-                  <i className="ph ph-buildings" /> Manage
-                </button>
-              </div>
-              <select
-                name="department"
-                value={formData.department}
-                onChange={handleChange}
-                className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1"
-              >
-                <option value="">Select department</option>
-                {departmentOptions.map((dept) => (
-                  <option key={dept} value={dept}>
-                    {dept}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-normal text-crm-primary">Role</label>
-              <select name="role" value={formData.role} onChange={handleChange} className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1">
-                <option value="employee">Employee / Staff</option>
-                <option value="admin">Admin</option>
-                <option value="super_admin">Super Admin</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-normal text-crm-primary">
-                Username <span className="text-red-600">*</span>
-              </label>
-              <input
-                type="text"
-                name="username"
-                required
-                value={formData.username}
-                onChange={handleChange}
-                placeholder="username123"
-                autoComplete="new-username"
-                className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-normal text-crm-primary">
-                Password {isEditing ? '(leave blank to keep current)' : <span className="text-red-600">*</span>}
-              </label>
-              <input
-                type="password"
-                name="password"
-                required={!isEditing}
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="••••••••"
-                autoComplete="new-password"
-                className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1"
-              />
-            </div>
-            {isEditing && (
-              <div>
-                <label className="block text-sm font-normal text-crm-primary">Status</label>
-                <select name="status" value={formData.status} onChange={handleChange} className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1">
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
+            {loadError && (
+              <div className="mb-4 flex items-center gap-2 bg-amber-50 text-amber-800 px-4 py-3 rounded-lg text-sm border border-amber-200">
+                <i className="ph-fill ph-warning-circle shrink-0" />
+                <span>{loadError}</span>
               </div>
             )}
-  
-            <div className="lg:col-span-3 flex justify-end gap-3 mt-2">
-              <button type="button" onClick={resetForm} className="px-6 py-2 text-crm-primary font-normal hover:bg-crm-primaryLighter rounded-lg">
-                Cancel
-              </button>
-              <button type="submit" disabled={loading} className="btn-running-border text-white px-8 py-2 rounded-lg font-normal shadow-md disabled:opacity-60">
-                {loading ? 'Saving...' : isEditing ? 'Update Employee' : 'Register Employee'}
-              </button>
-            </div>
-          </form>
-        </div>
+            {submitError && (
+              <div className="mb-4 flex items-center gap-2 bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm border border-red-200">
+                <i className="ph-fill ph-warning-circle shrink-0" />
+                <span>{submitError}</span>
+              </div>
+            )}
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-normal text-crm-primary">Employee ID</label>
+                <input type="text" name="employeeId" value={formData.employeeId} onChange={handleChange} placeholder="e.g. EMP02" className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1" />
+              </div>
+              <div>
+                <label className="block text-sm font-normal text-crm-primary">
+                  Full Name <span className="text-red-600">*</span>
+                </label>
+                <input type="text" name="name" required value={formData.name} onChange={handleChange} placeholder="John Doe" className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1" />
+              </div>
+              <div>
+                <label className="block text-sm font-normal text-crm-primary">
+                  Email Address
+                </label>
+                <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="email@domain.com" className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1" />
+              </div>
+              <div>
+                <label className="block text-sm font-normal text-crm-primary">
+                  Phone Number <span className="text-red-600">*</span>
+                </label>
+                <div className="mt-1">
+                  <PhoneInput
+                    name="phone"
+                    value={formData.phone}
+                    onChange={(phone) => setFormData((prev) => ({ ...prev, phone }))}
+                    required
+                    inputClassName="flex-1 px-4 py-2 rounded-lg outline-none crm-input"
+                    selectClassName="w-[3rem] shrink-0 px-2 py-2 rounded-lg outline-none crm-input text-sm"
+                    maxLength={10}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-normal text-crm-primary">City</label>
+                <div className="mt-1">
+                  <CityAutocomplete
+                    name="city"
+                    value={formData.city}
+                    onChange={(city) => setFormData((prev) => ({ ...prev, city }))}
+                    placeholder="Type to search city…"
+                    className="w-full"
+                    inputClassName="w-full px-4 py-2 rounded-lg outline-none crm-input"
+                  />
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between items-center">
+                  <label className="block text-sm font-normal text-crm-primary">
+                    Department <span className="text-red-600">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowDeptModal(true)}
+                    className="text-xs text-crm-primary hover:text-crm-primaryDark hover:underline inline-flex items-center gap-1 font-semibold"
+                    title="Manage departments"
+                  >
+                    <i className="ph ph-buildings" /> Manage
+                  </button>
+                </div>
+                <select
+                  name="department"
+                  required
+                  value={formData.department}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1"
+                >
+                  <option value="">Select department</option>
+                  {departmentOptions.map((dept) => (
+                    <option key={dept} value={dept}>
+                      {dept}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-normal text-crm-primary">
+                  Role <span className="text-red-600">*</span>
+                </label>
+                <select name="role" required value={formData.role} onChange={handleChange} className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1">
+                  <option value="employee">Employee / Staff</option>
+                  <option value="admin">Admin</option>
+                  <option value="super_admin">Super Admin</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-normal text-crm-primary">
+                  Username <span className="text-red-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="username"
+                  required
+                  value={formData.username}
+                  onChange={handleChange}
+                  placeholder="username123"
+                  autoComplete="new-username"
+                  className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-normal text-crm-primary">
+                  Password {isEditing ? '(leave blank to keep current)' : <span className="text-red-600">*</span>}
+                </label>
+                <input
+                  type="password"
+                  name="password"
+                  required={!isEditing}
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="••••••••"
+                  autoComplete="new-password"
+                  className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1"
+                />
+              </div>
+              {isEditing && (
+                <div>
+                  <label className="block text-sm font-normal text-crm-primary">Status</label>
+                  <select name="status" value={formData.status} onChange={handleChange} className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1">
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+              )}
+
+              <div className="lg:col-span-3 flex justify-end gap-3 mt-2">
+                <button type="button" onClick={resetForm} className="px-6 py-2 text-crm-primary font-normal hover:bg-crm-primaryLighter rounded-lg">
+                  Clear
+                </button>
+                <button type="submit" disabled={loading} className="btn-running-border text-white px-8 py-2 rounded-lg font-normal shadow-md disabled:opacity-60">
+                  {loading ? 'Saving...' : isEditing ? 'Update Employee' : 'Register Employee'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       ) : (
         <div className="space-y-4">
@@ -452,18 +473,32 @@ const EmployeeRegistration = () => {
                 </h3>
                 <p className="text-sm text-gray-500 mt-1">View all registered staff accounts</p>
               </div>
-              <div className="relative flex-1 max-w-md">
-                <i className="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search by name, ID, department..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 rounded-lg outline-none crm-input"
-                />
+              <div className="flex flex-1 max-w-lg gap-2">
+                <select
+                  value={searchField}
+                  onChange={(e) => setSearchField(e.target.value)}
+                  className="px-3 py-2 rounded-lg outline-none crm-input w-36 shrink-0 text-sm"
+                >
+                  <option value="all">All Fields</option>
+                  <option value="name">Name</option>
+                  <option value="employee_id">Employee ID</option>
+                  <option value="department">Department</option>
+                  <option value="email">Email</option>
+                  <option value="phone">Phone</option>
+                </select>
+                <div className="relative flex-1">
+                  <i className="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 rounded-lg outline-none crm-input"
+                  />
+                </div>
               </div>
             </div>
-  
+
             {listLoading ? (
               <LoadingSpinner label="Loading employees..." />
             ) : (
@@ -497,22 +532,14 @@ const EmployeeRegistration = () => {
                           <td className="px-4 py-3 text-sm font-medium text-crm-primary border-r border-gray-300">{roleLabel(emp.role)}</td>
                           <td className="px-4 py-3 text-sm border-r border-gray-300">
                             <span
-                              className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                                emp.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-800'
-                              }`}
+                              className={`px-2.5 py-1 rounded-full text-xs font-medium ${emp.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-800'
+                                }`}
                             >
                               {emp.status}
                             </span>
                           </td>
                           <td className="px-4 py-3 text-right whitespace-nowrap">
-                            <button
-                              type="button"
-                              onClick={() => setViewingEmployee(emp)}
-                              className="text-blue-600 hover:text-blue-800 p-1.5 rounded-lg hover:bg-blue-50"
-                              title="View"
-                            >
-                              <i className="ph-bold ph-eye text-lg" />
-                            </button>
+
                             <button
                               type="button"
                               onClick={() => openEditEmployeeModal(emp)}
@@ -561,7 +588,7 @@ const EmployeeRegistration = () => {
               <h3 className="text-lg font-semibold text-crm-primary flex items-center gap-2">
                 <i className="ph-fill ph-buildings" /> Manage Departments
               </h3>
-              <button type="button" onClick={() => setShowDeptModal(false)} className="text-gray-400 hover:text-gray-600">
+              <button type="button" onClick={() => setShowDeptModal(false)} className="h-9 w-9 rounded-lg flex items-center justify-center text-gray-400 hover:bg-red-500 hover:text-white transition-colors">
                 <i className="ph-bold ph-x text-lg" />
               </button>
             </div>
@@ -619,7 +646,7 @@ const EmployeeRegistration = () => {
               )}
             </div>
             <div className="px-6 py-4 bg-gray-50 flex justify-end">
-              <button type="button" onClick={() => setShowDeptModal(false)} className="px-4 py-2 border rounded-lg hover:bg-gray-100 text-sm">
+              <button type="button" onClick={() => setShowDeptModal(false)} className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors text-sm font-semibold">
                 Done
               </button>
             </div>
@@ -765,7 +792,7 @@ const EmployeeRegistration = () => {
               <button
                 type="button"
                 onClick={() => setEditingEmployee(null)}
-                className="px-5 py-2.5 border border-gray-200 rounded-lg hover:bg-white text-sm font-medium text-gray-700"
+                className="px-5 py-2.5 border border-gray-200 rounded-lg hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors text-sm font-medium text-gray-700"
               >
                 Cancel
               </button>

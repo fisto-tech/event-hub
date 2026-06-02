@@ -189,7 +189,7 @@ const WhatsappTemplates = ({ embedded = false }) => {
 
         <div className="flex justify-end gap-3 pt-1">
           {isEditing && (
-            <button type="button" onClick={resetForm} className="px-5 py-2 text-crm-primary hover:bg-crm-primaryLighter rounded-lg">
+            <button type="button" onClick={resetForm} className="px-5 py-2 text-crm-primary rounded-lg hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors">
               Cancel
             </button>
           )}

@@ -15,8 +15,11 @@ const CustomerReport = ({ currentUser, filterSource }) => {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterExpo, setFilterExpo] = useState('');
+  const [searchField, setSearchField] = useState('all');
+  const [filterExpo, setFilterExpo] = useState('all');
+  const [filterEmployee, setFilterEmployee] = useState('all');
   const [expos, setExpos] = useState([]);
+  const [employees, setEmployees] = useState([]);
 
   // Filter & Sort States
   const [activeTab, setActiveTab] = useState('all'); // 'all', 'completed', 'pending'
@@ -53,12 +56,14 @@ const CustomerReport = ({ currentUser, filterSource }) => {
     try {
       const uid = currentUser?.id ? `&user_id=${currentUser.id}` : '';
       const role = `&role=${encodeURIComponent(userRole)}`;
-      const [custRes, expoRes] = await Promise.all([
+      const [custRes, expoRes, usersRes] = await Promise.all([
         fetchApi(`customers.php?_${Date.now()}${uid}${role}`),
         fetchApi('expos.php'),
+        showAllCustomers ? fetchApi('users.php') : Promise.resolve({ data: [] }),
       ]);
       if (custRes.status === 'success') setCustomers(custRes.data || []);
       if (expoRes.status === 'success') setExpos(expoRes.data || []);
+      if (usersRes.status === 'success') setEmployees(usersRes.data || []);
     } catch (e) {
       console.error(e);
       alert(e.message || 'Failed to load customer report.');
@@ -67,10 +72,27 @@ const CustomerReport = ({ currentUser, filterSource }) => {
     }
   };
 
-  const registeredByLabel = (cust) =>
-    cust.registered_by_name ||
-    cust.registered_by_username ||
-    (cust.created_by ? `User #${cust.created_by}` : '—');
+  const registeredByLabel = (cust) => {
+    const creatorId = cust.created_by || cust.registered_by || cust.user_id;
+
+    // Check local employees array first if API doesn't return joined names
+    let employee = employees.find(e => String(e.id) === String(creatorId));
+    
+    // Fallback for employee role where the records belong to the current user
+    if (!employee && String(creatorId) === String(currentUser?.id)) {
+      employee = currentUser;
+    }
+
+    let name = '';
+    if (employee) {
+      name = employee.name || employee.username || `User #${employee.id}`;
+    } else {
+      name = cust.registered_by_name || cust.registered_by_username || (creatorId ? `User #${creatorId}` : '—');
+    }
+
+    const empId = employee ? (employee.employee_id || '') : (cust.registered_by_employee_id || '');
+    return empId ? `${name} (${empId})` : name;
+  };
 
   const expoLabel = (cust) => cust.linked_expo || cust.manual_expo_name || '—';
 
@@ -134,6 +156,10 @@ const CustomerReport = ({ currentUser, filterSource }) => {
     }
   };
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
   // Advanced Filtering and Sorting Logic
   const filteredCustomers = customers
     .filter(c => {
@@ -142,12 +168,40 @@ const CustomerReport = ({ currentUser, filterSource }) => {
       const phone1 = c.phone_1 || '';
 
       // Search term filter
-      const matchesSearch = companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        phone1.includes(searchTerm);
+      const matchesSearch = (() => {
+        if (!searchTerm.trim()) return true;
+        const q = searchTerm.trim().toLowerCase();
+        const comp = companyName.toLowerCase();
+        const cust = customerName.toLowerCase();
+        const ph1 = phone1.toLowerCase();
+        const cty = (c.city || '').toLowerCase();
+        
+        if (searchField === 'all') {
+          return comp.includes(q) || cust.includes(q) || ph1.includes(q) || cty.includes(q);
+        } else if (searchField === 'company') {
+          return comp.includes(q);
+        } else if (searchField === 'phone') {
+          return ph1.includes(q);
+        } else if (searchField === 'name') {
+          return cust.includes(q);
+        } else if (searchField === 'city') {
+          return cty.includes(q);
+        }
+        return true;
+      })();
 
       // Expo filter
-      const matchesExpo = filterExpo ? c.expo_id == filterExpo : true;
+      const matchesExpo = (filterExpo && filterExpo !== 'all') ? String(c.expo_id) === String(filterExpo) : true;
+
+      // Employee Filter
+      const matchesEmployee = (() => {
+        const uId = c.created_by || c.registered_by;
+        if (!showAllCustomers) {
+          return String(uId) === String(currentUser.id);
+        }
+        if (filterEmployee === 'all') return true;
+        return String(uId) === String(filterEmployee);
+      })();
 
       // Status subtab filter
       const matchesStatus = (() => {
@@ -164,10 +218,15 @@ const CustomerReport = ({ currentUser, filterSource }) => {
       // Date Wise Filter (Start Date & End Date)
       if (!c.visit_date) return matchesSearch && matchesExpo && matchesStatus && matchesSource;
       const visitDate = new Date(c.visit_date);
-      const matchesStartDate = startDate ? visitDate >= new Date(startDate) : true;
-      const matchesEndDate = endDate ? visitDate <= new Date(endDate) : true;
+      let effStartDate = startDate;
+      let effEndDate = endDate;
+      if (startDate && !endDate) effEndDate = startDate;
+      if (endDate && !startDate) effStartDate = endDate;
 
-      return matchesSearch && matchesExpo && matchesStatus && matchesStartDate && matchesEndDate && matchesSource;
+      const matchesStartDate = effStartDate ? visitDate >= new Date(effStartDate) : true;
+      const matchesEndDate = effEndDate ? visitDate <= new Date(effEndDate) : true;
+
+      return matchesSearch && matchesExpo && matchesStatus && matchesStartDate && matchesEndDate && matchesSource && matchesEmployee;
     })
     .sort((a, b) => {
       if (sortBy === 'date-desc') {
@@ -182,13 +241,22 @@ const CustomerReport = ({ currentUser, filterSource }) => {
       return 0;
     });
 
+  // Pagination Logic
+  const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
+  const paginatedCustomers = filteredCustomers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, searchField, filterExpo, filterEmployee, activeTab, startDate, endDate, sortBy, filterSource]);
+
   // Exporters
   const handleExportExcel = () => {
     if (filteredCustomers.length === 0) {
       alert("No data available to export");
       return;
     }
-    const headers = ["S.No", "Date", "Expo Name / Source Name", "Company Name", "Contact Person", "Phone", "City", "Enquiry Type", "Status"];
+    const headers = ["S.No", "Date", "Expo Name / Source Name", "Company Name", "Contact Person", "Phone", "Registered By", "City", "Enquiry Type", "Status"];
     const rows = filteredCustomers.map((c, idx) => [
       idx + 1,
       c.visit_date || '',
@@ -196,6 +264,7 @@ const CustomerReport = ({ currentUser, filterSource }) => {
       `"${(c.company_name || '').replace(/"/g, '""')}"`,
       `"${(c.customer_name || '').replace(/"/g, '""')}"`,
       c.phone_1 || '',
+      `"${String(registeredByLabel(c) || '').replace(/"/g, '""')}"`,
       `"${String(c.city || '').replace(/"/g, '""')}"`,
       c.enquiry_type || 'Unknown',
       c.status === 'completed' ? 'Completed' : 'Pending'
@@ -237,6 +306,7 @@ const CustomerReport = ({ currentUser, filterSource }) => {
         'Company',
         'Contact Person',
         'Phone',
+        'Registered By',
         'City',
         'Type',
         'Status',
@@ -248,6 +318,7 @@ const CustomerReport = ({ currentUser, filterSource }) => {
         String(c.company_name || ''),
         String(c.customer_name || ''),
         String(c.phone_1 || ''),
+        String(registeredByLabel(c) || ''),
         String(c.city || ''),
         String(c.enquiry_type || 'Unknown'),
         c.status === 'completed' ? 'Completed' : 'Pending',
@@ -286,7 +357,7 @@ const CustomerReport = ({ currentUser, filterSource }) => {
               <button
                 type="button"
                 onClick={() => setViewingCustomer(null)}
-                className="px-5 py-2.5 border border-gray-200 rounded-lg hover:bg-white text-sm font-medium text-gray-700"
+                className="px-5 py-2.5 border border-gray-200 rounded-lg hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors text-sm font-medium text-gray-700"
               >
                 Close
               </button>
@@ -508,13 +579,46 @@ const CustomerReport = ({ currentUser, filterSource }) => {
           onClose={() => setPreviewImage(null)}
           maxWidth="max-w-3xl"
           footer={
-            <button
-              type="button"
-              onClick={() => setPreviewImage(null)}
-              className="px-5 py-2.5 border border-gray-200 rounded-lg hover:bg-white text-sm font-medium text-gray-700"
-            >
-              Close
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const response = await fetch(previewImage.url);
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    const blob = await response.blob();
+                    const blobUrl = window.URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = blobUrl;
+                    const filename = previewImage.url.split('/').pop() || `image-${Date.now()}.jpg`;
+                    link.download = filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(blobUrl);
+                  } catch (e) {
+                    console.error('Download failed', e);
+                    const link = document.createElement('a');
+                    link.href = previewImage.url;
+                    link.download = `image-${Date.now()}.jpg`;
+                    link.target = '_blank';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }
+                }}
+                className="px-5 py-2.5 bg-crm-primary text-white rounded-lg hover:bg-crm-primaryDark text-sm font-medium flex items-center gap-2"
+              >
+                <i className="ph-bold ph-download-simple" /> Save
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviewImage(null)}
+                className="px-5 py-2.5 border border-gray-200 rounded-lg hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors text-sm font-medium text-gray-700"
+              >
+                Close
+              </button>
+            </div>
           }
         >
           <div className="space-y-3">
@@ -766,7 +870,7 @@ const CustomerReport = ({ currentUser, filterSource }) => {
               <button
                 type="button"
                 onClick={() => setEditingCustomer(null)}
-                className="px-5 py-2.5 border border-gray-200 rounded-lg hover:bg-white text-sm font-medium text-gray-700"
+                className="px-5 py-2.5 border border-gray-200 rounded-lg hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors text-sm font-medium text-gray-700"
               >
                 Cancel
               </button>
@@ -781,109 +885,128 @@ const CustomerReport = ({ currentUser, filterSource }) => {
         </div>
       )}
 
-      {/* Top Section: Pill Tabs & Premium Interactive Export Menu */}
-      <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4 bg-white p-4 rounded-xl border border-gray-200/80 shadow-sm">
 
+      {/* Advanced Filters: Search, Expo, Date Range */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-end">
+          
+          <div className="md:col-span-1 lg:col-span-1">
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 tracking-wider">EXPO NAME</label>
+            <select
+              value={filterExpo}
+              onChange={(e) => setFilterExpo(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm outline-none focus:border-crm-primary"
+            >
+              <option value="all">All Expos</option>
+              {expos.map(e => <option key={e.id} value={e.id}>{e.expo_name}</option>)}
+            </select>
+          </div>
 
-        {/* Premium Interactive Dropdown Export Button */}
-        <div className="relative" ref={dropdownRef}>
+          <div className="md:col-span-1 lg:col-span-1">
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 tracking-wider">EMPLOYEE</label>
+            <select
+              value={filterEmployee}
+              onChange={(e) => setFilterEmployee(e.target.value)}
+              disabled={!showAllCustomers}
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm outline-none focus:border-crm-primary disabled:bg-gray-100"
+            >
+              <option value="all">All Employees</option>
+              {employees.map(e => <option key={e.id} value={e.id}>{e.name || e.username || `User #${e.id}`}</option>)}
+            </select>
+          </div>
+
+          <div className="md:col-span-2 lg:col-span-2">
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 tracking-wider">SEARCH</label>
+            <div className="flex rounded-lg border border-gray-300 overflow-hidden focus-within:border-crm-primary">
+              <select 
+                value={searchField}
+                onChange={(e) => setSearchField(e.target.value)}
+                className="px-3 py-2.5 bg-gray-50 text-sm outline-none border-r border-gray-300 min-w-[110px]"
+              >
+                <option value="all">All fields</option>
+                <option value="company">Company</option>
+                <option value="phone">Phone</option>
+                <option value="name">Name</option>
+                <option value="city">City</option>
+              </select>
+              <input
+                type="text"
+                placeholder="Type to search..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-3 py-2.5 text-sm outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="md:col-span-2 lg:col-span-2">
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 tracking-wider">DATE RANGE</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full px-2 py-2.5 rounded-lg border border-gray-300 text-sm outline-none focus:border-crm-primary"
+              />
+              <span className="text-gray-400 text-xs font-bold">TO</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full px-2 py-2.5 rounded-lg border border-gray-300 text-sm outline-none focus:border-crm-primary"
+              />
+            </div>
+          </div>
+          
+        </div>
+        
+        <div className="mt-4 border-t border-gray-100 pt-4 flex justify-between items-center gap-3">
           <button
-            onClick={() => setIsExportDropdownOpen(!isExportDropdownOpen)}
-            className="w-full lg:w-auto bg-gradient-to-r from-crm-primary to-crm-primaryDark hover:from-crm-primaryDark hover:to-crm-primary text-white px-6 py-3 rounded-xl font-semibold shadow-lg flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-95"
+            type="button"
+            onClick={() => {
+              setFilterExpo('all');
+              setFilterEmployee('all');
+              setSearchField('all');
+              setSearchTerm('');
+              setStartDate('');
+              setEndDate('');
+              setSortBy('date-desc');
+            }}
+            className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold shadow-sm transition-colors"
           >
-            <i className="ph-bold ph-download-simple text-lg"></i>
-            Export Reports
-            <i className={`ph-bold ph-caret-down transition-transform duration-300 ${isExportDropdownOpen ? 'rotate-180' : ''}`}></i>
+            Reset All
           </button>
 
-          {isExportDropdownOpen && (
-            <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-100 rounded-xl shadow-2xl z-30 overflow-hidden divide-y divide-gray-100 animate-in fade-in slide-in-from-top-2 duration-200">
-              <button
-                onClick={handleExportExcel}
-                className="w-full px-5 py-3.5 text-left text-sm font-semibold text-gray-700 hover:bg-emerald-50/30 flex items-center gap-3 transition-colors group"
-              >
-                <i className="ph-fill ph-file-xls text-emerald-600 text-xl group-hover:scale-110 transition-transform"></i>
-                Export to Excel (.csv)
-              </button>
-              <button
-                onClick={handleExportPDF}
-                className="w-full px-5 py-3.5 text-left text-sm font-semibold text-gray-700 hover:bg-red-50/30 flex items-center gap-3 transition-colors group"
-              >
-                <i className="ph-fill ph-file-pdf text-red-600 text-xl group-hover:scale-110 transition-transform"></i>
-                Export to PDF (.pdf)
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+          {/* Premium Interactive Dropdown Export Button */}
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setIsExportDropdownOpen(!isExportDropdownOpen)}
+              className="w-full lg:w-auto bg-gradient-to-r from-crm-primary to-crm-primaryDark hover:from-crm-primaryDark hover:to-crm-primary text-white px-6 py-2 rounded-lg text-sm font-semibold shadow-sm flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-95"
+            >
+              <i className="ph-bold ph-download-simple text-lg"></i>
+              Export Reports
+              <i className={`ph-bold ph-caret-down transition-transform duration-300 ${isExportDropdownOpen ? 'rotate-180' : ''}`}></i>
+            </button>
 
-      {/* Advanced Filters: Search, Expo, Date Range, Sort order */}
-      <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 items-end">
-        {/* Search */}
-        <div className="w-full">
-          <label className="block text-sm font-semibold text-crm-primary mb-1.5">Search Customer</label>
-          <div className="relative">
-            <i className="ph ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-lg"></i>
-            <input
-              type="text"
-              placeholder="Search by name, company, phone..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-11 pr-4 py-2.5 rounded-xl outline-none crm-input transition-all focus:ring-2 focus:ring-crm-primary/10 focus:border-crm-primary"
-            />
+            {isExportDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-100 rounded-xl shadow-2xl z-30 overflow-hidden divide-y divide-gray-100 animate-in fade-in slide-in-from-top-2 duration-200">
+                <button
+                  onClick={handleExportExcel}
+                  className="w-full px-5 py-3.5 text-left text-sm font-semibold text-gray-700 hover:bg-emerald-50/30 flex items-center gap-3 transition-colors group"
+                >
+                  <i className="ph-fill ph-file-xls text-emerald-600 text-xl group-hover:scale-110 transition-transform"></i>
+                  Export to Excel (.csv)
+                </button>
+                <button
+                  onClick={handleExportPDF}
+                  className="w-full px-5 py-3.5 text-left text-sm font-semibold text-gray-700 hover:bg-red-50/30 flex items-center gap-3 transition-colors group"
+                >
+                  <i className="ph-fill ph-file-pdf text-red-600 text-xl group-hover:scale-110 transition-transform"></i>
+                  Export to PDF (.pdf)
+                </button>
+              </div>
+            )}
           </div>
-        </div>
-
-        {/* Filter by Expo */}
-        <div className="w-full">
-          <label className="block text-sm font-semibold text-crm-primary mb-1.5">Filter by Expo</label>
-          <select
-            value={filterExpo}
-            onChange={(e) => setFilterExpo(e.target.value)}
-            className="w-full px-4 py-2.5 rounded-xl outline-none crm-input transition-all focus:ring-2 focus:ring-crm-primary/10 focus:border-crm-primary"
-          >
-            <option value="">All Expos</option>
-            {expos.map(expo => (
-              <option key={expo.id} value={expo.id}>{expo.expo_name}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Date Wise Filters */}
-        <div className="w-full grid grid-cols-2 gap-3 lg:col-span-1">
-          <div>
-            <label className="block text-sm font-semibold text-crm-primary mb-1.5">Start Date</label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl outline-none crm-input text-sm transition-all focus:ring-2 focus:ring-crm-primary/10 focus:border-crm-primary"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-crm-primary mb-1.5">End Date</label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl outline-none crm-input text-sm transition-all focus:ring-2 focus:ring-crm-primary/10 focus:border-crm-primary"
-            />
-          </div>
-        </div>
-
-        {/* Sorting options */}
-        <div className="w-full">
-          <label className="block text-sm font-semibold text-crm-primary mb-1.5">Order Options</label>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="w-full px-4 py-2.5 rounded-xl outline-none crm-input transition-all focus:ring-2 focus:ring-crm-primary/10 focus:border-crm-primary"
-          >
-            <option value="date-desc">Newest Visit First</option>
-            <option value="date-asc">Oldest Visit First</option>
-            <option value="company-asc">Company Name (A to Z)</option>
-            <option value="company-desc">Company Name (Z to A)</option>
-          </select>
         </div>
       </div>
 
@@ -901,28 +1024,26 @@ const CustomerReport = ({ currentUser, filterSource }) => {
             <table className="w-full text-left border-collapse whitespace-nowrap text-crm-textDark min-w-[1000px]">
               <thead>
                 <tr className="bg-crm-primary border-b border-crm-primary text-white">
-                  <th className="px-4 py-4 font-semibold text-xs uppercase tracking-wider border-r border-white/20 w-14">S.No</th>
-                  <th className="px-5 py-4 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Date</th>
-                  <th className="px-5 py-4 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Expo / Source</th>
-                  <th className="px-5 py-4 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Company</th>
-                  <th className="px-5 py-4 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Contact Person</th>
-                  <th className="px-5 py-4 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Phone</th>
-                  {showAllCustomers && (
-                    <th className="px-5 py-4 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Registered By</th>
-                  )}
-                  <th className="px-5 py-4 font-semibold text-xs uppercase tracking-wider border-r border-white/20">City</th>
-                  <th className="px-5 py-4 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Priority</th>
-                  <th className="px-5 py-4 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Enquiry Type</th>
-                  <th className="px-5 py-4 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Status</th>
-                  <th className="px-5 py-4 font-semibold text-xs uppercase tracking-wider text-right">Actions</th>
+                  <th className="px-4 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20 w-14">S.No</th>
+                  <th className="px-5 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Date</th>
+                  <th className="px-5 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Expo / Source</th>
+                  <th className="px-5 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Company</th>
+                  <th className="px-5 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Contact Person</th>
+                  <th className="px-5 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Phone</th>
+                  <th className="px-5 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Registered By</th>
+                  <th className="px-5 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">City</th>
+                  <th className="px-5 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Priority</th>
+                  <th className="px-5 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Enquiry Type</th>
+                  <th className="px-5 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Status</th>
+                  <th className="px-5 py-2 font-semibold text-xs uppercase tracking-wider text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredCustomers.map((cust, index) => (
+                {paginatedCustomers.map((cust, index) => (
                   <tr key={cust.id} className="border-b border-gray-300 hover:bg-crm-primaryLighter/40 transition-colors duration-150">
-                    <td className="px-4 py-3.5 text-sm text-gray-600 border-r border-gray-300 text-center">{index + 1}</td>
-                    <td className="px-5 py-3.5 text-sm text-gray-600 border-r border-gray-300">{cust.visit_date}</td>
-                    <td className="px-5 py-3.5 border-r border-gray-300">
+                    <td className="px-4 py-2 text-sm text-gray-600 border-r border-gray-300 text-center">{(currentPage - 1) * itemsPerPage + index + 1}</td>
+                    <td className="px-5 py-2 text-sm text-gray-600 border-r border-gray-300">{cust.visit_date}</td>
+                    <td className="px-5 py-2 border-r border-gray-300">
                       {cust.expo_id || cust.linked_expo || cust.manual_expo_name ? (
                         <div className="font-semibold text-crm-primary text-sm leading-tight">
                           {expoLabel(cust)}
@@ -933,14 +1054,12 @@ const CustomerReport = ({ currentUser, filterSource }) => {
                         </div>
                       )}
                     </td>
-                    <td className="px-5 py-3.5 font-semibold text-sm text-gray-900 border-r border-gray-300">{cust.company_name}</td>
-                    <td className="px-5 py-3.5 text-sm text-gray-700 border-r border-gray-300">{cust.customer_name}</td>
-                    <td className="px-5 py-3.5 text-sm text-gray-600 font-mono border-r border-gray-300">{cust.phone_1}</td>
-                    {showAllCustomers && (
-                      <td className="px-5 py-3.5 text-sm text-gray-700 border-r border-gray-300">{registeredByLabel(cust)}</td>
-                    )}
-                    <td className="px-5 py-3.5 text-sm text-gray-600 border-r border-gray-300">{cust.city || '-'}</td>
-                    <td className="px-5 py-3.5 text-sm border-r border-gray-300">
+                    <td className="px-5 py-2 font-semibold text-sm text-gray-900 border-r border-gray-300">{cust.company_name}</td>
+                    <td className="px-5 py-2 text-sm text-gray-700 border-r border-gray-300">{cust.customer_name}</td>
+                    <td className="px-5 py-2 text-sm text-gray-600 font-mono border-r border-gray-300">{cust.phone_1}</td>
+                    <td className="px-5 py-2 text-sm text-gray-700 border-r border-gray-300">{registeredByLabel(cust)}</td>
+                    <td className="px-5 py-2 text-sm text-gray-600 border-r border-gray-300">{cust.city || '-'}</td>
+                    <td className="px-5 py-2 text-sm border-r border-gray-300">
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${cust.priority === 'high' ? 'bg-red-50 text-red-700 border-red-200' :
                           cust.priority === 'low' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                             'bg-amber-50 text-amber-700 border-amber-200'
@@ -948,7 +1067,7 @@ const CustomerReport = ({ currentUser, filterSource }) => {
                         {cust.priority ? cust.priority.toUpperCase() : 'MEDIUM'}
                       </span>
                     </td>
-                    <td className="px-5 py-3.5 text-sm border-r border-gray-300">
+                    <td className="px-5 py-2 text-sm border-r border-gray-300">
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${cust.enquiry_type === 'IDC' ? 'bg-blue-50 text-blue-700 border-blue-200/50' :
                           cust.enquiry_type === 'Website' ? 'bg-indigo-50 text-indigo-700 border-indigo-200/50' :
                             cust.enquiry_type === 'Application' ? 'bg-purple-50 text-purple-700 border-purple-200/50' :
@@ -957,7 +1076,7 @@ const CustomerReport = ({ currentUser, filterSource }) => {
                         {cust.enquiry_type || 'Unknown'}
                       </span>
                     </td>
-                    <td className="px-5 py-3.5 text-sm border-r border-gray-300">
+                    <td className="px-5 py-2 text-sm border-r border-gray-300">
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${cust.status === 'completed'
                           ? 'bg-emerald-50 text-emerald-700 border-emerald-200/50'
                           : 'bg-amber-50 text-amber-700 border-amber-200/50'
@@ -966,7 +1085,7 @@ const CustomerReport = ({ currentUser, filterSource }) => {
                         {cust.status === 'completed' ? 'Completed' : 'Pending'}
                       </span>
                     </td>
-                    <td className="px-5 py-3.5 text-sm text-right whitespace-nowrap">
+                    <td className="px-5 py-2 text-sm text-right whitespace-nowrap">
                       <div className="flex justify-end items-center gap-1">
                         {cust.image_path && (
                           <button
@@ -983,7 +1102,7 @@ const CustomerReport = ({ currentUser, filterSource }) => {
                             <i className="ph-bold ph-image text-lg"></i>
                           </button>
                         )}
-                        <button onClick={() => setViewingCustomer(cust)} className="text-blue-600 hover:text-blue-800 p-1.5 rounded-lg hover:bg-blue-50" title="View"><i className="ph-bold ph-eye text-lg"></i></button>
+
                         <button onClick={() => setEditingCustomer({ ...cust })} className="text-crm-primary hover:text-crm-primaryDark p-1.5 rounded-lg hover:bg-crm-primaryLighter" title="Edit"><i className="ph-bold ph-pencil-simple text-lg"></i></button>
                         <button onClick={() => handleDelete(cust.id, cust.company_name)} className="text-red-600 hover:text-red-800 p-1.5 rounded-lg hover:bg-red-50" title="Delete"><i className="ph-bold ph-trash text-lg"></i></button>
                       </div>
@@ -992,7 +1111,7 @@ const CustomerReport = ({ currentUser, filterSource }) => {
                 ))}
                 {filteredCustomers.length === 0 && (
                   <tr>
-                    <td colSpan={showAllCustomers ? 12 : 11} className="px-5 py-12 text-center text-gray-400">
+                    <td colSpan={12} className="px-5 py-12 text-center text-gray-400">
                       <div className="flex flex-col items-center justify-center space-y-2">
                         <i className="ph-bold ph-tray text-4xl text-gray-300"></i>
                         <p className="font-semibold text-gray-500">No customers found matching these filters</p>
@@ -1004,6 +1123,46 @@ const CustomerReport = ({ currentUser, filterSource }) => {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 bg-white p-4 rounded-xl border border-gray-200/80 shadow-sm">
+              <div className="text-sm text-gray-600">
+                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredCustomers.length)} of {filteredCustomers.length} entries
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1.5 rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                >
+                  Previous
+                </button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`w-8 h-8 rounded flex items-center justify-center text-sm font-medium transition-colors ${
+                        currentPage === page
+                          ? 'bg-crm-primary text-white border-crm-primary'
+                          : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1.5 rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

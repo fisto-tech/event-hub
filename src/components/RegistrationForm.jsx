@@ -249,6 +249,10 @@ const RegistrationForm = ({ currentUser }) => {
       phone2: payload.phone2 ? normalizePhoneForSubmit(payload.phone2) : '',
       enquiryType: payload.enquiryType || 'IDC',
       createdBy: currentUser?.id || null,
+      created_by: currentUser?.id || null,
+      user_id: currentUser?.id || null,
+      registeredBy: currentUser?.id || null,
+      registered_by: currentUser?.id || null,
       image: payload.image && payload.image.length > 6_000_000 ? '' : payload.image,
     };
 
@@ -275,8 +279,8 @@ const RegistrationForm = ({ currentUser }) => {
         ) {
           appendLookupToCache('source', submitPayload.referenceSource, null);
         }
-        const snap = getCachedRegistrationData();
-        if (snap?.lookups) setLookups(snap.lookups);
+        const data = await loadRegistrationBootstrap(true);
+        if (data?.lookups) setLookups(data.lookups);
         resetMainForm();
       } else {
         showToast(result.message || 'Error saving customer', 'error');
@@ -870,7 +874,13 @@ END:VCARD`;
                 onChange={handleChange}
                 placeholder="Enter source name..."
                 className="w-full px-3 py-1.5 crm-input"
+                list="source-suggestions"
               />
+              <datalist id="source-suggestions">
+                {sourceOptions.map((item, idx) => (
+                  <option key={`src-opt-${idx}`} value={item.name} />
+                ))}
+              </datalist>
             </FormField>
           )}
 
@@ -933,14 +943,6 @@ END:VCARD`;
             <input type="text" name="customerName" value={formData.customerName} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
           </FormField>
 
-          <FormField label="Designation">
-            <input type="text" name="designation" value={formData.designation} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
-          </FormField>
-
-          <FormField label="Email Address">
-            <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
-          </FormField>
-
           <FormField label="Phone / WhatsApp" required>
             <PhoneInput
               name="phone1"
@@ -950,6 +952,14 @@ END:VCARD`;
               inputClassName="flex-1 px-3 py-1.5 crm-input"
               selectClassName="w-[2.5rem] shrink-0 px-2 py-1.5 crm-input text-sm"
             />
+          </FormField>
+
+          <FormField label="Email Address">
+            <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
+          </FormField>
+
+          <FormField label="Designation">
+            <input type="text" name="designation" value={formData.designation} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
           </FormField>
 
           <FormField label="Secondary Phone">
@@ -1070,7 +1080,7 @@ END:VCARD`;
           <button
             type="button"
             onClick={resetMainForm}
-            className="px-5 py-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded text-sm font-medium transition-all"
+            className="px-5 py-2 bg-white border border-gray-300 text-gray-700 rounded text-sm font-medium transition-all hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors"
           >
             Cancel
           </button>

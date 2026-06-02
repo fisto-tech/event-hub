@@ -234,7 +234,7 @@ const MasterScopedLookupView = ({ lookupType }) => {
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="px-5 py-2.5 rounded-lg border border-gray-300 text-gray-700 text-sm"
+                  className="px-5 py-2.5 rounded-lg border border-gray-300 text-gray-700 text-sm hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors"
                 >
                   Cancel
                 </button>

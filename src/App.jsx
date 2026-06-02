@@ -42,8 +42,16 @@ const App = () => {
   };
 
   const handleProfileUpdate = (updatedUser) => {
-    setCurrentUser(prev => ({ ...prev, ...updatedUser }));
-    sessionStorage.setItem('user', JSON.stringify({ ...currentUser, ...updatedUser }));
+    setCurrentUser(prev => {
+      const merged = { ...prev, ...updatedUser };
+      // Protect critical fields in case the backend profile response omits them
+      if (!merged.id && prev?.id) merged.id = prev.id;
+      if (!merged.role && prev?.role) merged.role = prev.role;
+      if (!merged.username && prev?.username) merged.username = prev.username;
+      
+      sessionStorage.setItem('user', JSON.stringify(merged));
+      return merged;
+    });
   };
 
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -213,7 +221,7 @@ const App = () => {
       return <Profile user={currentUser} onProfileUpdate={handleProfileUpdate} />;
     }
     if (activeTab === 'dashboard') {
-      return <Dashboard />;
+      return <Dashboard currentUser={currentUser} />;
     }
 
     if (activeTab === 'master-data') {

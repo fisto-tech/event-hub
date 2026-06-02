@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { fetchApi } from '../utils/api';
 
-const Dashboard = () => {
+const Dashboard = ({ currentUser }) => {
   const [data, setData] = useState({
     totalRegistrations: 0,
     activeExpos: 0,
@@ -12,7 +12,9 @@ const Dashboard = () => {
   useEffect(() => {
     const loadDashboard = async () => {
       try {
-        const result = await fetchApi('dashboard.php');
+        const uid = currentUser?.id ? `?user_id=${currentUser.id}` : '';
+        const role = currentUser?.role ? `&role=${encodeURIComponent(currentUser.role)}` : '';
+        const result = await fetchApi(`dashboard.php${uid}${role}`);
         if (result.status === 'success') {
           setData(result.data);
         }
@@ -21,7 +23,7 @@ const Dashboard = () => {
       }
     };
     loadDashboard();
-  }, []);
+  }, [currentUser?.id, currentUser?.role]);
 
   const stats = [
     { label: 'Total Customers', value: data.totalRegistrations, icon: 'ph-users', color: 'bg-crm-primaryLighter text-crm-primary' },

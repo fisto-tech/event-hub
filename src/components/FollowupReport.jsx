@@ -38,8 +38,12 @@ const FollowupReport = ({ currentUser }) => {
       // Enrich followups with customer's expo_id and created_by so filters work
       followupsData = followupsData.map(f => {
         const customer = customersData.find(c => String(c.id) === String(f.customer_id));
-        const createdBy = f.created_by || (customer ? customer.created_by : null);
-        const user = usersData.find(u => String(u.id) === String(createdBy));
+        const createdBy = f.created_by || (customer ? (customer.created_by || customer.registered_by || customer.user_id) : null);
+        let user = usersData.find(u => String(u.id) === String(createdBy));
+        
+        if (!user && String(createdBy) === String(currentUser?.id)) {
+          user = currentUser;
+        }
         
         return {
           ...f,
@@ -81,8 +85,10 @@ const FollowupReport = ({ currentUser }) => {
     }
     
     // Employee Filter
-    if (showAll && filterEmployee !== 'all') {
-      const uId = f.created_by || f.user_id || f.registered_by;
+    const uId = f.created_by || f.user_id || f.registered_by;
+    if (!showAll) {
+      if (String(uId) !== String(currentUser.id)) return false;
+    } else if (filterEmployee !== 'all') {
       if (String(uId) !== String(filterEmployee)) return false;
     }
 
@@ -112,12 +118,17 @@ const FollowupReport = ({ currentUser }) => {
       return isNaN(time) ? 0 : time;
     };
 
-    if (startDate) {
-      if (!f.follow_up_date || parseDate(f.follow_up_date) < parseDate(startDate)) return false;
+    let effStartDate = startDate;
+    let effEndDate = endDate;
+    if (startDate && !endDate) effEndDate = startDate;
+    if (endDate && !startDate) effStartDate = endDate;
+
+    if (effStartDate) {
+      if (!f.follow_up_date || parseDate(f.follow_up_date) < parseDate(effStartDate)) return false;
     }
-    if (endDate) {
+    if (effEndDate) {
       // Add 24 hours minus 1 millisecond to include the whole end day
-      const endOfDay = parseDate(endDate) + 86399999;
+      const endOfDay = parseDate(effEndDate) + 86399999;
       if (!f.follow_up_date || parseDate(f.follow_up_date) > endOfDay) return false;
     }
 
@@ -153,6 +164,19 @@ const FollowupReport = ({ currentUser }) => {
     proposal: filteredData.filter(f => String(f.followup_reason).toLowerCase() === 'proposal').length,
     leadFollowup: filteredData.filter(f => ['lead', 'first followup', 'followup'].includes(String(f.followup_reason).toLowerCase())).length,
   };
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  // Pagination Logic
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterExpo, filterEmployee, searchField, searchText, startDate, endDate]);
 
   return (
     <div className="space-y-6 pb-10 max-w-[1600px] mx-auto fade-in">
@@ -305,10 +329,10 @@ const FollowupReport = ({ currentUser }) => {
                 </tr>
               </thead>
               <tbody>
-                {filteredData.length > 0 ? (
-                  filteredData.map((row, i) => (
+                {paginatedData.length > 0 ? (
+                  paginatedData.map((row, i) => (
                     <tr key={row.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-3 text-sm text-gray-700">{i + 1}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700">{((currentPage - 1) * itemsPerPage) + i + 1}</td>
                       <td className="px-4 py-3 text-sm text-gray-700 capitalize">{row.followup_reason || row.status || '—'}</td>
                       <td className="px-4 py-3 text-sm text-gray-700">{row.follow_up_date || '—'}</td>
                       <td className="px-4 py-3 text-sm text-gray-700">{row.registered_by_name || '—'}</td>
@@ -339,6 +363,46 @@ const FollowupReport = ({ currentUser }) => {
           </div>
         )}
       </div>
+      
+      {/* Pagination Controls */}
+      {!loading && totalPages > 1 && (
+        <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-gray-200/80 shadow-sm mt-4">
+          <div className="text-sm text-gray-600">
+            Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredData.length)} of {filteredData.length} entries
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-1.5 rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+            >
+              Previous
+            </button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-8 h-8 rounded flex items-center justify-center text-sm font-medium transition-colors ${
+                    currentPage === page
+                      ? 'bg-crm-primary text-white border-crm-primary'
+                      : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1.5 rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

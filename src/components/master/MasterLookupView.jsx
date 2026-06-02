@@ -51,7 +51,14 @@ const MasterLookupView = ({ lookupType }) => {
 
   const handleAdd = async (e) => {
     e.preventDefault();
-    if (!newName.trim()) return;
+    const trimmedName = newName.trim();
+    if (!trimmedName) return;
+    
+    if (items.some(item => item.name.toLowerCase() === trimmedName.toLowerCase())) {
+      setError(`This ${cfg.title.toLowerCase()} already exists.`);
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
     try {
       const res = await fetchApi('master_data.php', {
         method: 'POST',
@@ -153,7 +160,7 @@ const MasterLookupView = ({ lookupType }) => {
                 <div className="absolute top-3 right-3 h-9 w-9 rounded-full bg-crm-primaryLighter text-crm-primary flex items-center justify-center font-bold text-sm">
                   {(item.name || '?')[0].toUpperCase()}
                 </div>
-                {item.id && lookupType !== 'source' && (
+                {item.id && (
                   <button
                     type="button"
                     onClick={() => handleDelete(item)}

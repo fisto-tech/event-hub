@@ -239,7 +239,7 @@ const ExpoDetails = ({ embedded = false }) => {
                   <button
                     type="button"
                     onClick={resetForm}
-                    className="px-6 py-2 text-crm-primary hover:bg-crm-primaryLighter rounded-lg"
+                    className="px-6 py-2 text-crm-primary rounded-lg hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors"
                   >
                     Cancel
                   </button>
@@ -305,9 +305,7 @@ const ExpoDetails = ({ embedded = false }) => {
                     />
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button type="button" onClick={() => setViewingExpo(expo)} className="text-blue-600 hover:text-blue-800 mr-3" title="View">
-                      <i className="ph-bold ph-eye text-lg" />
-                    </button>
+
                     <button type="button" onClick={() => handleEdit(expo)} className="text-crm-primary hover:text-crm-primaryDark mr-3" title="Edit">
                       <i className="ph-bold ph-pencil-simple text-lg" />
                     </button>

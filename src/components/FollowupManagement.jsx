@@ -23,7 +23,11 @@ const FollowupManagement = ({ defaultFilter = 'all', currentUser }) => {
       }
       const res = await fetchApi(url);
       if (res.status === 'success') {
-        setFollowups(res.data || []);
+        let data = res.data || [];
+        if (!showAll) {
+          data = data.filter(f => String(f.created_by || f.registered_by || f.user_id) === String(currentUser.id));
+        }
+        setFollowups(data);
       }
     } catch (e) {
       console.error('Error fetching follow-ups:', e);

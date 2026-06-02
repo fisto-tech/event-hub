@@ -208,12 +208,12 @@ const Profile = ({ user, onProfileUpdate }) => {
               { label: 'Joined', value: profileData.created_at ? new Date(profileData.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '-', icon: 'ph-calendar' },
             ].map((item, idx) => (
               <div key={idx} className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
-                <div className="h-9 w-9 rounded-lg bg-crm-primaryLighter text-crm-primary flex items-center justify-center shrink-0 mt-0.5">
-                  <i className={`ph ${item.icon} text-lg`}></i>
+                <div className="h-10 w-10 rounded-lg bg-crm-primaryLighter text-crm-primary flex items-center justify-center shrink-0 mt-0.5">
+                  <i className={`ph ${item.icon} text-xl`}></i>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 font-medium">{item.label}</p>
-                  <p className={`text-sm font-semibold text-gray-800 ${item.label === 'Email Address' ? '' : 'capitalize'}`}>
+                  <p className="text-lg text-gray-800 font-medium">{item.label}</p>
+                  <p className={`text-md font-semibold text-gray-700 ${item.label === 'Email Address' ? '' : 'capitalize'}`}>
                     {item.label === 'Email Address'
                       ? (item.value ? String(item.value).toLowerCase() : '—')
                       : (item.value || '—')}
@@ -276,7 +276,7 @@ const Profile = ({ user, onProfileUpdate }) => {
             </div>
             <div className="md:col-span-2 flex justify-end gap-3 mt-2">
               <button type="button" onClick={() => setActiveSection('view')}
-                className="px-6 py-2.5 text-crm-primary font-medium hover:bg-crm-primaryLighter rounded-lg transition-colors">
+                className="px-6 py-2.5 text-crm-primary font-medium hover:bg-red-500 hover:text-white hover:border-red-500 rounded-lg transition-colors">
                 Cancel
               </button>
               <button type="submit" disabled={loading}
@@ -324,7 +324,7 @@ const Profile = ({ user, onProfileUpdate }) => {
             </div>
             <div className="flex justify-end gap-3 pt-2">
               <button type="button" onClick={() => { setActiveSection('view'); setPasswordData({ current_password: '', new_password: '', confirm_password: '' }); }}
-                className="px-6 py-2.5 text-crm-primary font-medium hover:bg-crm-primaryLighter rounded-lg transition-colors">
+                className="px-6 py-2.5 text-crm-primary font-medium hover:bg-red-500 hover:text-white hover:border-red-500 rounded-lg transition-colors">
                 Cancel
               </button>
               <button type="submit" disabled={loading}
