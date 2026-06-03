@@ -15,9 +15,8 @@ const REASON_TABS = [
 const STATUS_OPTIONS = [
   { label: 'Inprogress', value: 'inprogress' },
   { label: 'Not Interested', value: 'not interested' },
-  { label: 'Not Picking', value: 'not picking' },
+  { label: 'Not Picking / Busy / Others', value: 'not picking' },
   { label: 'Confirmed', value: 'confirmed' },
-  { label: 'Others', value: 'others' },
 ];
 
 const REASON_OPTIONS = ['None', 'Proposal', 'Followup', 'Quotation', 'Lead', 'Dropped', 'Project Onboard'];
@@ -578,13 +577,24 @@ const FollowupFormModal = ({ card, currentUser, onClose, onSaved }) => {
     contact_email: '',
   });
 
+  const [lastManualReason, setLastManualReason] = useState(defaultReason);
+
   useEffect(() => {
     if (form.followup_status === 'confirmed') {
       setForm((p) => ({ ...p, followup_reason: 'Project Onboard' }));
-    } else if (form.followup_status === 'not interested' || form.followup_status === 'not picking') {
-      setForm((p) => ({ ...p, followup_reason: form.followup_status === 'not interested' ? 'Dropped' : 'None' }));
+    } else if (form.followup_status === 'not interested') {
+      setForm((p) => ({ ...p, followup_reason: 'Dropped' }));
+    } else if (form.followup_status === 'not picking') {
+      setForm((p) => ({ ...p, followup_reason: 'None' }));
+    } else {
+      setForm((p) => {
+        if (p.followup_reason === 'Project Onboard' || p.followup_reason === 'Dropped') {
+          return { ...p, followup_reason: lastManualReason === 'Project Onboard' || lastManualReason === 'Dropped' ? 'None' : lastManualReason };
+        }
+        return p;
+      });
     }
-  }, [form.followup_status]);
+  }, [form.followup_status, lastManualReason]);
 
   const loadContacts = async () => {
     setContactsLoading(true);
@@ -687,7 +697,7 @@ const FollowupFormModal = ({ card, currentUser, onClose, onSaved }) => {
 
       const payload = {
         customer_id: Number(card.customer_id),
-        follow_up_date: form.next_follow_up_date,
+        follow_up_date: (form.followup_status === 'confirmed' || form.followup_reason === 'Project Onboard') ? '' : form.next_follow_up_date,
         followup_reason: form.followup_reason,
         followup_status: form.followup_status,
         remarks: form.remarks,
@@ -1026,19 +1036,20 @@ const FollowupFormModal = ({ card, currentUser, onClose, onSaved }) => {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-normal text-crm-primary">Next Followup Date</label>
-                <input
-                  type="date"
-                  value={form.next_follow_up_date}
-                  onChange={(e) => setForm((p) => ({ ...p, next_follow_up_date: e.target.value }))}
-                  className="w-full px-4 py-2.5 rounded-lg crm-input mt-1"
-                />
-              </div>
-              <div>
                 <label className="block text-sm font-normal text-crm-primary">Followup Reason</label>
                 <select
                   value={form.followup_reason}
-                  onChange={(e) => setForm((p) => ({ ...p, followup_reason: e.target.value }))}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setForm((p) => {
+                      const updates = { followup_reason: val };
+                      if (val === 'Project Onboard') {
+                        updates.followup_status = 'confirmed';
+                      }
+                      return { ...p, ...updates };
+                    });
+                    setLastManualReason(val);
+                  }}
                   className="w-full px-4 py-2.5 rounded-lg crm-input mt-1"
                 >
                   {REASON_OPTIONS.map((r) => (
@@ -1048,6 +1059,18 @@ const FollowupFormModal = ({ card, currentUser, onClose, onSaved }) => {
                   ))}
                 </select>
               </div>
+              {form.followup_status !== 'confirmed' && form.followup_reason !== 'Project Onboard' && (
+                <div>
+                  <label className="block text-sm font-normal text-crm-primary">Next Followup Date <span className="text-red-500">*</span></label>
+                  <input
+                    type="date"
+                    value={form.next_follow_up_date}
+                    onChange={(e) => setForm((p) => ({ ...p, next_follow_up_date: e.target.value }))}
+                    required
+                    className="w-full px-4 py-2.5 rounded-lg crm-input mt-1"
+                  />
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-normal text-crm-primary">Remarks</label>
                 <input
@@ -1091,3 +1114,4 @@ const FollowupFormModal = ({ card, currentUser, onClose, onSaved }) => {
 };
 
 export default CustomerFollowup;
+export { FollowupFormModal, FollowupHistoryModal, STATUS_OPTIONS, REASON_OPTIONS };

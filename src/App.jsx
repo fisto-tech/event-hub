@@ -4,7 +4,7 @@ import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import RegistrationForm from './components/RegistrationForm';
 import CustomerReport from './components/CustomerReport';
-import FollowupManagement from './components/FollowupManagement';
+import DateWiseAnalysis from './components/DateWiseAnalysis';
 import FollowupReport from './components/FollowupReport';
 import CustomerFollowup from './components/CustomerFollowup';
 import EmployeeRegistration from './components/EmployeeRegistration';
@@ -261,7 +261,7 @@ const App = () => {
       case 'follow-up-reports':
         return <FollowupReport currentUser={currentUser} />;
       case 'today-analyse':
-        return <FollowupManagement key="today" defaultFilter="today" currentUser={currentUser} />;
+        return <DateWiseAnalysis currentUser={currentUser} />;
       default:
         return (
           <div className="flex flex-col items-center justify-center h-full text-slate-400">
