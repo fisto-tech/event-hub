@@ -44,8 +44,25 @@ const WhatsappTemplates = ({ embedded = false }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => {
+      const next = { ...prev, [name]: value };
+      if (name === 'expoName' && !value) {
+        next.enquiryType = '';
+      }
+      return next;
+    });
   };
+
+  const filteredEnquiryTypesRaw = formData.expoName
+    ? lookups.enquiry_type.filter((item) => {
+        const expo = expos.find((e) => e.expo_name === formData.expoName);
+        return !item.expo_id || (expo && String(item.expo_id) === String(expo.id));
+      })
+    : [];
+
+  const filteredEnquiryTypes = Array.from(
+    new Map(filteredEnquiryTypesRaw.map((item) => [item.name.toLowerCase().trim(), item])).values()
+  );
 
   const resetForm = () => {
     setFormData({
@@ -146,14 +163,21 @@ const WhatsappTemplates = ({ embedded = false }) => {
               name="enquiryType"
               value={formData.enquiryType}
               onChange={handleChange}
-              className="w-full px-3 py-2.5 rounded-lg crm-input text-sm"
+              disabled={!formData.expoName}
+              className={`w-full px-3 py-2.5 rounded-lg crm-input text-sm ${!formData.expoName ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
             >
-              <option value="">— General (All Enquiry Types) —</option>
-              {lookups.enquiry_type.map((item, i) => (
-                <option key={`e-${i}`} value={item.name}>
-                  {item.name}
-                </option>
-              ))}
+              {!formData.expoName ? (
+                <option value="">— First choose expo name —</option>
+              ) : (
+                <>
+                  <option value="">— General (All Enquiry Types) —</option>
+                  {filteredEnquiryTypes.map((item, i) => (
+                    <option key={`e-${i}`} value={item.name}>
+                      {item.name}
+                    </option>
+                  ))}
+                </>
+              )}
             </select>
           </div>
         </div>

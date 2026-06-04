@@ -3,6 +3,7 @@ import { fetchApi } from '../utils/api';
 import { isPrivilegedRole } from '../utils/roles';
 import LoadingSpinner from './common/LoadingSpinner';
 import { showToast } from '../utils/toast';
+import { formatDateTime } from '../utils/dateUtils';
 
 const FollowupManagement = ({ defaultFilter = 'all', currentUser }) => {
   const [followups, setFollowups] = useState([]);
@@ -138,7 +139,7 @@ const FollowupManagement = ({ defaultFilter = 'all', currentUser }) => {
               {followups.map((f, index) => (
                 <tr key={f.id} className="border-b border-gray-700 hover:bg-crm-primaryLighter transition-colors">
                   <td className="px-4 py-3 text-sm border-r border-gray-700 text-center">{index + 1}</td>
-                  <td className="px-4 py-3 font-normal text-crm-primary border-r border-gray-700">{f.follow_up_date}</td>
+                  <td className="px-4 py-3 font-normal text-crm-primary border-r border-gray-700">{formatDateTime(f.follow_up_date)}</td>
                   <td className="px-4 py-3 font-normal border-r border-gray-700">{f.customer_name}</td>
                   <td className="px-4 py-3 text-gray-700 border-r border-gray-700">{f.company_name}</td>
                   <td className="px-4 py-3 text-sm border-r border-gray-700">{f.phone_1}</td>

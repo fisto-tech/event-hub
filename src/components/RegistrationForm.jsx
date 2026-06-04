@@ -8,7 +8,7 @@ import {
 import { showToast } from '../utils/toast';
 import CityAutocomplete from './common/CityAutocomplete';
 import PhoneInput from './common/PhoneInput';
-import { validateStoredPhone, normalizePhoneForSubmit } from '../utils/phoneUtils';
+import { validateStoredPhone, normalizePhoneForSubmit, parseStoredPhone, digitsOnly } from '../utils/phoneUtils';
 
 const DEFAULT_WHATSAPP_MESSAGE =
   'Hello {customer_name}, Thank you for visiting us at our stall! We appreciate your interest in our products. Our team will contact you shortly to discuss further.';
@@ -37,11 +37,21 @@ const validateRegistration = (payload, { customEnquiry, customIndustry, showSour
   if (!String(payload.companyName || '').trim()) missing.push('Company Name');
   if (!String(payload.customerName || '').trim()) missing.push('Customer Name');
   const phone1Err = validateStoredPhone(payload.phone1, { required: true });
-  if (phone1Err) missing.push(phone1Err === 'Phone number is required' ? 'Phone / WhatsApp' : phone1Err);
+  if (phone1Err) {
+    missing.push(phone1Err === 'Phone number is required' ? 'Phone / WhatsApp' : phone1Err);
+  } else {
+    const nat1 = digitsOnly(parseStoredPhone(payload.phone1).national, 15);
+    if (nat1 && nat1.length !== 10) missing.push('Phone / WhatsApp must be exactly 10 digits');
+  }
 
   if (String(payload.phone2 || '').trim()) {
     const phone2Err = validateStoredPhone(payload.phone2, { required: true });
-    if (phone2Err) missing.push(`Secondary phone: ${phone2Err}`);
+    if (phone2Err) {
+      missing.push(`Secondary phone: ${phone2Err}`);
+    } else {
+      const nat2 = digitsOnly(parseStoredPhone(payload.phone2).national, 15);
+      if (nat2 && nat2.length !== 10) missing.push('Secondary phone must be exactly 10 digits');
+    }
   }
 
   const enquiry = payload.enquiryType === OTHER_VALUE
@@ -51,6 +61,10 @@ const validateRegistration = (payload, { customEnquiry, customIndustry, showSour
 
   if (payload.industryType === OTHER_VALUE && !String(customIndustry || '').trim()) {
     missing.push('Industry Type (custom value)');
+  }
+
+  if (!String(payload.priority || '').trim()) {
+    missing.push('Priority Level');
   }
 
   return missing;
@@ -98,10 +112,10 @@ const RegistrationForm = ({ currentUser }) => {
     phone1: '',
     phone2: '',
     email: '',
-    enquiryType: 'IDC',
+    enquiryType: '',
     referenceSource: '',
     reference: '',
-    priority: 'medium',
+    priority: '',
     nextFollowUpDate: '',
     remarks: '',
     image: '',
@@ -167,23 +181,40 @@ const RegistrationForm = ({ currentUser }) => {
     let selectedExpoName = '';
     if (formData.expoId) {
       const selectedExpo = expos.find((e) => String(e.id) === String(formData.expoId));
-      if (selectedExpo) selectedExpoName = selectedExpo.expo_name;
+      if (selectedExpo) selectedExpoName = (selectedExpo.expo_name || '').toLowerCase().trim();
     }
 
-    let matchedTemplate = null;
-    if (selectedExpoName) {
-      matchedTemplate = whatsappTemplates.find(
-        (t) =>
-          t.expo_name &&
-          t.expo_name.toLowerCase().trim() === selectedExpoName.toLowerCase().trim()
-      );
+    let selectedEnquiryType = formData.enquiryType;
+    if (selectedEnquiryType === OTHER_VALUE) {
+      selectedEnquiryType = customEnquiry;
     }
-    if (!matchedTemplate) {
-      matchedTemplate = whatsappTemplates.find((t) => !t.expo_name);
+    selectedEnquiryType = (selectedEnquiryType || '').toLowerCase().trim();
+
+    let exactMatch = null;
+    let expoOnlyMatch = null;
+    let enquiryOnlyMatch = null;
+    let globalMatch = null;
+
+    for (const t of whatsappTemplates) {
+      const tExpo = (t.expo_name || '').toLowerCase().trim();
+      const tEnq = (t.enquiry_type || '').toLowerCase().trim();
+
+      const matchExpo = tExpo === selectedExpoName;
+      const matchEnq = tEnq === selectedEnquiryType;
+
+      const isGeneralExpo = !tExpo;
+      const isGeneralEnq = !tEnq;
+
+      if (matchExpo && matchEnq) exactMatch = t;
+      else if (matchExpo && isGeneralEnq) expoOnlyMatch = t;
+      else if (isGeneralExpo && matchEnq) enquiryOnlyMatch = t;
+      else if (isGeneralExpo && isGeneralEnq) globalMatch = t;
     }
+
+    const matchedTemplate = exactMatch || expoOnlyMatch || enquiryOnlyMatch || globalMatch;
 
     return matchedTemplate?.message_content || DEFAULT_WHATSAPP_MESSAGE;
-  }, [formData.expoId, expos, whatsappTemplates]);
+  }, [formData.expoId, formData.enquiryType, customEnquiry, expos, whatsappTemplates]);
 
   // Sync WhatsApp template when expo changes — skip if user already edited the message
   const whatsappUserEditedRef = useRef(false);
@@ -303,11 +334,11 @@ const RegistrationForm = ({ currentUser }) => {
     setCustomIndustry('');
     setFormData(prev => ({
       ...prev,
-      expoId: localStorage.getItem('defaultExpo') || '',
+      expoId: prev.expoId,
       companyName: '', industryType: '', website: '', location: '', city: '',
       customerName: '', designation: '', phone1: '', phone2: '', email: '',
-      enquiryType: 'IDC',
-      referenceSource: '', reference: '', nextFollowUpDate: '', remarks: '', priority: 'medium', image: ''
+      enquiryType: '',
+      referenceSource: '', reference: '', nextFollowUpDate: '', remarks: '', priority: '', image: ''
     }));
 
     // Also clear the underlying <input type="file"> value so the old path/filename
@@ -999,6 +1030,7 @@ END:VCARD`;
 
           <FormField label="Priority Level" required>
             <select name="priority" value={formData.priority} onChange={handleChange} className="w-full px-3 py-1.5 crm-input">
+              <option value="">— Select —</option>
               <option value="high">High Priority</option>
               <option value="medium">Medium Priority</option>
               <option value="low">Low Priority</option>

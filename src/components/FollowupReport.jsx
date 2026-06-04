@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { fetchApi } from '../utils/api';
 import { isPrivilegedRole } from '../utils/roles';
 import LoadingSpinner from './common/LoadingSpinner';
+import { formatDateTime } from '../utils/dateUtils';
 
 const FollowupReport = ({ currentUser }) => {
   const [followups, setFollowups] = useState([]);
@@ -320,10 +321,6 @@ const FollowupReport = ({ currentUser }) => {
                   <th className="px-4 py-3 font-semibold text-sm border-r border-white/20">Followup Date</th>
                   <th className="px-4 py-3 font-semibold text-sm border-r border-white/20">Employee</th>
                   <th className="px-4 py-3 font-semibold text-sm border-r border-white/20">Company Name</th>
-                  <th className="px-4 py-3 font-semibold text-sm border-r border-white/20">City</th>
-                  <th className="px-4 py-3 font-semibold text-sm border-r border-white/20">State</th>
-                  <th className="px-4 py-3 font-semibold text-sm border-r border-white/20">Country</th>
-                  <th className="px-4 py-3 font-semibold text-sm border-r border-white/20">Website</th>
                   <th className="px-4 py-3 font-semibold text-sm border-r border-white/20">Contact Person</th>
                   <th className="px-4 py-3 font-semibold text-sm">Mobile</th>
                 </tr>
@@ -334,26 +331,16 @@ const FollowupReport = ({ currentUser }) => {
                     <tr key={row.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3 text-sm text-gray-700">{((currentPage - 1) * itemsPerPage) + i + 1}</td>
                       <td className="px-4 py-3 text-sm text-gray-700 capitalize">{row.followup_reason || row.status || '—'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{row.follow_up_date || '—'}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700">{formatDateTime(row.follow_up_date)}</td>
                       <td className="px-4 py-3 text-sm text-gray-700">{row.registered_by_name || '—'}</td>
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">{row.company_name || '—'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{row.city || '—'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{row.state || '—'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{row.country || '—'}</td>
-                      <td className="px-4 py-3 text-sm text-blue-600 hover:underline">
-                        {row.website ? (
-                          <a href={row.website.startsWith('http') ? row.website : `http://${row.website}`} target="_blank" rel="noreferrer">
-                            {row.website}
-                          </a>
-                        ) : '—'}
-                      </td>
                       <td className="px-4 py-3 text-sm text-gray-900 font-medium">{row.customer_name || '—'}</td>
                       <td className="px-4 py-3 text-sm text-gray-700">{row.phone_1 || '—'}</td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="11" className="px-4 py-8 text-center text-gray-500">
+                    <td colSpan="7" className="px-4 py-8 text-center text-gray-500">
                       No matching records found.
                     </td>
                   </tr>

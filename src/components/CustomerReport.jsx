@@ -8,6 +8,7 @@ import { confirmDelete } from '../utils/confirm';
 import { showToast } from '../utils/toast';
 import ReportModalShell, { EditField, reportInputClass } from './common/ReportModalShell';
 import CityAutocomplete from './common/CityAutocomplete';
+import { formatDateTime } from '../utils/dateUtils';
 
 const ENQUIRY_OPTIONS = ['IDC', 'Website', 'Web page', 'Application', 'General Inquiry', 'Unknown'];
 
@@ -20,6 +21,15 @@ const CustomerReport = ({ currentUser, filterSource }) => {
   const [filterEmployee, setFilterEmployee] = useState('all');
   const [expos, setExpos] = useState([]);
   const [employees, setEmployees] = useState([]);
+
+  const activeEmployeeIds = React.useMemo(() => {
+    const ids = new Set();
+    customers.forEach(c => {
+      const uId = c.created_by || c.registered_by || c.user_id;
+      if (uId) ids.add(String(uId));
+    });
+    return ids;
+  }, [customers]);
 
   // Filter & Sort States
   const [activeTab, setActiveTab] = useState('all'); // 'all', 'completed', 'pending'
@@ -911,7 +921,9 @@ const CustomerReport = ({ currentUser, filterSource }) => {
               className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm outline-none focus:border-crm-primary disabled:bg-gray-100"
             >
               <option value="all">All Employees</option>
-              {employees.map(e => <option key={e.id} value={e.id}>{e.name || e.username || `User #${e.id}`}</option>)}
+              {employees
+                .filter(e => activeEmployeeIds.has(String(e.id)))
+                .map(e => <option key={e.id} value={e.id}>{e.name || e.username || `User #${e.id}`}</option>)}
             </select>
           </div>
 
@@ -1021,29 +1033,26 @@ const CustomerReport = ({ currentUser, filterSource }) => {
       ) : (
         <div className="report-table-wrap">
           <div className="report-table-scroll rounded-xl border border-gray-300 shadow-sm overflow-hidden">
-            <table className="w-full text-left border-collapse whitespace-nowrap text-crm-textDark min-w-[1000px]">
+            <table className="w-full text-left border-collapse whitespace-nowrap text-crm-textDark min-w-[800px]">
               <thead>
                 <tr className="bg-crm-primary border-b border-crm-primary text-white">
-                  <th className="px-4 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20 w-14">S.No</th>
-                  <th className="px-5 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Date</th>
-                  <th className="px-5 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Expo / Source</th>
-                  <th className="px-5 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Company</th>
-                  <th className="px-5 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Contact Person</th>
-                  <th className="px-5 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Phone</th>
-                  <th className="px-5 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Registered By</th>
-                  <th className="px-5 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">City</th>
-                  <th className="px-5 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Priority</th>
-                  <th className="px-5 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Enquiry Type</th>
-                  <th className="px-5 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Status</th>
-                  <th className="px-5 py-2 font-semibold text-xs uppercase tracking-wider text-right">Actions</th>
+                  <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20 w-14">S.No</th>
+                  <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Date</th>
+                  <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Expo / Source</th>
+                  <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Company</th>
+                  <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Contact Person</th>
+                  <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Phone</th>
+                  <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Registered By</th>
+                  <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Status</th>
+                  <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {paginatedCustomers.map((cust, index) => (
                   <tr key={cust.id} className="border-b border-gray-300 hover:bg-crm-primaryLighter/40 transition-colors duration-150">
-                    <td className="px-4 py-2 text-sm text-gray-600 border-r border-gray-300 text-center">{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                    <td className="px-5 py-2 text-sm text-gray-600 border-r border-gray-300">{cust.visit_date}</td>
-                    <td className="px-5 py-2 border-r border-gray-300">
+                    <td className="px-3 py-2 text-sm text-gray-600 border-r border-gray-300 text-center">{(currentPage - 1) * itemsPerPage + index + 1}</td>
+                    <td className="px-3 py-2 text-sm text-gray-600 border-r border-gray-300">{formatDateTime(cust.visit_date)}</td>
+                    <td className="px-3 py-2 border-r border-gray-300">
                       {cust.expo_id || cust.linked_expo || cust.manual_expo_name ? (
                         <div className="font-semibold text-crm-primary text-sm leading-tight">
                           {expoLabel(cust)}
@@ -1054,29 +1063,11 @@ const CustomerReport = ({ currentUser, filterSource }) => {
                         </div>
                       )}
                     </td>
-                    <td className="px-5 py-2 font-semibold text-sm text-gray-900 border-r border-gray-300">{cust.company_name}</td>
-                    <td className="px-5 py-2 text-sm text-gray-700 border-r border-gray-300">{cust.customer_name}</td>
-                    <td className="px-5 py-2 text-sm text-gray-600 font-mono border-r border-gray-300">{cust.phone_1}</td>
-                    <td className="px-5 py-2 text-sm text-gray-700 border-r border-gray-300">{registeredByLabel(cust)}</td>
-                    <td className="px-5 py-2 text-sm text-gray-600 border-r border-gray-300">{cust.city || '-'}</td>
-                    <td className="px-5 py-2 text-sm border-r border-gray-300">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${cust.priority === 'high' ? 'bg-red-50 text-red-700 border-red-200' :
-                          cust.priority === 'low' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                            'bg-amber-50 text-amber-700 border-amber-200'
-                        }`}>
-                        {cust.priority ? cust.priority.toUpperCase() : 'MEDIUM'}
-                      </span>
-                    </td>
-                    <td className="px-5 py-2 text-sm border-r border-gray-300">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${cust.enquiry_type === 'IDC' ? 'bg-blue-50 text-blue-700 border-blue-200/50' :
-                          cust.enquiry_type === 'Website' ? 'bg-indigo-50 text-indigo-700 border-indigo-200/50' :
-                            cust.enquiry_type === 'Application' ? 'bg-purple-50 text-purple-700 border-purple-200/50' :
-                              'bg-slate-50 text-slate-700 border-slate-200/50'
-                        }`}>
-                        {cust.enquiry_type || 'Unknown'}
-                      </span>
-                    </td>
-                    <td className="px-5 py-2 text-sm border-r border-gray-300">
+                    <td className="px-3 py-2 font-semibold text-sm text-gray-900 border-r border-gray-300">{cust.company_name}</td>
+                    <td className="px-3 py-2 text-sm text-gray-700 border-r border-gray-300">{cust.customer_name}</td>
+                    <td className="px-3 py-2 text-sm text-gray-600 font-mono border-r border-gray-300">{cust.phone_1}</td>
+                    <td className="px-3 py-2 text-sm text-gray-700 border-r border-gray-300">{registeredByLabel(cust)}</td>
+                    <td className="px-3 py-2 text-sm border-r border-gray-300">
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${cust.status === 'completed'
                           ? 'bg-emerald-50 text-emerald-700 border-emerald-200/50'
                           : 'bg-amber-50 text-amber-700 border-amber-200/50'
@@ -1085,7 +1076,7 @@ const CustomerReport = ({ currentUser, filterSource }) => {
                         {cust.status === 'completed' ? 'Completed' : 'Pending'}
                       </span>
                     </td>
-                    <td className="px-5 py-2 text-sm text-right whitespace-nowrap">
+                    <td className="px-3 py-2 text-sm text-right whitespace-nowrap">
                       <div className="flex justify-end items-center gap-1">
                         {cust.image_path && (
                           <button

@@ -3,9 +3,11 @@ import { fetchApi } from '../utils/api';
 import LoadingSpinner from './common/LoadingSpinner';
 import { showToast } from '../utils/toast';
 import { FollowupHistoryModal } from './CustomerFollowup';
+import { formatDateTime } from '../utils/dateUtils';
 
 const TABS = [
   { label: 'Inprogress', value: 'inprogress' },
+  { label: 'Upcoming', value: 'upcoming' },
   { label: 'Completed', value: 'completed' },
   { label: 'Missed', value: 'missed' },
 ];
@@ -53,10 +55,15 @@ const DateWiseAnalysis = ({ currentUser }) => {
     loadBoard();
   }, [selectedDate, activeTab, currentUser?.id, currentUser?.role]);
 
-  // Make sure Inprogress tab is not selected if date is not today
+  // Make sure appropriate tab is selected based on date
   useEffect(() => {
-    if (selectedDate !== todayISO() && activeTab === 'inprogress') {
-      setActiveTab('completed');
+    const today = todayISO();
+    if (selectedDate > today) {
+      if (activeTab !== 'upcoming') setActiveTab('upcoming');
+    } else if (selectedDate < today) {
+      if (activeTab === 'inprogress' || activeTab === 'upcoming') setActiveTab('completed');
+    } else {
+      if (activeTab === 'upcoming') setActiveTab('inprogress');
     }
   }, [selectedDate, activeTab]);
 
@@ -102,8 +109,15 @@ const DateWiseAnalysis = ({ currentUser }) => {
 
           <div className="flex flex-wrap items-center justify-center gap-2">
             {TABS.map((t) => {
-              // Hide inprogress tab if date is not today
-              if (t.value === 'inprogress' && selectedDate !== todayISO()) return null;
+              // Hide inprogress tab if date is not today, hide upcoming if date is not future
+              const isFuture = selectedDate > todayISO();
+              const isToday = selectedDate === todayISO();
+              
+              if (t.value === 'inprogress' && !isToday) return null;
+              if (t.value === 'upcoming' && !isFuture) return null;
+              
+              // If it is a future date, hide completed and missed as well
+              if ((t.value === 'completed' || t.value === 'missed') && isFuture) return null;
               
               return (
                 <button
@@ -157,7 +171,7 @@ const DateWiseAnalysis = ({ currentUser }) => {
                       <div>
                         <span className="text-sm font-bold text-gray-800 uppercase tracking-wider block mb-0.5">Contact Person</span>
                         <span className="text-sm font-medium text-gray-600 block">
-                          {c.display_contact_person || c.customer_name || '—'}
+                          {c.contact_person || c.display_contact_person || c.customer_name || '—'}
                         </span>
                       </div>
                       <div>
@@ -169,7 +183,7 @@ const DateWiseAnalysis = ({ currentUser }) => {
                       <div>
                         <span className="text-sm font-bold text-gray-800 uppercase tracking-wider block mb-0.5">Next Follow-up</span>
                         <span className="text-sm font-medium text-gray-600 block">
-                          {c.follow_up_date || '—'}
+                          {formatDateTime(c.follow_up_date)}
                         </span>
                       </div>
                       <div className="col-span-2">
@@ -211,7 +225,7 @@ const DateWiseAnalysis = ({ currentUser }) => {
       {historyModal && (
         <FollowupHistoryModal
           customer={historyModal.customer}
-          rows={historyModal.rows}
+          history={historyModal.rows}
           onClose={() => setHistoryModal(null)}
         />
       )}

@@ -10,8 +10,8 @@ const PhoneInput = ({
   inputClassName = 'flex-1 min-w-0 px-3 py-1.5 crm-input',
   selectClassName = 'w-[5.5rem] shrink-0 px-2 py-1.5 crm-input text-sm text-center',
   placeholder = 'Phone number',
-  showError = true,
-  maxLength = 15, // Provide a generous max length to remove the 10-digit strict restriction
+  showError = false,
+  maxLength = 10,
 }) => {
   // Parse initial value
   const parseInitial = (val) => {
@@ -28,10 +28,14 @@ const PhoneInput = ({
   const lastEmittedRef = useRef(value);
 
   useEffect(() => {
+    if (!value) {
+      setTouched(false);
+    }
     if (value === lastEmittedRef.current) return;
     const parsed = parseInitial(value);
     setDial(parsed.dial);
     setNational(parsed.nat);
+    lastEmittedRef.current = value;
   }, [value]);
 
   const emitChange = (nextDial, nextNat) => {
@@ -75,7 +79,6 @@ const PhoneInput = ({
           name={name}
           value={national}
           onChange={handleNationalChange}
-          onBlur={() => setTouched(true)}
           disabled={disabled}
           maxLength={maxLength}
           inputMode="numeric"
@@ -84,7 +87,6 @@ const PhoneInput = ({
           aria-invalid={!!displayError}
         />
       </div>
-      {displayError && <p className="text-xs text-red-600 mt-1">Phone number is required</p>}
     </div>
   );
 };

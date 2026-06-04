@@ -5,6 +5,7 @@ import ReportModalShell, { EditField, reportInputClass } from './common/ReportMo
 import { showToast } from '../utils/toast';
 import PhoneInput from './common/PhoneInput';
 import { normalizePhoneForSubmit, validateStoredPhone } from '../utils/phoneUtils';
+import { formatDateTime } from '../utils/dateUtils';
 
 const REASON_TABS = [
   { label: 'Followup', value: 'first followup' },
@@ -286,8 +287,8 @@ const FollowupHistoryModal = ({ customer, history, onClose }) => (
                   <div className="text-xs text-gray-800 mt-1">
                     <span className="font-semibold text-gray-700">Followup Taken :</span>{' '}
                     {h.created_at
-                      ? new Date(h.created_at).toLocaleString()
-                      : h.follow_up_date || '—'}
+                      ? formatDateTime(h.created_at)
+                      : formatDateTime(h.follow_up_date)}
                   </div>
                 </div>
 
@@ -303,7 +304,7 @@ const FollowupHistoryModal = ({ customer, history, onClose }) => (
                   </div>
                   <div>
                     <div className="text-sm font-semibold text-gray-900 mb-0.5">Next Follow-up</div>
-                    <div className="text-sm font-medium text-gray-700">{h.follow_up_date || '—'}</div>
+                    <div className="text-sm font-medium text-gray-700">{formatDateTime(h.follow_up_date) || '—'}</div>
                   </div>
                   <div>
                     <div className="text-sm font-semibold text-gray-900 mb-0.5">Reason</div>
@@ -472,7 +473,7 @@ const CustomerFollowup = ({ currentUser }) => {
                     <div>
                       <span className="text-sm font-bold text-gray-800 uppercase tracking-wider block mb-0.5">Contact Person</span>
                       <span className="text-sm font-medium text-gray-600 block">
-                        {c.display_contact_person || c.customer_name || '—'}
+                        {c.contact_person || c.display_contact_person || c.customer_name || '—'}
                       </span>
                     </div>
                     <div>
@@ -484,7 +485,7 @@ const CustomerFollowup = ({ currentUser }) => {
                     <div>
                       <span className="text-sm font-bold text-gray-800 uppercase tracking-wider block mb-0.5">Next Follow-up</span>
                       <span className="text-sm font-medium text-gray-600 block">
-                        {c.follow_up_date || '—'}
+                        {formatDateTime(c.follow_up_date)}
                       </span>
                     </div>
                     <div className="col-span-2">
