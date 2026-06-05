@@ -3,12 +3,14 @@ import { fetchApi } from '../utils/api';
 import { isPrivilegedRole } from '../utils/roles';
 import LoadingSpinner from './common/LoadingSpinner';
 import { formatDateTime } from '../utils/dateUtils';
+import { FollowupHistoryModal } from './CustomerFollowup';
 
 const FollowupReport = ({ currentUser }) => {
   const [followups, setFollowups] = useState([]);
   const [expos, setExpos] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [historyModal, setHistoryModal] = useState(null);
 
   // Filters
   const [filterExpo, setFilterExpo] = useState('all');
@@ -68,6 +70,22 @@ const FollowupReport = ({ currentUser }) => {
   useEffect(() => {
     loadData();
   }, [currentUser?.id, currentUser?.role]);
+
+  const openHistory = async (row) => {
+    try {
+      const res = await fetchApi(`follow_ups.php?action=history&customer_id=${row.customer_id}&role=${encodeURIComponent(userRole)}&user_id=${currentUser.id}`);
+      if (res.status === 'success') {
+        setHistoryModal({
+          customer: row,
+          rows: res.data || []
+        });
+      } else {
+        alert(res.message || 'Error fetching history');
+      }
+    } catch (e) {
+      alert('Network error fetching history');
+    }
+  };
 
   const resetAll = () => {
     setFilterExpo('all');
@@ -180,7 +198,7 @@ const FollowupReport = ({ currentUser }) => {
   }, [filterExpo, filterEmployee, searchField, searchText, startDate, endDate]);
 
   return (
-    <div className="space-y-6 pb-10 max-w-[1600px] mx-auto fade-in">
+    <div className=" pb-10 max-w-[1600px] mx-auto fade-in">
       {/* 1. TOP STATISTICS CARD */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-md p-6 lg:p-8 mx-auto max-w-4xl">
         <h2 className="text-center font-bold text-gray-800 text-lg mb-6">
@@ -322,7 +340,8 @@ const FollowupReport = ({ currentUser }) => {
                   <th className="px-4 py-3 font-semibold text-sm border-r border-white/20">Employee</th>
                   <th className="px-4 py-3 font-semibold text-sm border-r border-white/20">Company Name</th>
                   <th className="px-4 py-3 font-semibold text-sm border-r border-white/20">Contact Person</th>
-                  <th className="px-4 py-3 font-semibold text-sm">Mobile</th>
+                  <th className="px-4 py-3 font-semibold text-sm border-r border-white/20">Mobile</th>
+                  <th className="px-4 py-3 font-semibold text-sm text-center">History</th>
                 </tr>
               </thead>
               <tbody>
@@ -336,6 +355,16 @@ const FollowupReport = ({ currentUser }) => {
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">{row.company_name || '—'}</td>
                       <td className="px-4 py-3 text-sm text-gray-900 font-medium">{row.customer_name || '—'}</td>
                       <td className="px-4 py-3 text-sm text-gray-700">{row.phone_1 || '—'}</td>
+                      <td className="px-4 py-3 text-sm text-center">
+                        <button
+                          type="button"
+                          onClick={() => openHistory(row)}
+                          title="View History"
+                          className="text-crm-primary hover:text-crm-primaryDark transition-colors"
+                        >
+                          <i className="ph-bold ph-clock-counter-clockwise text-lg" />
+                        </button>
+                      </td>
                     </tr>
                   ))
                 ) : (
@@ -389,6 +418,14 @@ const FollowupReport = ({ currentUser }) => {
             </button>
           </div>
         </div>
+      )}
+
+      {historyModal && (
+        <FollowupHistoryModal
+          customer={historyModal.customer}
+          history={historyModal.rows}
+          onClose={() => setHistoryModal(null)}
+        />
       )}
     </div>
   );

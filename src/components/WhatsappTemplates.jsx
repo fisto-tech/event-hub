@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { fetchApi } from '../utils/api';
+import { fetchApi, resolvePublicUrl } from '../utils/api';
 import { showToast } from '../utils/toast';
 import { confirmDelete } from '../utils/confirm';
 import LoadingSpinner from './common/LoadingSpinner';
+import { invalidateRegistrationCache } from '../utils/registrationDataCache';
 
 const WhatsappTemplates = ({ embedded = false }) => {
   const [templates, setTemplates] = useState([]);
@@ -15,8 +16,11 @@ const WhatsappTemplates = ({ embedded = false }) => {
     enquiryType: '',
     templateTitle: '',
     messageContent: '',
+    image: '',
+    imagePath: null,
   });
   const [isEditing, setIsEditing] = useState(false);
+  const [previewImage, setPreviewImage] = useState(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -71,6 +75,8 @@ const WhatsappTemplates = ({ embedded = false }) => {
       enquiryType: '',
       templateTitle: '',
       messageContent: '',
+      image: '',
+      imagePath: null,
     });
     setIsEditing(false);
   };
@@ -86,6 +92,7 @@ const WhatsappTemplates = ({ embedded = false }) => {
       });
       if (res.status === 'success') {
         showToast(`Template ${isEditing ? 'updated' : 'saved'} successfully!`);
+        invalidateRegistrationCache();
         resetForm();
         loadData();
       } else {
@@ -103,8 +110,20 @@ const WhatsappTemplates = ({ embedded = false }) => {
       enquiryType: template.enquiry_type || '',
       templateTitle: template.template_title,
       messageContent: template.message_content,
+      image: '',
+      imagePath: template.image_path || null,
     });
     setIsEditing(true);
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormData((prev) => ({ ...prev, image: reader.result }));
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleDelete = async (id, title) => {
@@ -113,6 +132,7 @@ const WhatsappTemplates = ({ embedded = false }) => {
       const res = await fetchApi(`whatsapp_templates.php?id=${id}`, { method: 'DELETE' });
       if (res.status === 'success') {
         showToast('Template deleted successfully!');
+        invalidateRegistrationCache();
         loadData();
       } else {
         showToast(res.message || 'Delete failed', 'error');
@@ -211,6 +231,41 @@ const WhatsappTemplates = ({ embedded = false }) => {
           </p>
         </div>
 
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1.5" style={{ fontFamily: "'Open Sans', sans-serif" }}>Image (Optional)</label>
+          <div className="flex flex-col gap-2">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm"
+            />
+            {(formData.image || formData.imagePath) && (
+              <div className="flex items-center gap-3 mt-2">
+                <img
+                  src={
+                    formData.image
+                      ? formData.image
+                      : resolvePublicUrl(formData.imagePath)
+                  }
+                  alt="Template Image"
+                  className="h-16 w-auto max-w-[200px] rounded border border-gray-300 bg-gray-50 object-contain cursor-pointer"
+                  onClick={() => setPreviewImage(formData.image ? formData.image : resolvePublicUrl(formData.imagePath))}
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFormData((prev) => ({ ...prev, image: '', imagePath: null }))
+                  }
+                  className="px-3 py-1.5 text-xs font-semibold rounded border border-red-200 text-red-600 hover:bg-red-50"
+                >
+                  Remove Image
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className="flex justify-end gap-3 pt-1">
           {isEditing && (
             <button type="button" onClick={resetForm} className="px-5 py-2 text-crm-primary rounded-lg hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors">
@@ -238,6 +293,7 @@ const WhatsappTemplates = ({ embedded = false }) => {
               <th className="px-4 py-3 font-medium border border-gray-300">Expo Name</th>
               <th className="px-4 py-3 font-medium border border-gray-300">Enquiry Type</th>
               <th className="px-4 py-3 font-medium border border-gray-300">Content</th>
+              <th className="px-4 py-3 font-medium border border-gray-300 text-center">Image</th>
               <th className="px-4 py-3 font-medium border border-gray-300 text-center">Actions</th>
             </tr>
           </thead>
@@ -254,6 +310,20 @@ const WhatsappTemplates = ({ embedded = false }) => {
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-500 max-w-xs truncate border border-gray-300">
                   {temp.message_content}
+                </td>
+                <td className="px-4 py-3 text-center border border-gray-300">
+                  {temp.image_path ? (
+                    <button
+                      type="button"
+                      onClick={() => setPreviewImage(resolvePublicUrl(temp.image_path))}
+                      className="text-crm-primary hover:opacity-80"
+                      title="View Image"
+                    >
+                      <i className="ph-bold ph-image text-xl" />
+                    </button>
+                  ) : (
+                    <span className="text-gray-300">—</span>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-center border border-gray-300">
                   <button type="button" onClick={() => handleEdit(temp)} className="text-crm-primary mr-3 hover:opacity-80" title="Edit">
@@ -280,6 +350,20 @@ const WhatsappTemplates = ({ embedded = false }) => {
           </tbody>
         </table>
       </div>
+      
+      {previewImage && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[1000] p-4" onClick={() => setPreviewImage(null)}>
+          <div className="relative max-w-3xl max-h-[90vh] bg-white rounded-lg p-2" onClick={e => e.stopPropagation()}>
+            <button
+              onClick={() => setPreviewImage(null)}
+              className="absolute -top-10 right-0 text-white hover:text-gray-300 bg-black/50 rounded-full p-2"
+            >
+              <i className="ph-bold ph-x text-xl" />
+            </button>
+            <img src={previewImage} alt="Preview" className="max-w-full max-h-[85vh] object-contain rounded" />
+          </div>
+        </div>
+      )}
     </div>
   );
 

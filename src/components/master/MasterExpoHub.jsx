@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import MasterDataTabs from './MasterDataTabs';
 import MasterSourcesView from './MasterSourcesView';
 import MasterScopedLookupView from './MasterScopedLookupView';
@@ -6,23 +6,49 @@ import ExpoDetails from '../ExpoDetails';
 import WhatsappTemplates from '../WhatsappTemplates';
 
 const EXPO_TABS = [
-  { id: 'sources', label: 'Sources', icon: 'ph-link' },
-  { id: 'expo-details', label: 'Expo Details', icon: 'ph-storefront' },
+  { id: 'sources', label: 'Source/ Expo details', icon: 'ph-link' },
   { id: 'enquiry-details', label: 'Enquiry Types', icon: 'ph-clipboard-text' },
   { id: 'industry-types', label: 'Industry Types', icon: 'ph-buildings' },
   { id: 'whatsapp-template', label: 'WhatsApp Templates', icon: 'ph-whatsapp-logo' },
 ];
 
 const MasterExpoHub = ({ activeSubTab, setActiveSubTab, currentUser }) => {
+  const [sourceTab, setSourceTab] = useState('sources'); // 'sources' or 'expo-details'
+  
   const resolved = activeSubTab === 'master-expo' ? 'sources' : activeSubTab;
   const tab = EXPO_TABS.some((t) => t.id === resolved) ? resolved : 'sources';
 
   const renderPanel = () => {
     switch (tab) {
       case 'sources':
-        return <MasterSourcesView currentUser={currentUser} />;
-      case 'expo-details':
-        return <ExpoDetails embedded />;
+        return (
+          <div className="space-y-6">
+            <div className="flex bg-gray-100 p-1 rounded-lg w-max mx-auto md:mx-0">
+              <button
+                onClick={() => setSourceTab('sources')}
+                className={`px-6 py-2 rounded-md text-sm font-semibold transition-colors ${
+                  sourceTab === 'sources' ? 'bg-white text-crm-primary shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Sources
+              </button>
+              <button
+                onClick={() => setSourceTab('expo-details')}
+                className={`px-6 py-2 rounded-md text-sm font-semibold transition-colors ${
+                  sourceTab === 'expo-details' ? 'bg-white text-crm-primary shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Expo Details
+              </button>
+            </div>
+            
+            {sourceTab === 'sources' ? (
+              <MasterSourcesView currentUser={currentUser} />
+            ) : (
+              <ExpoDetails embedded />
+            )}
+          </div>
+        );
       case 'enquiry-details':
         return <MasterScopedLookupView lookupType="enquiry_type" />;
       case 'industry-types':
@@ -30,7 +56,34 @@ const MasterExpoHub = ({ activeSubTab, setActiveSubTab, currentUser }) => {
       case 'whatsapp-template':
         return <WhatsappTemplates embedded />;
       default:
-        return <MasterSourcesView currentUser={currentUser} />;
+        return (
+          <div className="space-y-6">
+            <div className="flex bg-gray-100 p-1 rounded-lg w-max mx-auto md:mx-0">
+              <button
+                onClick={() => setSourceTab('sources')}
+                className={`px-6 py-2 rounded-md text-sm font-semibold transition-colors ${
+                  sourceTab === 'sources' ? 'bg-white text-crm-primary shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Sources
+              </button>
+              <button
+                onClick={() => setSourceTab('expo-details')}
+                className={`px-6 py-2 rounded-md text-sm font-semibold transition-colors ${
+                  sourceTab === 'expo-details' ? 'bg-white text-crm-primary shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Expo Details
+              </button>
+            </div>
+            
+            {sourceTab === 'sources' ? (
+              <MasterSourcesView currentUser={currentUser} />
+            ) : (
+              <ExpoDetails embedded />
+            )}
+          </div>
+        );
     }
   };
 

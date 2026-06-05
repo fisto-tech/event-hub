@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { fetchApi } from '../utils/api';
+import { fetchApi, resolvePublicUrl } from '../utils/api';
 import {
   loadRegistrationBootstrap,
   appendLookupToCache,
@@ -9,6 +9,8 @@ import { showToast } from '../utils/toast';
 import CityAutocomplete from './common/CityAutocomplete';
 import PhoneInput from './common/PhoneInput';
 import { validateStoredPhone, normalizePhoneForSubmit, parseStoredPhone, digitsOnly } from '../utils/phoneUtils';
+import ReactCrop from 'react-image-crop';
+import 'react-image-crop/dist/ReactCrop.css';
 
 const DEFAULT_WHATSAPP_MESSAGE =
   'Hello {customer_name}, Thank you for visiting us at our stall! We appreciate your interest in our products. Our team will contact you shortly to discuss further.';
@@ -99,7 +101,7 @@ const RegistrationForm = ({ currentUser }) => {
   const [customEnquiry, setCustomEnquiry] = useState('');
   const [customIndustry, setCustomIndustry] = useState('');
   const [formData, setFormData] = useState({
-    expoId: localStorage.getItem('defaultExpo') || '',
+    expoId: '',
     manualExpoName: '',
     visitDate: new Date().toISOString().split('T')[0],
     companyName: '',
@@ -138,7 +140,13 @@ const RegistrationForm = ({ currentUser }) => {
   const [rawOcrText, setRawOcrText] = useState('');
   const [parsedData, setParsedData] = useState(null);
   const [whatsappTemplates, setWhatsappTemplates] = useState([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState('custom');
   const [isDragOver, setIsDragOver] = useState(false);
+
+  const [crop, setCrop] = useState(null);
+  const [completedCrop, setCompletedCrop] = useState(null);
+  const [finalCroppedImageUrl, setFinalCroppedImageUrl] = useState('');
+  const imgRef = useRef(null);
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -159,7 +167,28 @@ const RegistrationForm = ({ currentUser }) => {
     loadRegistrationBootstrap()
       .then((data) => {
         if (cancelled) return;
-        setExpos(data.expos);
+        const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin';
+        const allowedExpos = data.expos.filter(e => {
+          if (isAdmin) return true;
+          if (!e.assigned_employees) return false; // Strictly require assignment
+          const assignedIds = e.assigned_employees.split(',').map(s => s.trim()).filter(Boolean);
+          if (assignedIds.length === 0) return false; // Strictly require assignment
+          return assignedIds.includes(String(currentUser?.id));
+        });
+        setExpos(allowedExpos);
+
+        setFormData(prev => {
+          let nextExpoId = prev.expoId;
+
+          // Clear if current selection is no longer allowed
+          if (nextExpoId && !allowedExpos.find(e => String(e.id) === String(nextExpoId))) {
+            nextExpoId = '';
+          }
+
+          // Strict requirement: no auto-selection. User must manually select from their allowed list.
+
+          return { ...prev, expoId: nextExpoId };
+        });
         setWhatsappTemplates(data.whatsappTemplates);
         setLookups(data.lookups);
       })
@@ -175,8 +204,8 @@ const RegistrationForm = ({ currentUser }) => {
     };
   }, []);
 
-  const resolvedWhatsappMessage = useMemo(() => {
-    if (whatsappTemplates.length === 0) return DEFAULT_WHATSAPP_MESSAGE;
+  const matchedTemplates = useMemo(() => {
+    if (whatsappTemplates.length === 0) return [];
 
     let selectedExpoName = '';
     if (formData.expoId) {
@@ -190,10 +219,10 @@ const RegistrationForm = ({ currentUser }) => {
     }
     selectedEnquiryType = (selectedEnquiryType || '').toLowerCase().trim();
 
-    let exactMatch = null;
-    let expoOnlyMatch = null;
-    let enquiryOnlyMatch = null;
-    let globalMatch = null;
+    const exactMatches = [];
+    const expoOnlyMatches = [];
+    const enquiryOnlyMatches = [];
+    const globalMatches = [];
 
     for (const t of whatsappTemplates) {
       const tExpo = (t.expo_name || '').toLowerCase().trim();
@@ -205,33 +234,53 @@ const RegistrationForm = ({ currentUser }) => {
       const isGeneralExpo = !tExpo;
       const isGeneralEnq = !tEnq;
 
-      if (matchExpo && matchEnq) exactMatch = t;
-      else if (matchExpo && isGeneralEnq) expoOnlyMatch = t;
-      else if (isGeneralExpo && matchEnq) enquiryOnlyMatch = t;
-      else if (isGeneralExpo && isGeneralEnq) globalMatch = t;
+      if (matchExpo && matchEnq) exactMatches.push(t);
+      else if (matchExpo && isGeneralEnq) expoOnlyMatches.push(t);
+      else if (isGeneralExpo && matchEnq) enquiryOnlyMatches.push(t);
+      else if (isGeneralExpo && isGeneralEnq) globalMatches.push(t);
     }
 
-    const matchedTemplate = exactMatch || expoOnlyMatch || enquiryOnlyMatch || globalMatch;
-
-    return matchedTemplate?.message_content || DEFAULT_WHATSAPP_MESSAGE;
+    if (exactMatches.length > 0) return exactMatches;
+    if (expoOnlyMatches.length > 0) return expoOnlyMatches;
+    if (enquiryOnlyMatches.length > 0) return enquiryOnlyMatches;
+    if (globalMatches.length > 0) return globalMatches;
+    
+    return [];
   }, [formData.expoId, formData.enquiryType, customEnquiry, expos, whatsappTemplates]);
 
-  // Sync WhatsApp template when expo changes — skip if user already edited the message
+  const activeTemplate = useMemo(() => {
+    if (selectedTemplateId === 'custom') return null;
+    return matchedTemplates.find(t => String(t.id) === selectedTemplateId) || null;
+  }, [selectedTemplateId, matchedTemplates]);
+
+  // Sync WhatsApp template when matches change — skip if user already edited the message
   const whatsappUserEditedRef = useRef(false);
 
   useEffect(() => {
-    if (whatsappUserEditedRef.current) return;
+    if (matchedTemplates.length > 0) {
+      if (!whatsappUserEditedRef.current && selectedTemplateId === 'custom') {
+        setSelectedTemplateId(String(matchedTemplates[0].id));
+      } else if (!matchedTemplates.find(t => String(t.id) === selectedTemplateId) && selectedTemplateId !== 'custom') {
+        setSelectedTemplateId(String(matchedTemplates[0].id));
+      }
+    } else {
+      if (!whatsappUserEditedRef.current) setSelectedTemplateId('custom');
+    }
+  }, [matchedTemplates, selectedTemplateId]);
+
+  useEffect(() => {
+    if (whatsappUserEditedRef.current || selectedTemplateId === 'custom') return;
+    const msg = activeTemplate?.message_content || DEFAULT_WHATSAPP_MESSAGE;
     setFormData((prev) =>
-      prev.whatsappMessage === resolvedWhatsappMessage
-        ? prev
-        : { ...prev, whatsappMessage: resolvedWhatsappMessage }
+      prev.whatsappMessage === msg ? prev : { ...prev, whatsappMessage: msg }
     );
-  }, [resolvedWhatsappMessage]);
+  }, [activeTemplate, selectedTemplateId]);
 
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
     if (name === 'whatsappMessage') {
       whatsappUserEditedRef.current = true;
+      setSelectedTemplateId('custom');
     }
     setFormData((prev) => ({ ...prev, [name]: value }));
   }, []);
@@ -738,49 +787,76 @@ const RegistrationForm = ({ currentUser }) => {
 
   const removeFile = () => {
     setSelectedFile(null);
-    setCapturedImage('');
     setCapturedBlob(null);
+    setCapturedImage('');
+    setCrop(null);
+    setCompletedCrop(null);
+    setFinalCroppedImageUrl('');
+    if (imageInputRef.current) imageInputRef.current.value = '';
   };
 
-  // Convert the current captured/uploaded image to a File and send to OCR backend
+  const getCroppedImg = (image, crop) => {
+    const canvas = document.createElement('canvas');
+    const scaleX = image.naturalWidth / image.width;
+    const scaleY = image.naturalHeight / image.height;
+    canvas.width = crop.width * scaleX;
+    canvas.height = crop.height * scaleY;
+    const ctx = canvas.getContext('2d');
+
+    ctx.drawImage(
+      image,
+      crop.x * scaleX,
+      crop.y * scaleY,
+      crop.width * scaleX,
+      crop.height * scaleY,
+      0,
+      0,
+      crop.width * scaleX,
+      crop.height * scaleY
+    );
+
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          console.error('Canvas is empty');
+          return;
+        }
+        blob.name = 'cropped.jpeg';
+        resolve(blob);
+      }, 'image/jpeg', 0.95);
+    });
+  };
+
   const processCard = async () => {
-    if (!capturedImage) return;
-
     try {
-      // If we have a selectedFile (from upload), use it directly
-      if (selectedFile) {
-        runOcr(selectedFile);
+      let finalFileOrBlob = selectedFile || capturedBlob;
+      let displayUrl = capturedImage;
+      
+      if (completedCrop && completedCrop.width && completedCrop.height && imgRef.current) {
+        finalFileOrBlob = await getCroppedImg(imgRef.current, completedCrop);
+        displayUrl = URL.createObjectURL(finalFileOrBlob);
+      } else {
+        if (!finalFileOrBlob && capturedImage) {
+          const res = await fetch(capturedImage);
+          finalFileOrBlob = await res.blob();
+        }
+      }
+
+      setFinalCroppedImageUrl(displayUrl);
+
+      if (!finalFileOrBlob) {
+        alert('Please capture or upload an image first.');
         return;
       }
 
-      // If captured from camera (blob URL or data URL), convert to File
-      if (capturedBlob) {
-        const file = new File([capturedBlob], 'captured_card.jpg', { type: 'image/jpeg' });
-        runOcr(file);
-        return;
-      }
-
-      // If it's a data URL (from FileReader), convert to blob then File
-      if (capturedImage.startsWith('data:')) {
-        const response = await fetch(capturedImage);
-        const blob = await response.blob();
-        const file = new File([blob], 'card_image.jpg', { type: blob.type || 'image/jpeg' });
-        runOcr(file);
-        return;
-      }
-
-      // Fallback: try fetch the URL and convert
-      const response = await fetch(capturedImage);
-      const blob = await response.blob();
-      const file = new File([blob], 'card_image.jpg', { type: blob.type || 'image/jpeg' });
-      runOcr(file);
+      await runOcr(finalFileOrBlob);
     } catch (e) {
-      console.error('Failed to prepare image for OCR:', e);
-      alert('Could not process the image. Please try uploading again.');
+      console.error('Cropping error', e);
+      alert('Error during crop processing.');
     }
   };
 
-  const applyParsedData = () => {
+  const applyParsedData = async () => {
     if (parsedData) {
       setFormData(prev => ({
         ...prev,
@@ -793,11 +869,11 @@ const RegistrationForm = ({ currentUser }) => {
         website: parsedData.website || prev.website,
         location: parsedData.location || prev.location,
         city: parsedData.city || prev.city,
-        image: capturedImage || prev.image
+        image: finalCroppedImageUrl || capturedImage || prev.image
       }));
       setShowScanModal(false);
       resetScanModalState();
-      alert('Data filled automatically!');
+      showToast('Data filled automatically!', 'success');
     }
   };
 
@@ -810,6 +886,9 @@ const RegistrationForm = ({ currentUser }) => {
     setIsProcessingOcr(false);
     setRawOcrText('');
     setParsedData(null);
+    setCrop(null);
+    setCompletedCrop(null);
+    setFinalCroppedImageUrl('');
   };
 
   // Copy All extracted details (Raw HTML script feature)
@@ -860,7 +939,7 @@ END:VCARD`;
   };
 
   return (
-    <div className="space-y-6 pb-20 relative bg-white rounded-xl p-6">
+    <div className=" pb-20 relative bg-white rounded-xl p-6">
 
       {/* Top Bar matching Zoho Header style */}
       <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
@@ -1059,16 +1138,155 @@ END:VCARD`;
           </FormField>
 
           <FormField label="WhatsApp Template" isFullWidth>
-            <div className="space-y-2">
-              <textarea name="whatsappMessage" value={formData.whatsappMessage} onChange={handleChange} rows="3" className="w-full px-3 py-1.5 crm-input"></textarea>
+            <div className="space-y-4 bg-gray-50 border border-gray-200 rounded-lg p-4">
+              
+              {matchedTemplates.length > 0 && (
+                <div className="mb-4">
+                  <span className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Choose a Template</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                    {matchedTemplates.map(t => (
+                      <label key={t.id} className={`cursor-pointer border rounded-lg px-3 py-2 flex items-center gap-2 transition-all ${selectedTemplateId === String(t.id) ? 'border-crm-primary bg-crm-primary/10 shadow-sm' : 'border-gray-200 hover:bg-white bg-white'}`}>
+                        <input 
+                          type="radio" 
+                          name="whatsappTemplateSelect" 
+                          value={String(t.id)} 
+                          checked={selectedTemplateId === String(t.id)} 
+                          onChange={(e) => {
+                            whatsappUserEditedRef.current = false;
+                            setSelectedTemplateId(e.target.value);
+                          }} 
+                          className="text-crm-primary focus:ring-crm-primary h-4 w-4"
+                        />
+                        <span className={`text-xs font-medium truncate ${selectedTemplateId === String(t.id) ? 'text-crm-primary' : 'text-gray-700'}`}>
+                          {t.template_title || 'Untitled Template'}
+                        </span>
+                      </label>
+                    ))}
+                    <label className={`cursor-pointer border rounded-lg px-3 py-2 flex items-center gap-2 transition-all ${selectedTemplateId === 'custom' ? 'border-crm-primary bg-crm-primary/10 shadow-sm' : 'border-gray-200 hover:bg-white bg-white'}`}>
+                      <input 
+                        type="radio" 
+                        name="whatsappTemplateSelect" 
+                        value="custom" 
+                        checked={selectedTemplateId === 'custom'} 
+                        onChange={(e) => setSelectedTemplateId(e.target.value)} 
+                        onClick={() => {
+                          whatsappUserEditedRef.current = true;
+                          setSelectedTemplateId('custom');
+                          setFormData(prev => ({ ...prev, whatsappMessage: '' }));
+                        }} 
+                        className="text-crm-primary focus:ring-crm-primary h-4 w-4"
+                      />
+                      <span className={`text-xs font-medium ${selectedTemplateId === 'custom' ? 'text-crm-primary' : 'text-gray-700'}`}>
+                        Custom Message (Unselect)
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {activeTemplate?.image_path && (
+                <div className="mb-2">
+                  <img 
+                    src={resolvePublicUrl(activeTemplate.image_path)} 
+                    alt="Template Attachment" 
+                    className="h-32 w-auto max-w-full rounded-lg border border-gray-200 object-contain bg-white shadow-sm"
+                  />
+                </div>
+              )}
+              {activeTemplate?.template_title && (
+                <div className="font-bold text-crm-textDark text-sm">
+                  {activeTemplate.template_title}
+                </div>
+              )}
+              
+              <textarea 
+                name="whatsappMessage" 
+                value={formData.whatsappMessage} 
+                onChange={handleChange} 
+                rows="4" 
+                className="w-full px-3 py-2 crm-input bg-white text-sm"
+                placeholder="Message content..."
+              ></textarea>
+              
               {formData.phone1 && (
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
                     const cleanPhone = formData.phone1.replace(/[^0-9]/g, '');
                     let selectedExpoName = expos.find(e => String(e.id) === String(formData.expoId))?.expo_name || '';
-                    const resolvedMsg = formData.whatsappMessage.replace(/{customer_name}/g, formData.customerName || 'Customer').replace(/{company_name}/g, formData.companyName || 'your company').replace(/{expo_name}/g, selectedExpoName || 'our expo');
-                    window.open(`https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(resolvedMsg)}`, '_blank');
+                    let resolvedMsg = formData.whatsappMessage.replace(/{customer_name}/g, formData.customerName || 'Customer').replace(/{company_name}/g, formData.companyName || 'your company').replace(/{expo_name}/g, selectedExpoName || 'our expo');
+                    
+                    // Add Title if it exists
+                    if (activeTemplate?.template_title) {
+                      resolvedMsg = `*${activeTemplate.template_title}*\n\n${resolvedMsg}`;
+                    }
+                    
+                    const openWhatsappWeb = () => {
+                      window.open(`https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(resolvedMsg)}`, '_blank');
+                    };
+
+                    if (activeTemplate?.image_path) {
+                      const imageUrl = resolvePublicUrl(activeTemplate.image_path);
+                      
+                      // ALWAYS append the URL to the text message so the link is shared
+                      resolvedMsg += '\n\n' + imageUrl;
+
+                      // Check if mobile device for navigator.share
+                      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+                      if (isMobile && navigator.canShare) {
+                        try {
+                          const response = await fetch(imageUrl);
+                          const blob = await response.blob();
+                          const file = new File([blob], 'template_image.jpg', { type: blob.type });
+                          if (navigator.canShare({ files: [file] })) {
+                            await navigator.share({
+                              files: [file],
+                              title: 'Shared Template',
+                              text: resolvedMsg
+                            });
+                            return; // User completed share via native sheet
+                          }
+                        } catch (e) {
+                          console.warn("Native share failed", e);
+                        }
+                      }
+
+                      // Fallback for Desktop: Copy image to clipboard, then open WhatsApp Web
+                      try {
+                        const copyImageToClipboard = (url) => new Promise((resolve, reject) => {
+                          const img = new Image();
+                          img.crossOrigin = "anonymous";
+                          img.onload = () => {
+                            const canvas = document.createElement("canvas");
+                            canvas.width = img.width;
+                            canvas.height = img.height;
+                            const ctx = canvas.getContext("2d");
+                            ctx.drawImage(img, 0, 0);
+                            canvas.toBlob(async (blob) => {
+                              if (!blob) return reject("Canvas toBlob failed");
+                              try {
+                                const item = new window.ClipboardItem({ "image/png": blob });
+                                await navigator.clipboard.write([item]);
+                                resolve(true);
+                              } catch (err) {
+                                reject(err);
+                              }
+                            }, "image/png");
+                          };
+                          img.onerror = reject;
+                          img.src = url;
+                        });
+
+                        await copyImageToClipboard(imageUrl);
+                        showToast('Image copied! Paste (Ctrl+V) it in WhatsApp Web to attach it.', 'success');
+                      } catch (copyErr) {
+                        console.warn("Clipboard copy failed", copyErr);
+                      }
+                      openWhatsappWeb();
+                    } else {
+                      openWhatsappWeb();
+                    }
                   }}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded text-xs transition-all"
                 >
@@ -1135,7 +1353,7 @@ END:VCARD`;
             <div className="bg-gradient-to-r from-crm-primary to-crm-primaryDark px-6 py-4 flex items-center justify-between text-white shrink-0">
               <div className="flex items-center gap-2">
                 <i className="ph ph-scan text-2xl animate-pulse"></i>
-                <h3 className="text-lg font-semibold tracking-wide">📇 Visiting Card Scanner</h3>
+                <h3 className="text-lg font-semibold tracking-wide"> Visiting Card Scanner</h3>
               </div>
               <button
                 type="button"
@@ -1222,16 +1440,9 @@ END:VCARD`;
               {/* Camera Tab Section (Only show when no photo has been snapped yet) */}
               {!capturedImage && modalTab === 'camera' && (
                 <div className="space-y-4 animate-in fade-in duration-150">
-                  <div className="relative border-2 border-gray-300 rounded-xl overflow-hidden bg-black aspect-video flex justify-center items-center shadow-inner max-h-80">
+                  <div className="relative border-2 border-gray-300 rounded-xl overflow-hidden bg-black flex justify-center items-center shadow-inner h-[40vh] md:h-[55vh]">
                     {cameraActive && (
                       <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover"></video>
-                    )}
-                    {cameraActive && (
-                      <div className="absolute inset-0 pointer-events-none flex items-center justify-center p-8">
-                        <div className="border-2 border-dashed border-emerald-400 w-full max-w-xs aspect-[1.58] rounded-lg shadow-[0_0_0_9999px_rgba(0,0,0,0.5)] flex items-center justify-center relative">
-                          <span className="text-emerald-400 bg-black/60 px-3 py-1 rounded text-[10px] font-semibold uppercase tracking-wider absolute -top-8">Align Business Card Inside Box</span>
-                        </div>
-                      </div>
                     )}
                   </div>
 
@@ -1258,18 +1469,17 @@ END:VCARD`;
                 </div>
               )}
 
-              {/* Progress and status message */}
               {isProcessingOcr && (
                 <div className="flex flex-col items-center justify-center py-6 space-y-3 bg-crm-primaryLighter/10 rounded-2xl border border-crm-primary/10">
                   <div className="relative h-12 w-12 flex items-center justify-center">
                     <div className="absolute inset-0 border-4 border-crm-primary/20 border-t-crm-primary rounded-full animate-spin"></div>
                     <i className="ph ph-read-cv-logo text-xl text-crm-primary animate-pulse"></i>
                   </div>
-                  <h4 className="font-semibold text-crm-primary text-xs tracking-wider uppercase">Processing image & extracting text...</h4>
+                  <h4 className="font-semibold text-crm-primary text-xs tracking-wider uppercase">Reading Card Details...</h4>
                   <div className="w-full max-w-xs bg-gray-200 rounded-full h-2 overflow-hidden border">
                     <div className="bg-crm-primary h-full transition-all duration-300" style={{ width: `${ocrProgress}%` }}></div>
                   </div>
-                  <span className="text-[10px] font-bold text-gray-500 tracking-wider">Extracting Details... {ocrProgress}%</span>
+                  <span className="text-[10px] font-bold text-gray-500 tracking-wider">Scanning Image... {ocrProgress}%</span>
                 </div>
               )}
 
@@ -1278,27 +1488,57 @@ END:VCARD`;
                 <div className="space-y-6 max-w-2xl mx-auto animate-in zoom-in-95 duration-200">
 
                   {/* Single Clean Card Preview (no duplicate images) */}
-                  <div className="border rounded-xl p-4 bg-gray-50 flex items-center justify-center min-h-[220px] max-h-72 relative">
-                    <img src={capturedImage} alt="Visiting Card Preview" className="max-h-64 object-contain rounded shadow-sm border" />
+                  <div className="border rounded-xl p-4 bg-gray-50 flex items-center justify-center min-h-[220px] relative overflow-auto custom-scrollbar">
+                    {parsedData ? (
+                      <img 
+                        src={finalCroppedImageUrl || capturedImage} 
+                        alt="Scanned Card" 
+                        className="max-h-[45vh] md:max-h-[55vh] object-contain rounded shadow-sm border mx-auto block" 
+                      />
+                    ) : (
+                      <ReactCrop
+                        crop={crop}
+                        onChange={c => setCrop(c)}
+                        onComplete={c => setCompletedCrop(c)}
+                        className="max-h-[45vh] md:max-h-[55vh]"
+                      >
+                        <img 
+                          ref={imgRef}
+                          src={capturedImage} 
+                          alt="Visiting Card Preview" 
+                          className="max-h-[45vh] md:max-h-[55vh] object-contain rounded shadow-sm border mx-auto block" 
+                          onLoad={e => {
+                            const initialCrop = {
+                              unit: '%',
+                              width: 90,
+                              height: 90,
+                              x: 5,
+                              y: 5
+                            };
+                            setCrop(initialCrop);
+                          }}
+                        />
+                      </ReactCrop>
+                    )}
                     {!parsedData && (
                       <button
                         type="button"
                         onClick={removeFile}
-                        className="absolute top-4 right-4 bg-red-500 hover:bg-red-600 text-white rounded-full p-2 shadow-md transition-all text-xs font-bold"
+                        className="absolute top-4 right-4 z-50 bg-red-500 hover:bg-red-600 text-white rounded-full p-2 shadow-md transition-all text-xs font-bold"
                       >
                         ✕ Remove
                       </button>
                     )}
                   </div>
 
-                  {/* OCR trigger button */}
+                  {/* Scan trigger button */}
                   {!parsedData && (
                     <button
                       type="button"
                       onClick={processCard}
                       className="w-full py-3 bg-gradient-to-r from-crm-primary to-crm-primaryDark hover:from-crm-primaryDark hover:to-crm-primary text-white rounded-xl font-semibold text-xs shadow-md hover:shadow-lg transition-all active:scale-98 flex items-center justify-center gap-1.5 uppercase tracking-wider"
                     >
-                      🔍 Scan Business Card
+                      🔍 Read Card
                     </button>
                   )}
 
@@ -1358,20 +1598,20 @@ END:VCARD`;
                       </div>
 
                       {/* Clean primary controls */}
-                      <div className="flex gap-3 pt-2">
+                      <div className="flex flex-col sm:flex-row gap-3 pt-2">
                         <button
                           type="button"
                           onClick={resetScanModalState}
-                          className="w-1/3 py-2.5 border border-gray-300 hover:bg-gray-100 text-gray-700 rounded-xl font-semibold text-xs transition-colors uppercase tracking-wider"
+                          className="w-full sm:w-1/3 py-2.5 border border-gray-300 hover:bg-gray-100 text-gray-700 rounded-xl font-semibold text-xs transition-colors uppercase tracking-wider"
                         >
                           🔄 Retry
                         </button>
                         <button
                           type="button"
                           onClick={applyParsedData}
-                          className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-semibold text-xs transition-colors shadow-md flex items-center justify-center gap-1.5 uppercase tracking-wider"
+                          className="w-full sm:flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-semibold text-xs transition-colors shadow-md flex items-center justify-center gap-1.5 uppercase tracking-wider"
                         >
-                          <i className="ph-bold ph-check"></i> Done (Auto-Filled!)
+                          <i className="ph-bold ph-check"></i> Fill Form Automatically
                         </button>
                       </div>
                     </div>

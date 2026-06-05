@@ -4,39 +4,37 @@ import ExpoMultiDatePicker, { normalizeDateString } from './common/ExpoMultiDate
 import LoadingSpinner from './common/LoadingSpinner';
 import { showToast } from '../utils/toast';
 import { confirmDelete } from '../utils/confirm';
+import { loadRegistrationBootstrap } from '../utils/registrationDataCache';
 
 const ExpoDetails = ({ embedded = false }) => {
   const [expos, setExpos] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showSpinner, setShowSpinner] = useState(false);
+  const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
   const [formData, setFormData] = useState({
     id: '',
     expoName: '',
     dates: [],
+    assignedEmployees: [],
     remarks: '',
     status: 'upcoming',
   });
   const [isEditing, setIsEditing] = useState(false);
   const [viewingExpo, setViewingExpo] = useState(null);
-  const [defaultExpo, setDefaultExpo] = useState(localStorage.getItem('defaultExpo') || '');
-
-  const handleSetDefaultExpo = (expoId) => {
-    if (defaultExpo === String(expoId)) {
-      localStorage.removeItem('defaultExpo');
-      setDefaultExpo('');
-      showToast('Default expo removed.');
-    } else {
-      localStorage.setItem('defaultExpo', String(expoId));
-      setDefaultExpo(String(expoId));
-      showToast('Default expo set successfully!');
-    }
-  };
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const res = await fetchApi('expos.php');
-      if (res.status === 'success') setExpos(res.data || []);
+      const [expoRes, userRes] = await Promise.all([
+        fetchApi('expos.php'),
+        fetchApi('users.php')
+      ]);
+      if (expoRes.status === 'success') setExpos(expoRes.data || []);
+      if (userRes.status === 'success') {
+        const activeUsers = (userRes.data || []).filter(u => u.status !== 'inactive' && u.role === 'employee');
+        setEmployees(activeUsers);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -69,6 +67,10 @@ const ExpoDetails = ({ embedded = false }) => {
       showToast('Please select at least one date.', 'error');
       return;
     }
+    if (formData.assignedEmployees.length === 0) {
+      showToast('Please select at least one assigned employee.', 'error');
+      return;
+    }
     try {
       const method = isEditing ? 'PUT' : 'POST';
       const payload = {
@@ -84,6 +86,7 @@ const ExpoDetails = ({ embedded = false }) => {
         showToast(`Expo ${isEditing ? 'updated' : 'saved'} successfully!`);
         resetForm();
         loadData();
+        loadRegistrationBootstrap(true).catch(console.error); // Force cache update
       } else {
         showToast(res.message || 'Save failed', 'error');
       }
@@ -100,6 +103,9 @@ const ExpoDetails = ({ embedded = false }) => {
       dates: expo.start_date
         ? expo.start_date.split(',').map((d) => normalizeDateString(d.trim())).filter(Boolean)
         : [],
+      assignedEmployees: expo.assigned_employees
+        ? String(expo.assigned_employees).split(',').map(s => s.trim()).filter(Boolean)
+        : [],
       remarks: expo.remarks || '',
       status: expo.status,
     });
@@ -114,6 +120,7 @@ const ExpoDetails = ({ embedded = false }) => {
       if (res.status === 'success') {
         showToast('Expo deleted successfully!');
         loadData();
+        loadRegistrationBootstrap(true).catch(console.error); // Force cache update
       } else {
         showToast(res.message || 'Delete failed', 'error');
       }
@@ -127,6 +134,7 @@ const ExpoDetails = ({ embedded = false }) => {
       id: '',
       expoName: '',
       dates: [],
+      assignedEmployees: [],
       remarks: '',
       status: 'upcoming',
     });
@@ -183,6 +191,21 @@ const ExpoDetails = ({ embedded = false }) => {
                   </div>
                 </div>
                 <div>
+                  <label className="block text-sm font-normal text-crm-primary mb-2">Assigned Employees</label>
+                  <div className="w-full px-4 py-2 rounded-lg outline-none crm-input bg-gray-50 text-gray-600 cursor-not-allowed min-h-[42px] flex flex-wrap gap-1.5 items-center">
+                    {viewingExpo.assigned_employees
+                      ? viewingExpo.assigned_employees.split(',').map((empId, i) => {
+                          const emp = employees.find(e => String(e.id) === String(empId));
+                          return (
+                            <span key={i} className="bg-gray-200 border border-gray-300 px-2 py-0.5 rounded text-sm text-gray-700">
+                              {emp ? emp.name : `User #${empId}`}
+                            </span>
+                          );
+                        })
+                      : <span className="text-gray-400">All Employees</span>}
+                  </div>
+                </div>
+                <div>
                   <label className="block text-sm font-normal text-crm-primary">Remarks</label>
                   <textarea
                     disabled
@@ -224,6 +247,63 @@ const ExpoDetails = ({ embedded = false }) => {
                 />
               </div>
 
+              <div className="relative">
+                <label className="block text-sm font-normal text-crm-primary mb-2">
+                  Assigned Employees <span className="text-red-600">*</span>
+                </label>
+                <div 
+                  onClick={() => setShowEmployeeDropdown(!showEmployeeDropdown)}
+                  className="w-full px-4 py-2 rounded-lg border border-gray-300 bg-white cursor-pointer flex justify-between items-center transition-colors hover:border-crm-primary"
+                >
+                  <span className={`text-sm ${formData.assignedEmployees.length === 0 ? 'text-gray-400' : 'text-gray-700'}`}>
+                    {formData.assignedEmployees.length === 0 
+                      ? 'Select Employees...' 
+                      : `${formData.assignedEmployees.length} employee(s) selected`}
+                  </span>
+                  <i className={`ph-bold ph-caret-${showEmployeeDropdown ? 'up' : 'down'} text-gray-500`} />
+                </div>
+
+                {showEmployeeDropdown && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-10" 
+                      onClick={() => setShowEmployeeDropdown(false)} 
+                    />
+                    <div className="absolute z-20 w-full mt-1 border border-gray-200 rounded-lg shadow-lg bg-white p-2 max-h-60 overflow-y-auto custom-scrollbar">
+                      <div className="flex flex-col gap-1">
+                        {employees.map(emp => {
+                          const isChecked = formData.assignedEmployees.includes(String(emp.id));
+                          return (
+                            <label key={emp.id} className="flex items-center gap-3 cursor-pointer hover:bg-crm-primaryLighter/50 p-2 rounded transition-colors">
+                              <input 
+                                type="checkbox" 
+                                className="w-4 h-4 text-crm-primary rounded border-gray-300 focus:ring-crm-primary"
+                                checked={isChecked}
+                                onChange={(e) => {
+                                  setFormData(prev => {
+                                    const newAssignments = e.target.checked 
+                                      ? [...prev.assignedEmployees, String(emp.id)]
+                                      : prev.assignedEmployees.filter(id => id !== String(emp.id));
+                                    return { ...prev, assignedEmployees: newAssignments };
+                                  });
+                                }}
+                              />
+                              <div className="flex flex-col">
+                                <span className="text-sm font-medium text-gray-800">{emp.name}</span>
+                                <span className="text-xs text-gray-500">{emp.department || 'Employee'}</span>
+                              </div>
+                            </label>
+                          );
+                        })}
+                        {employees.length === 0 && (
+                          <span className="text-sm text-gray-500 p-2">No employees found.</span>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
               <div>
                 <label className="block text-sm font-normal text-crm-primary">Remarks</label>
                 <textarea
@@ -250,14 +330,16 @@ const ExpoDetails = ({ embedded = false }) => {
               </div>
             </div>
 
-            <div className="order-1 lg:order-2">
-              <label className="block text-sm font-normal text-crm-primary mb-2">
-                Select Dates <span className="text-red-600">*</span>
-              </label>
-              <ExpoMultiDatePicker
-                selectedDates={formData.dates}
-                onChange={(dates) => setFormData((prev) => ({ ...prev, dates }))}
-              />
+            <div className="order-1 lg:order-2 space-y-4">
+              <div>
+                <label className="block text-sm font-normal text-crm-primary mb-2">
+                  Select Dates <span className="text-red-600">*</span>
+                </label>
+                <ExpoMultiDatePicker
+                  selectedDates={formData.dates}
+                  onChange={(dates) => setFormData((prev) => ({ ...prev, dates }))}
+                />
+              </div>
             </div>
           </div>
         </form>
@@ -273,8 +355,6 @@ const ExpoDetails = ({ embedded = false }) => {
                 <th className="px-4 py-3 font-normal border-r border-white/20 w-14">S.No</th>
                 <th className="px-4 py-3 font-normal border-r border-white/20">Expo Name</th>
                 <th className="px-4 py-3 font-normal border-r border-white/20">Dates</th>
-
-                <th className="px-4 py-3 font-normal border-r border-white/20 text-center">Default</th>
                 <th className="px-4 py-3 font-normal text-right">Actions</th>
               </tr>
             </thead>
@@ -291,18 +371,6 @@ const ExpoDetails = ({ embedded = false }) => {
                         </span>
                       ))
                       : '-'}
-                  </td>
-
-                  <td className="px-4 py-3 text-center border-r border-gray-300">
-                    <input
-                      type="radio"
-                      name="defaultExpo"
-                      checked={defaultExpo === String(expo.id)}
-                      onClick={() => handleSetDefaultExpo(expo.id)}
-                      onChange={() => {}}
-                      className="w-4 h-4 text-crm-primary cursor-pointer"
-                      title="Set as Default Expo in Registration Form"
-                    />
                   </td>
                   <td className="px-4 py-3 text-right">
 

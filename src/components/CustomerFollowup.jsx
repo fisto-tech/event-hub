@@ -20,7 +20,7 @@ const STATUS_OPTIONS = [
   { label: 'Confirmed', value: 'confirmed' },
 ];
 
-const REASON_OPTIONS = ['None', 'Proposal', 'Followup', 'Quotation', 'Lead', 'Dropped', 'Project Onboard'];
+const REASON_OPTIONS = ['None', 'followup', 'droped', 'lead', 'demo shared', 'appointment', 'quotation', 'proposal', 'project onboard'];
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
@@ -341,44 +341,46 @@ const CustomerFollowup = ({ currentUser }) => {
   const userRole = currentUser?.role || 'employee';
 
   const [selectedDate, setSelectedDate] = useState(todayISO());
-  const [activeReason, setActiveReason] = useState(REASON_TABS[0].value);
+  const [activeReason, setActiveReason] = useState('first followup');
   const [loading, setLoading] = useState(true);
-  const [cards, setCards] = useState([]);
+  const [tabData, setTabData] = useState({ 'first followup': [], 'project onboard': [], 'dropped': [] });
 
   const [historyModal, setHistoryModal] = useState(null); // { customer, rows }
   const [formModal, setFormModal] = useState(null); // { customer, card }
-
-  const total = cards.length;
 
   const loadBoard = async () => {
     if (!currentUser?.id) return;
     setLoading(true);
     try {
-      const url = `follow_ups.php?action=board&date=${selectedDate}&reason=${encodeURIComponent(
-        activeReason
-      )}&role=${encodeURIComponent(userRole)}&user_id=${currentUser.id}`;
-      const res = await fetchApi(url);
-      if (res.status === 'success') {
-        let data = res.data || [];
-        
-        // The API currently returns all records ignoring query parameters, so we must filter locally
-        if (selectedDate) {
-          data = data.filter(c => c.follow_up_date === selectedDate);
+      const promises = REASON_TABS.map(t => 
+        fetchApi(`follow_ups.php?action=board&date=${selectedDate}&reason=${encodeURIComponent(t.value)}&role=${encodeURIComponent(userRole)}&user_id=${currentUser.id}`)
+      );
+      
+      const results = await Promise.all(promises);
+      const newData = { 'first followup': [], 'project onboard': [], 'dropped': [] };
+      
+      results.forEach((res, index) => {
+        const tabValue = REASON_TABS[index].value;
+        if (res.status === 'success') {
+          let data = res.data || [];
+          if (tabValue) {
+            data = data.filter(c => {
+              const reason = String(c.followup_reason || 'first followup').toLowerCase().trim();
+              if (tabValue === 'first followup') {
+                return reason !== 'project onboard' && reason !== 'dropped' && reason !== 'droped';
+              }
+              return reason === String(tabValue).toLowerCase().trim();
+            });
+          }
+          
+          if (userRole !== 'super_admin' && userRole !== 'admin') {
+            data = data.filter(c => String(c.created_by || c.registered_by) === String(currentUser.id));
+          }
+          newData[tabValue] = data;
         }
-        if (activeReason) {
-          data = data.filter(c => {
-            const reason = String(c.followup_reason || 'first followup').toLowerCase().trim();
-            return reason === String(activeReason).toLowerCase().trim();
-          });
-        }
-        
-        if (userRole !== 'super_admin' && userRole !== 'admin') {
-          data = data.filter(c => String(c.created_by || c.registered_by) === String(currentUser.id));
-        }
-        
-        setCards(data);
-      }
-      else setCards([]);
+      });
+      
+      setTabData(newData);
     } catch (e) {
       console.error(e);
       showToast('Failed to load followups', 'error');
@@ -389,7 +391,10 @@ const CustomerFollowup = ({ currentUser }) => {
 
   useEffect(() => {
     loadBoard();
-  }, [selectedDate, activeReason, currentUser?.id, currentUser?.role]);
+  }, [selectedDate, currentUser?.id, currentUser?.role]);
+
+  const cards = tabData[activeReason] || [];
+  const total = cards.length;
 
   const openHistory = async (card) => {
     try {
@@ -439,12 +444,15 @@ const CustomerFollowup = ({ currentUser }) => {
                 key={t.value}
                 type="button"
                 onClick={() => setActiveReason(t.value)}
-                className={`px-6 py-2 rounded-full border text-sm font-semibold transition-colors ${activeReason === t.value
+                className={`px-6 py-2 rounded-full border text-sm font-semibold transition-colors flex items-center gap-2 ${activeReason === t.value
                   ? 'bg-crm-primary text-white border-crm-primary'
                   : 'bg-white text-gray-800 border-gray-300 hover:bg-crm-primaryLighter/60'
                   }`}
               >
-                {t.label}
+                <span>{t.label}</span>
+                <span className={`px-2 py-0.5 rounded-md text-xs ${activeReason === t.value ? 'bg-white text-crm-primary' : 'bg-gray-100 text-gray-600'}`}>
+                  {tabData[t.value]?.length || 0}
+                </span>
               </button>
             ))}
           </div>
@@ -582,15 +590,15 @@ const FollowupFormModal = ({ card, currentUser, onClose, onSaved }) => {
 
   useEffect(() => {
     if (form.followup_status === 'confirmed') {
-      setForm((p) => ({ ...p, followup_reason: 'Project Onboard' }));
+      setForm((p) => ({ ...p, followup_reason: 'project onboard' }));
     } else if (form.followup_status === 'not interested') {
-      setForm((p) => ({ ...p, followup_reason: 'Dropped' }));
+      setForm((p) => ({ ...p, followup_reason: 'droped' }));
     } else if (form.followup_status === 'not picking') {
       setForm((p) => ({ ...p, followup_reason: 'None' }));
     } else {
       setForm((p) => {
-        if (p.followup_reason === 'Project Onboard' || p.followup_reason === 'Dropped') {
-          return { ...p, followup_reason: lastManualReason === 'Project Onboard' || lastManualReason === 'Dropped' ? 'None' : lastManualReason };
+        if (p.followup_reason === 'Project Onboard' || p.followup_reason === 'project onboard' || p.followup_reason === 'Dropped' || p.followup_reason === 'droped') {
+          return { ...p, followup_reason: lastManualReason === 'Project Onboard' || lastManualReason === 'project onboard' || lastManualReason === 'Dropped' || lastManualReason === 'droped' ? 'None' : lastManualReason };
         }
         return p;
       });
@@ -698,7 +706,7 @@ const FollowupFormModal = ({ card, currentUser, onClose, onSaved }) => {
 
       const payload = {
         customer_id: Number(card.customer_id),
-        follow_up_date: (form.followup_status === 'confirmed' || form.followup_reason === 'Project Onboard') ? '' : form.next_follow_up_date,
+        follow_up_date: (form.followup_status === 'confirmed' || form.followup_reason === 'Project Onboard' || form.followup_reason === 'project onboard') ? '' : form.next_follow_up_date,
         followup_reason: form.followup_reason,
         followup_status: form.followup_status,
         remarks: form.remarks,
@@ -1060,7 +1068,7 @@ const FollowupFormModal = ({ card, currentUser, onClose, onSaved }) => {
                   ))}
                 </select>
               </div>
-              {form.followup_status !== 'confirmed' && form.followup_reason !== 'Project Onboard' && (
+              {form.followup_status !== 'confirmed' && form.followup_reason !== 'Project Onboard' && form.followup_reason !== 'project onboard' && (
                 <div>
                   <label className="block text-sm font-normal text-crm-primary">Next Followup Date <span className="text-red-500">*</span></label>
                   <input

@@ -115,18 +115,20 @@ const MasterLookupView = ({ lookupType }) => {
         <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-3">{error}</div>
       )}
 
-      <form onSubmit={handleAdd} className="flex flex-col sm:flex-row gap-2 max-w-xl">
-        <input
-          type="text"
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-          placeholder={cfg.placeholder}
-          className="flex-1 px-4 py-2.5 rounded-lg crm-input"
-        />
-        <button type="submit" className="btn-running-border text-white px-6 py-2.5 rounded-lg font-medium shrink-0">
-          <i className="ph-bold ph-plus mr-1" /> Add
-        </button>
-      </form>
+      {lookupType !== 'source' && (
+        <form onSubmit={handleAdd} className="flex flex-col sm:flex-row gap-2 max-w-xl">
+          <input
+            type="text"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            placeholder={cfg.placeholder}
+            className="flex-1 px-4 py-2.5 rounded-lg crm-input"
+          />
+          <button type="submit" className="btn-running-border text-white px-6 py-2.5 rounded-lg font-medium shrink-0">
+            <i className="ph-bold ph-plus mr-1" /> Add
+          </button>
+        </form>
+      )}
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
@@ -160,7 +162,7 @@ const MasterLookupView = ({ lookupType }) => {
                 <div className="absolute top-3 right-3 h-9 w-9 rounded-full bg-crm-primaryLighter text-crm-primary flex items-center justify-center font-bold text-sm">
                   {(item.name || '?')[0].toUpperCase()}
                 </div>
-                {item.id && (
+                {item.id && lookupType !== 'source' && (
                   <button
                     type="button"
                     onClick={() => handleDelete(item)}
@@ -175,7 +177,9 @@ const MasterLookupView = ({ lookupType }) => {
               </div>
             ))}
             {items.length === 0 && (
-              <p className="col-span-full text-center text-gray-400 py-8">No items yet. Add one above.</p>
+              <p className="col-span-full text-center text-gray-400 py-8">
+                {lookupType === 'source' ? 'No sources found.' : 'No items yet. Add one above.'}
+              </p>
             )}
           </div>
         )}

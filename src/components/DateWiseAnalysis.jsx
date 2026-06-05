@@ -18,31 +18,34 @@ const DateWiseAnalysis = ({ currentUser }) => {
   const [selectedDate, setSelectedDate] = useState(todayISO());
   const [activeTab, setActiveTab] = useState('inprogress');
   
-  const [cards, setCards] = useState([]);
+  const [tabData, setTabData] = useState({ inprogress: [], upcoming: [], completed: [], missed: [] });
   const [loading, setLoading] = useState(true);
   
   const [historyModal, setHistoryModal] = useState(null); // { customer, rows }
   
   const userRole = currentUser?.role || 'employee';
 
-  const loadBoard = async () => {
+  const loadDataForDate = async () => {
     if (!currentUser?.id || !selectedDate) return;
     setLoading(true);
     try {
-      const url = `follow_ups.php?action=date_wise_analysis&date=${selectedDate}&tab=${activeTab}&role=${encodeURIComponent(userRole)}&user_id=${currentUser.id}`;
-      const res = await fetchApi(url);
-      if (res.status === 'success') {
-        let data = res.data || [];
-        
-        // Security filter: employees see only their assigned/registered customers
+      const tabs = ['inprogress', 'upcoming', 'completed', 'missed'];
+      const promises = tabs.map(tab => 
+        fetchApi(`follow_ups.php?action=date_wise_analysis&date=${selectedDate}&tab=${tab}&role=${encodeURIComponent(userRole)}&user_id=${currentUser.id}`)
+      );
+      const results = await Promise.all(promises);
+      
+      const newData = { inprogress: [], upcoming: [], completed: [], missed: [] };
+      
+      results.forEach((res, index) => {
+        let data = res.status === 'success' ? (res.data || []) : [];
         if (userRole !== 'super_admin' && userRole !== 'admin') {
           data = data.filter(c => String(c.created_by || c.registered_by) === String(currentUser.id));
         }
-        
-        setCards(data);
-      } else {
-        setCards([]);
-      }
+        newData[tabs[index]] = data;
+      });
+      
+      setTabData(newData);
     } catch (e) {
       console.error(e);
       showToast('Failed to load analysis data', 'error');
@@ -52,8 +55,10 @@ const DateWiseAnalysis = ({ currentUser }) => {
   };
 
   useEffect(() => {
-    loadBoard();
-  }, [selectedDate, activeTab, currentUser?.id, currentUser?.role]);
+    loadDataForDate();
+  }, [selectedDate, currentUser?.id, currentUser?.role]);
+
+  const cards = tabData[activeTab] || [];
 
   // Make sure appropriate tab is selected based on date
   useEffect(() => {
@@ -124,13 +129,16 @@ const DateWiseAnalysis = ({ currentUser }) => {
                   key={t.value}
                   type="button"
                   onClick={() => setActiveTab(t.value)}
-                  className={`px-6 py-2 rounded-full border text-sm font-semibold transition-colors ${
+                  className={`px-6 py-2 rounded-full border text-sm font-semibold transition-colors flex items-center gap-2 ${
                     activeTab === t.value
                       ? 'bg-crm-primary text-white border-crm-primary'
                       : 'bg-white text-gray-800 border-gray-300 hover:bg-crm-primaryLighter/60'
                   }`}
                 >
-                  {t.label}
+                  <span>{t.label}</span>
+                  <span className={`px-2 py-0.5 rounded-md text-xs ${activeTab === t.value ? 'bg-white text-crm-primary' : 'bg-gray-100 text-gray-600'}`}>
+                    {tabData[t.value]?.length || 0}
+                  </span>
                 </button>
               );
             })}

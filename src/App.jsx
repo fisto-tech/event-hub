@@ -13,6 +13,7 @@ import ToastHost from './components/common/ToastHost';
 import Profile from './components/Profile';
 import MasterExpoHub from './components/master/MasterExpoHub';
 import MasterPageShell from './components/master/MasterPageShell';
+import MasterDataAllocation from './components/MasterDataAllocation';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const App = () => {
@@ -86,6 +87,7 @@ const App = () => {
 
     if (tabId === 'master-data') {
       if (subTabId === 'employee-registration') return '/master-data/employee-registration';
+      if (subTabId === 'master-allocation') return '/master-data/allocation';
 
       // Expo (master-expo + internal tabs)
       const expoTab =
@@ -137,6 +139,9 @@ const App = () => {
     if (root === 'master-data') {
       if (parts[1] === 'employee-registration') {
         return { tab: 'master-data', subTab: 'employee-registration' };
+      }
+      if (parts[1] === 'allocation') {
+        return { tab: 'master-data', subTab: 'master-allocation' };
       }
       if (parts[1] === 'expo') {
         const expoLeaf = parts[2] || 'sources';
@@ -244,6 +249,16 @@ const App = () => {
               icon="ph-user-plus"
             >
               <EmployeeRegistration />
+            </MasterPageShell>
+          );
+        case 'master-allocation':
+          return (
+            <MasterPageShell
+              title="Lead Allocation"
+              subtitle="Transfer leads between employees"
+              icon="ph-arrows-left-right"
+            >
+              <MasterDataAllocation currentUser={currentUser} />
             </MasterPageShell>
           );
         default:
