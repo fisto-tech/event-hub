@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { fetchApi } from '../utils/api';
 import LoadingSpinner from './common/LoadingSpinner';
 import { showToast } from '../utils/toast';
@@ -13,8 +13,10 @@ import ReportModalShell, { EditField, reportInputClass } from './common/ReportMo
 import CityAutocomplete from './common/CityAutocomplete';
 import PhoneInput from './common/PhoneInput';
 import { validateStoredPhone, normalizePhoneForSubmit, parseStoredPhone, digitsOnly } from '../utils/phoneUtils';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
-const EmployeeRegistration = () => {
+const EmployeeRegistration = ({ currentUser }) => {
   const [employees, setEmployees] = useState([]);
   const [formData, setFormData] = useState({
     id: '',
@@ -42,6 +44,21 @@ const EmployeeRegistration = () => {
   const [showDeptModal, setShowDeptModal] = useState(false);
   const [newDeptName, setNewDeptName] = useState('');
   const [view, setView] = useState('register');
+  const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  const [selectedIds, setSelectedIds] = useState([]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsExportDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     loadEmployees();
@@ -75,6 +92,10 @@ const EmployeeRegistration = () => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
+
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [searchTerm, searchField]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -261,6 +282,83 @@ const EmployeeRegistration = () => {
       showToast(err.message || 'Could not reach the server', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleExportCSV = () => {
+    const dataToExport = selectedIds.length > 0 ? filteredEmployees.filter(emp => selectedIds.includes(emp.id)) : filteredEmployees;
+    if (dataToExport.length === 0) {
+      alert("No data available to export");
+      return;
+    }
+    const headers = ["S.No", "Employee ID", "Full Name", "Email", "Phone", "Department", "Role", "Registered On", "Status"];
+    const rows = dataToExport.map((emp, i) => [
+      i + 1,
+      emp.employee_id || '-',
+      `"${(emp.name || '').replace(/"/g, '""')}"`,
+      emp.email || '-',
+      emp.phone ? `="${emp.phone}"` : '-',
+      `"${(emp.department || '').replace(/"/g, '""')}"`,
+      emp.role,
+      emp.created_at || '-',
+      emp.status || 'active'
+    ]);
+    const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `employee_report_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setIsExportDropdownOpen(false);
+  };
+
+  const handleExportPDF = () => {
+    const dataToExport = selectedIds.length > 0 ? filteredEmployees.filter(emp => selectedIds.includes(emp.id)) : filteredEmployees;
+    if (dataToExport.length === 0) {
+      alert("No data available to export");
+      return;
+    }
+    try {
+      const doc = new jsPDF({ orientation: 'landscape' });
+      doc.setFontSize(16);
+      doc.text('Employee Report', 14, 18);
+      doc.setFontSize(10);
+      doc.text(
+        `Generated on: ${new Date().toLocaleDateString()}`,
+        14,
+        24
+      );
+
+      const headers = ["S.No", "Employee ID", "Full Name", "Email", "Phone", "Department", "Role", "Registered On", "Status"];
+      const rows = dataToExport.map((emp, i) => [
+        i + 1,
+        emp.employee_id || '-',
+        String(emp.name || ''),
+        emp.email || '-',
+        emp.phone || '-',
+        String(emp.department || ''),
+        emp.role,
+        emp.created_at || '-',
+        emp.status || 'active'
+      ]);
+
+      autoTable(doc, {
+        startY: 30,
+        head: [headers],
+        body: rows,
+        theme: 'striped',
+        headStyles: { fillColor: [153, 0, 51] }, // CRM primary crimson
+        styles: { fontSize: 8, font: 'helvetica' },
+      });
+
+      doc.save(`employee_report_${new Date().toISOString().slice(0, 10)}.pdf`);
+      setIsExportDropdownOpen(false);
+    } catch (err) {
+      console.error('PDF export failed:', err);
+      showToast(err?.message || 'PDF export failed', 'error');
     }
   };
 
@@ -496,6 +594,39 @@ const EmployeeRegistration = () => {
                     className="w-full pl-10 pr-4 py-2 rounded-lg outline-none crm-input"
                   />
                 </div>
+                {['admin', 'super_admin', 'superadmin'].includes(currentUser?.role?.toLowerCase()) && (
+                  <div className="relative shrink-0" ref={dropdownRef}>
+                    <button
+                      type="button"
+                      onClick={() => setIsExportDropdownOpen(!isExportDropdownOpen)}
+                      className="h-full bg-gradient-to-r from-crm-primary to-crm-primaryDark hover:from-crm-primaryDark hover:to-crm-primary text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-95"
+                    >
+                      <i className="ph-bold ph-download-simple"></i> Export
+                      <i className={`ph-bold ph-caret-down transition-transform duration-300 ${isExportDropdownOpen ? 'rotate-180' : ''}`}></i>
+                    </button>
+
+                    {isExportDropdownOpen && (
+                      <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-gray-100 rounded-xl shadow-2xl z-30 overflow-hidden divide-y divide-gray-100 animate-in fade-in slide-in-from-top-2 duration-200">
+                        <button
+                          type="button"
+                          onClick={handleExportCSV}
+                          className="w-full px-5 py-3.5 text-left text-sm font-semibold text-gray-700 hover:bg-emerald-50/30 flex items-center gap-3 transition-colors group"
+                        >
+                          <i className="ph-fill ph-file-xls text-emerald-600 text-xl group-hover:scale-110 transition-transform"></i>
+                          Export to Excel (.csv)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleExportPDF}
+                          className="w-full px-5 py-3.5 text-left text-sm font-semibold text-gray-700 hover:bg-red-50/30 flex items-center gap-3 transition-colors group"
+                        >
+                          <i className="ph-fill ph-file-pdf text-red-600 text-xl group-hover:scale-110 transition-transform"></i>
+                          Export to PDF (.pdf)
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -507,6 +638,23 @@ const EmployeeRegistration = () => {
                   <table className="w-full text-left border-collapse text-crm-textDark min-w-[900px] border border-gray-300">
                     <thead>
                       <tr className="bg-crm-primary border-b border-crm-primary text-white">
+                        {['admin', 'super_admin', 'superadmin'].includes(currentUser?.role?.toLowerCase()) && (
+                          <th className="px-4 py-3 font-normal border-r border-white/20 w-10 text-center">
+                            <input
+                              type="checkbox"
+                              checked={filteredEmployees.length > 0 && selectedIds.length === filteredEmployees.length}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedIds(filteredEmployees.map(emp => emp.id));
+                                } else {
+                                  setSelectedIds([]);
+                                }
+                              }}
+                              className="cursor-pointer"
+                              title="Select All"
+                            />
+                          </th>
+                        )}
                         <th className="px-4 py-3 font-normal border-r border-white/20 w-14 text-center">S.No</th>
                         <th className="px-4 py-3 font-normal border-r border-white/20">Employee ID</th>
                         <th className="px-4 py-3 font-normal border-r border-white/20">Name</th>
@@ -517,11 +665,27 @@ const EmployeeRegistration = () => {
                         <th className="px-4 py-3 font-normal text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody>
-                      {filteredEmployees.map((emp, index) => (
-                        <tr key={emp.id} className="border-b border-gray-300 hover:bg-crm-primaryLighter transition-colors">
-                          <td className="px-4 py-3 text-sm border-r border-gray-300 text-center text-gray-600">{index + 1}</td>
-                          <td className="px-4 py-3 font-normal text-sm border-r border-gray-300">{emp.employee_id || '-'}</td>
+                    <tbody className="bg-white">
+                      {filteredEmployees.map((emp, i) => (
+                        <tr key={emp.id} className="border-b border-gray-200 hover:bg-crm-primaryLighter/40 transition-colors duration-150">
+                          {['admin', 'super_admin', 'superadmin'].includes(currentUser?.role?.toLowerCase()) && (
+                            <td className="px-4 py-3 font-medium text-sm border-r border-gray-300 text-center">
+                              <input
+                                type="checkbox"
+                                checked={selectedIds.includes(emp.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedIds(prev => [...prev, emp.id]);
+                                  } else {
+                                    setSelectedIds(prev => prev.filter(id => id !== emp.id));
+                                  }
+                                }}
+                                className="cursor-pointer"
+                              />
+                            </td>
+                          )}
+                          <td className="px-4 py-3 text-sm text-gray-500 border-r border-gray-300 text-center">{i + 1}</td>
+                          <td className="px-4 py-3 font-mono text-sm text-gray-600 border-r border-gray-300">{emp.employee_id || '-'}</td>
                           <td className="px-4 py-3 font-medium text-sm border-r border-gray-300">{emp.name}</td>
                           <td className="px-4 py-3 text-sm border-r border-gray-300">
                             {emp.email}

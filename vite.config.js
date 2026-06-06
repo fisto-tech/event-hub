@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => {
           target: apiTarget,
           changeOrigin: true,
           secure: true,
-          rewrite: (path) => path.replace(/^\/api/, ''),
+          rewrite: (path) => useRemote ? path.replace(/^\/api/, '') : path,
         },
       },
     },

@@ -248,7 +248,9 @@ const App = () => {
               subtitle="Add and manage staff accounts"
               icon="ph-user-plus"
             >
-              <EmployeeRegistration />
+              <div className="flex-1 p-6 overflow-y-auto">
+                <EmployeeRegistration currentUser={currentUser} />
+              </div>
             </MasterPageShell>
           );
         case 'master-allocation':
@@ -310,7 +312,7 @@ const App = () => {
 
       <div className="flex-1 flex flex-col overflow-hidden bg-white">
         <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-4 lg:px-6 shrink-0 shadow-sm">
-          <div className="flex items-center gap-3 lg:gap-6">
+          <div className="flex items-center gap-3 lg:gap-6 w-1/3">
             {/* Hamburger — visible on mobile + tablet (below lg) */}
             <button
               type="button"
@@ -319,12 +321,17 @@ const App = () => {
             >
               <i className="ph-bold ph-list text-2xl" />
             </button>
-            <h2 className="text-lg lg:text-xl font-medium capitalize text-crm-primary">
+            <h2 className="text-lg lg:text-xl font-medium capitalize text-crm-primary whitespace-nowrap">
               {getPageTitle()}
             </h2>
           </div>
 
-          <div className="flex items-center gap-3">
+          {/* Center Part: Filters */}
+          <div className="flex-1 flex justify-center items-center px-4">
+            <div id="top-nav-filters" className="flex items-center justify-center gap-3 w-full max-w-2xl"></div>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 w-1/3">
             <div className="text-right hidden sm:block">
               <p className="text-sm font-normal text-crm-textDark">{userName}</p>
               <p className="text-xs text-crm-primary font-normal capitalize">

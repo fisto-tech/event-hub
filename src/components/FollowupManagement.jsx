@@ -95,7 +95,11 @@ const FollowupManagement = ({ defaultFilter = 'all', currentUser }) => {
               value={selectedDate}
               onChange={(e) => {
                 setSelectedDate(e.target.value);
-                if (e.target.value) setFilter('date');
+                if (e.target.value) {
+                  setFilter('date');
+                } else {
+                  setFilter('all');
+                }
               }}
               className="w-full px-4 py-2 rounded-lg outline-none crm-input"
             />

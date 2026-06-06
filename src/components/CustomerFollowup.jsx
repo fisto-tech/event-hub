@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { fetchApi } from '../utils/api';
 import LoadingSpinner from './common/LoadingSpinner';
 import ReportModalShell, { EditField, reportInputClass } from './common/ReportModalShell';
@@ -348,13 +349,43 @@ const CustomerFollowup = ({ currentUser }) => {
   const [historyModal, setHistoryModal] = useState(null); // { customer, rows }
   const [formModal, setFormModal] = useState(null); // { customer, card }
 
+  const [expos, setExpos] = useState([]);
+  const [sources, setSources] = useState([]);
+  const [filterExpoSource, setFilterExpoSource] = useState('all');
+
+  const loadExposAndSources = async () => {
+    try {
+      const exRes = await fetchApi('expos.php');
+      if (exRes.status === 'success') setExpos(exRes.data || []);
+      const lkRes = await fetchApi('master_data.php?type=source');
+      if (lkRes.status === 'success') {
+        setSources(lkRes.data || []);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    loadExposAndSources();
+  }, []);
+
+  useEffect(() => {
+    if (selectedDate && selectedDate > new Date().toISOString().split('T')[0]) {
+      if (activeReason === 'project onboard' || activeReason === 'dropped') {
+        setActiveReason('first followup');
+      }
+    }
+  }, [selectedDate, activeReason]);
+
   const loadBoard = async () => {
     if (!currentUser?.id) return;
     setLoading(true);
     try {
-      const promises = REASON_TABS.map(t => 
-        fetchApi(`follow_ups.php?action=board&date=${selectedDate}&reason=${encodeURIComponent(t.value)}&role=${encodeURIComponent(userRole)}&user_id=${currentUser.id}`)
-      );
+      const promises = REASON_TABS.map(t => {
+        let url = `follow_ups.php?action=board&date=${selectedDate || 'all'}&reason=${encodeURIComponent(t.value)}&role=${encodeURIComponent(userRole)}&user_id=${currentUser.id}`;
+        return fetchApi(url);
+      });
       
       const results = await Promise.all(promises);
       const newData = { 'first followup': [], 'project onboard': [], 'dropped': [] };
@@ -393,7 +424,24 @@ const CustomerFollowup = ({ currentUser }) => {
     loadBoard();
   }, [selectedDate, currentUser?.id, currentUser?.role]);
 
-  const cards = tabData[activeReason] || [];
+  const filteredTabData = useMemo(() => {
+    const result = {};
+    for (const [key, list] of Object.entries(tabData)) {
+      let filtered = list || [];
+      if (filterExpoSource !== 'all') {
+        const [type, idOrName] = filterExpoSource.split('::');
+        filtered = filtered.filter(c => {
+          if (type === 'expo') return String(c.expo_id) === String(idOrName);
+          if (type === 'source') return String(c.reference_source) === String(idOrName);
+          return true;
+        });
+      }
+      result[key] = filtered;
+    }
+    return result;
+  }, [tabData, filterExpoSource]);
+
+  const cards = filteredTabData[activeReason] || [];
   const total = cards.length;
 
   const openHistory = async (card) => {
@@ -425,36 +473,82 @@ const CustomerFollowup = ({ currentUser }) => {
 
   return (
     <div className=" pb-12">
-      {/* Top row: Date (left) + Stage buttons (center-ish) */}
+      {/* Top row: Date (left) + Filters + Stage buttons (center-ish) */}
       <div className="bg-white  rounded-xl border border-gray-200 shadow-sm p-4 flex flex-col gap-3">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <label className="text-sm font-semibold text-gray-700">Date</label>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="px-4 py-2 rounded-full border border-gray-200 crm-input w-52"
-            />
+        <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex items-center gap-3">
+              <label className="text-sm font-semibold text-gray-700">Date</label>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="px-4 py-2 rounded-lg border border-gray-200 crm-input w-48"
+              />
+            </div>
+            {document.getElementById('top-nav-filters') ? createPortal(
+              <div className="flex items-center w-full max-w-sm">
+                <div className="relative w-full group">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                    <i className="ph-fill ph-funnel text-gray-400 group-hover:text-crm-primary transition-colors"></i>
+                  </div>
+                  <select
+                    value={filterExpoSource}
+                    onChange={(e) => setFilterExpoSource(e.target.value)}
+                    className="w-full pl-10 pr-10 py-2 text-sm font-medium rounded-full bg-gray-50 border border-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-crm-primary/50 focus:bg-white focus:border-crm-primary/50 shadow-sm transition-all cursor-pointer appearance-none"
+                  >
+                    <option value="all">All Expos & Sources</option>
+                    {expos.map(e => <option key={`expo-${e.id}`} value={`expo::${e.id}`}>{e.expo_name}</option>)}
+                    {sources.map(s => <option key={`source-${s.id || s.name}`} value={`source::${s.name}`}>{s.name}</option>)}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                    <i className="ph-bold ph-caret-down text-gray-400 text-xs"></i>
+                  </div>
+                </div>
+              </div>,
+              document.getElementById('top-nav-filters')
+            ) : (
+              <div className="flex items-center gap-3">
+                <label className="text-sm font-semibold text-gray-700">Expo/Source</label>
+                <select
+                  value={filterExpoSource}
+                  onChange={(e) => setFilterExpoSource(e.target.value)}
+                  className="px-4 py-2 rounded-lg border border-gray-200 crm-input w-56"
+                >
+                  <option value="all">All Expos & Sources</option>
+                  {expos.map(e => <option key={`expo-${e.id}`} value={`expo::${e.id}`}>{e.expo_name}</option>)}
+                  {sources.map(s => <option key={`source-${s.id || s.name}`} value={`source::${s.name}`}>{s.name}</option>)}
+                </select>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-2">
-            {REASON_TABS.map((t) => (
-              <button
-                key={t.value}
-                type="button"
-                onClick={() => setActiveReason(t.value)}
-                className={`px-6 py-2 rounded-full border text-sm font-semibold transition-colors flex items-center gap-2 ${activeReason === t.value
-                  ? 'bg-crm-primary text-white border-crm-primary'
-                  : 'bg-white text-gray-800 border-gray-300 hover:bg-crm-primaryLighter/60'
+            {REASON_TABS.map((t) => {
+              // Hide onboard and dropped for future dates
+              if (selectedDate && selectedDate > new Date().toISOString().split('T')[0]) {
+                if (t.value === 'project onboard' || t.value === 'dropped') {
+                  return null;
+                }
+              }
+              
+              return (
+                <button
+                  key={t.value}
+                  type="button"
+                  onClick={() => setActiveReason(t.value)}
+                  className={`px-6 py-2 rounded-full border text-sm font-semibold transition-colors flex items-center gap-2 ${activeReason === t.value
+                    ? 'bg-crm-primary text-white border-crm-primary'
+                    : 'bg-white text-gray-800 border-gray-300 hover:bg-crm-primaryLighter/60'
                   }`}
-              >
-                <span>{t.label}</span>
-                <span className={`px-2 py-0.5 rounded-md text-xs ${activeReason === t.value ? 'bg-white text-crm-primary' : 'bg-gray-100 text-gray-600'}`}>
-                  {tabData[t.value]?.length || 0}
-                </span>
-              </button>
-            ))}
+                >
+                  <span>{t.label}</span>
+                  <span className={`px-2 py-0.5 rounded-md text-xs ${activeReason === t.value ? 'bg-white text-crm-primary' : 'bg-gray-100 text-gray-600'}`}>
+                    {filteredTabData[t.value]?.length || 0}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           <div className="text-sm font-semibold text-gray-800 text-center md:text-right">

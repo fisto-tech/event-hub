@@ -10,10 +10,15 @@ const EmployeeReport = () => {
   const [endDate, setEndDate] = useState('');
   const [viewingEmployee, setViewingEmployee] = useState(null);
   const [editingEmployee, setEditingEmployee] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
 
   useEffect(() => {
     loadEmployees();
   }, []);
+
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [searchTerm, searchField, filterRole, startDate, endDate]);
 
   const loadEmployees = async () => {
     try {
@@ -141,21 +146,22 @@ const EmployeeReport = () => {
   };
 
   const handleExportCSV = () => {
-    if (filteredEmployees.length === 0) {
+    const dataToExport = selectedIds.length > 0 ? filteredEmployees.filter(emp => selectedIds.includes(emp.id)) : filteredEmployees;
+    if (dataToExport.length === 0) {
       alert("No data available to export");
       return;
     }
     const headers = ["Employee ID", "Full Name", "Email", "Phone", "Department", "Role", "Registered On"];
-    const rows = filteredEmployees.map(emp => [
+    const rows = dataToExport.map(emp => [
       emp.employee_id || '-',
       `"${(emp.name || '').replace(/"/g, '""')}"`,
       emp.email,
-      emp.phone || '-',
+      emp.phone ? `="${emp.phone}"` : '-',
       `"${(emp.department || '').replace(/"/g, '""')}"`,
       emp.role,
       emp.created_at
     ]);
-    const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+    const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -324,14 +330,16 @@ const EmployeeReport = () => {
             </div>
           </div>
           
-          <div className="lg:col-span-1 flex gap-2">
-            <button
-              onClick={handleExportCSV}
-              className="w-full bg-black hover:bg-neutral-800 text-white px-3 py-2.5 rounded-lg text-sm font-semibold shadow-sm transition-colors flex items-center justify-center gap-2"
-            >
-              <i className="ph-bold ph-download-simple"></i> Export
-            </button>
-          </div>
+          {['admin', 'super_admin', 'superadmin'].includes(filterRole?.toLowerCase()) ? (
+            <div className="lg:col-span-1 flex gap-2">
+              <button
+                onClick={handleExportCSV}
+                className="w-full bg-black hover:bg-neutral-800 text-white px-3 py-2.5 rounded-lg text-sm font-semibold shadow-sm transition-colors flex items-center justify-center gap-2"
+              >
+                <i className="ph-bold ph-download-simple"></i> Export
+              </button>
+            </div>
+          ) : <div className="lg:col-span-1"></div>}
           
         </div>
         
@@ -357,6 +365,23 @@ const EmployeeReport = () => {
         <table className="w-full text-left border-collapse text-crm-textDark min-w-[800px] border border-gray-300">
           <thead>
             <tr className="bg-crm-primary border-b border-crm-primary text-white">
+              {['admin', 'super_admin', 'superadmin'].includes(filterRole?.toLowerCase()) && (
+                <th className="px-4 py-3 font-normal border-r border-white/20 w-10 text-center">
+                  <input
+                    type="checkbox"
+                    checked={filteredEmployees.length > 0 && selectedIds.length === filteredEmployees.length}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedIds(filteredEmployees.map(emp => emp.id));
+                      } else {
+                        setSelectedIds([]);
+                      }
+                    }}
+                    className="cursor-pointer"
+                    title="Select All"
+                  />
+                </th>
+              )}
               <th className="px-4 py-3 font-normal border-r border-white/20 w-12 text-center">S.No</th>
               <th className="px-4 py-3 font-normal border-r border-white/20">Employee ID</th>
               <th className="px-4 py-3 font-normal border-r border-white/20">Full Name</th>
@@ -370,6 +395,22 @@ const EmployeeReport = () => {
           <tbody>
             {paginatedEmployees.map((emp, index) => (
               <tr key={emp.id} className="border-b border-gray-300 hover:bg-crm-primaryLighter transition-colors">
+                {['admin', 'super_admin', 'superadmin'].includes(filterRole?.toLowerCase()) && (
+                  <td className="px-4 py-3 font-medium text-sm border-r border-gray-300 text-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(emp.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedIds(prev => [...prev, emp.id]);
+                        } else {
+                          setSelectedIds(prev => prev.filter(id => id !== emp.id));
+                        }
+                      }}
+                      className="cursor-pointer"
+                    />
+                  </td>
+                )}
                 <td className="px-4 py-3 text-sm border-r border-gray-300 text-center text-gray-600">{((currentPage - 1) * itemsPerPage) + index + 1}</td>
                 <td className="px-4 py-3 font-normal text-sm border-r border-gray-300">{emp.employee_id || '-'}</td>
                 <td className="px-4 py-3 font-medium text-sm border-r border-gray-300">{emp.name}</td>

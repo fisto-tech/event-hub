@@ -45,6 +45,12 @@ const CustomerReport = ({ currentUser, filterSource }) => {
   const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
+  const [selectedIds, setSelectedIds] = useState([]);
+
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [searchTerm, searchField, filterExpo, filterEmployee, activeTab, startDate, endDate]);
+
   useEffect(() => {
     if (currentUser?.id) loadData();
 
@@ -166,6 +172,25 @@ const CustomerReport = ({ currentUser, filterSource }) => {
     }
   };
 
+  const expoAndSourceOptions = React.useMemo(() => {
+    const options = new Map();
+    customers.forEach(c => {
+      const uId = c.created_by || c.registered_by || c.user_id;
+      if (!showAllCustomers && String(uId) !== String(currentUser.id)) return;
+      
+      if (c.expo_id || c.linked_expo || c.manual_expo_name) {
+        const lbl = expoLabel(c);
+        if (lbl && lbl !== '—') {
+          options.set(`expo_${c.expo_id || lbl}`, { type: 'expo', id: c.expo_id || lbl, label: lbl });
+        }
+      }
+      if (c.reference_source) {
+        options.set(`source_${c.reference_source}`, { type: 'source', id: c.reference_source, label: c.reference_source });
+      }
+    });
+    return Array.from(options.values());
+  }, [customers, showAllCustomers, currentUser]);
+
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -200,8 +225,18 @@ const CustomerReport = ({ currentUser, filterSource }) => {
         return true;
       })();
 
-      // Expo filter
-      const matchesExpo = (filterExpo && filterExpo !== 'all') ? String(c.expo_id) === String(filterExpo) : true;
+      // Expo / Source filter
+      const matchesExpo = (() => {
+        if (!filterExpo || filterExpo === 'all') return true;
+        if (filterExpo.startsWith('expo_')) {
+          const val = filterExpo.replace('expo_', '');
+          return String(c.expo_id) === val || expoLabel(c) === val;
+        }
+        if (filterExpo.startsWith('source_')) {
+          return (c.reference_source || '').trim().toLowerCase() === filterExpo.replace('source_', '').trim().toLowerCase();
+        }
+        return String(c.expo_id) === String(filterExpo);
+      })();
 
       // Employee Filter
       const matchesEmployee = (() => {
@@ -262,18 +297,19 @@ const CustomerReport = ({ currentUser, filterSource }) => {
 
   // Exporters
   const handleExportExcel = () => {
-    if (filteredCustomers.length === 0) {
+    const dataToExport = selectedIds.length > 0 ? filteredCustomers.filter(c => selectedIds.includes(c.id)) : filteredCustomers;
+    if (dataToExport.length === 0) {
       alert("No data available to export");
       return;
     }
     const headers = ["S.No", "Date", "Expo Name / Source Name", "Company Name", "Contact Person", "Phone", "Registered By", "City", "Enquiry Type", "Status"];
-    const rows = filteredCustomers.map((c, idx) => [
+    const rows = dataToExport.map((c, idx) => [
       idx + 1,
       c.visit_date || '',
       `"${String(expoOrSourceLabel(c) || '').replace(/"/g, '""')}"`,
       `"${(c.company_name || '').replace(/"/g, '""')}"`,
       `"${(c.customer_name || '').replace(/"/g, '""')}"`,
-      c.phone_1 || '',
+      c.phone_1 ? `="${c.phone_1}"` : '',
       `"${String(registeredByLabel(c) || '').replace(/"/g, '""')}"`,
       `"${String(c.city || '').replace(/"/g, '""')}"`,
       c.enquiry_type || 'Unknown',
@@ -294,7 +330,8 @@ const CustomerReport = ({ currentUser, filterSource }) => {
   };
 
   const handleExportPDF = () => {
-    if (filteredCustomers.length === 0) {
+    const dataToExport = selectedIds.length > 0 ? filteredCustomers.filter(c => selectedIds.includes(c.id)) : filteredCustomers;
+    if (dataToExport.length === 0) {
       alert('No data to export');
       return;
     }
@@ -321,7 +358,7 @@ const CustomerReport = ({ currentUser, filterSource }) => {
         'Type',
         'Status',
       ];
-      const rows = filteredCustomers.map((c, idx) => [
+      const rows = dataToExport.map((c, idx) => [
         idx + 1,
         c.visit_date || '',
         String(expoOrSourceLabel(c) || ''),
@@ -900,32 +937,37 @@ const CustomerReport = ({ currentUser, filterSource }) => {
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-end">
           
-          <div className="md:col-span-1 lg:col-span-1">
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 tracking-wider">EXPO NAME</label>
+          <div className={`md:col-span-1 ${showAllCustomers ? 'lg:col-span-1' : 'lg:col-span-2'}`}>
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 tracking-wider">EXPO / SOURCE</label>
             <select
               value={filterExpo}
               onChange={(e) => setFilterExpo(e.target.value)}
               className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm outline-none focus:border-crm-primary"
             >
-              <option value="all">All Expos</option>
-              {expos.map(e => <option key={e.id} value={e.id}>{e.expo_name}</option>)}
+              <option value="all">All Expos & Sources</option>
+              {expoAndSourceOptions.map(opt => (
+                <option key={`${opt.type}_${opt.id}`} value={`${opt.type}_${opt.id}`}>
+                  {opt.label} ({opt.type === 'expo' ? 'Expo' : 'Source'})
+                </option>
+              ))}
             </select>
           </div>
 
-          <div className="md:col-span-1 lg:col-span-1">
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 tracking-wider">EMPLOYEE</label>
-            <select
-              value={filterEmployee}
-              onChange={(e) => setFilterEmployee(e.target.value)}
-              disabled={!showAllCustomers}
-              className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm outline-none focus:border-crm-primary disabled:bg-gray-100"
-            >
-              <option value="all">All Employees</option>
-              {employees
-                .filter(e => activeEmployeeIds.has(String(e.id)))
-                .map(e => <option key={e.id} value={e.id}>{e.name || e.username || `User #${e.id}`}</option>)}
-            </select>
-          </div>
+          {showAllCustomers && (
+            <div className="md:col-span-1 lg:col-span-1">
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 tracking-wider">EMPLOYEE</label>
+              <select
+                value={filterEmployee}
+                onChange={(e) => setFilterEmployee(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm outline-none focus:border-crm-primary"
+              >
+                <option value="all">All Employees</option>
+                {employees
+                  .filter(e => activeEmployeeIds.has(String(e.id)))
+                  .map(e => <option key={e.id} value={e.id}>{e.name || e.username || `User #${e.id}`}</option>)}
+              </select>
+            </div>
+          )}
 
           <div className="md:col-span-2 lg:col-span-2">
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 tracking-wider">SEARCH</label>
@@ -990,35 +1032,37 @@ const CustomerReport = ({ currentUser, filterSource }) => {
           </button>
 
           {/* Premium Interactive Dropdown Export Button */}
-          <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={() => setIsExportDropdownOpen(!isExportDropdownOpen)}
-              className="w-full lg:w-auto bg-gradient-to-r from-crm-primary to-crm-primaryDark hover:from-crm-primaryDark hover:to-crm-primary text-white px-6 py-2 rounded-lg text-sm font-semibold shadow-sm flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-95"
-            >
-              <i className="ph-bold ph-download-simple text-lg"></i>
-              Export Reports
-              <i className={`ph-bold ph-caret-down transition-transform duration-300 ${isExportDropdownOpen ? 'rotate-180' : ''}`}></i>
-            </button>
+          {['admin', 'super_admin', 'superadmin'].includes(userRole?.toLowerCase()) && (
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setIsExportDropdownOpen(!isExportDropdownOpen)}
+                className="w-full lg:w-auto bg-gradient-to-r from-crm-primary to-crm-primaryDark hover:from-crm-primaryDark hover:to-crm-primary text-white px-6 py-2 rounded-lg text-sm font-semibold shadow-sm flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-95"
+              >
+                <i className="ph-bold ph-download-simple text-lg"></i>
+                Export Reports
+                <i className={`ph-bold ph-caret-down transition-transform duration-300 ${isExportDropdownOpen ? 'rotate-180' : ''}`}></i>
+              </button>
 
-            {isExportDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-100 rounded-xl shadow-2xl z-30 overflow-hidden divide-y divide-gray-100 animate-in fade-in slide-in-from-top-2 duration-200">
-                <button
-                  onClick={handleExportExcel}
-                  className="w-full px-5 py-3.5 text-left text-sm font-semibold text-gray-700 hover:bg-emerald-50/30 flex items-center gap-3 transition-colors group"
-                >
-                  <i className="ph-fill ph-file-xls text-emerald-600 text-xl group-hover:scale-110 transition-transform"></i>
-                  Export to Excel (.csv)
-                </button>
-                <button
-                  onClick={handleExportPDF}
-                  className="w-full px-5 py-3.5 text-left text-sm font-semibold text-gray-700 hover:bg-red-50/30 flex items-center gap-3 transition-colors group"
-                >
-                  <i className="ph-fill ph-file-pdf text-red-600 text-xl group-hover:scale-110 transition-transform"></i>
-                  Export to PDF (.pdf)
-                </button>
-              </div>
-            )}
-          </div>
+              {isExportDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-100 rounded-xl shadow-2xl z-30 overflow-hidden divide-y divide-gray-100 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <button
+                    onClick={handleExportExcel}
+                    className="w-full px-5 py-3.5 text-left text-sm font-semibold text-gray-700 hover:bg-emerald-50/30 flex items-center gap-3 transition-colors group"
+                  >
+                    <i className="ph-fill ph-file-xls text-emerald-600 text-xl group-hover:scale-110 transition-transform"></i>
+                    Export to Excel (.csv)
+                  </button>
+                  <button
+                    onClick={handleExportPDF}
+                    className="w-full px-5 py-3.5 text-left text-sm font-semibold text-gray-700 hover:bg-red-50/30 flex items-center gap-3 transition-colors group"
+                  >
+                    <i className="ph-fill ph-file-pdf text-red-600 text-xl group-hover:scale-110 transition-transform"></i>
+                    Export to PDF (.pdf)
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -1036,6 +1080,23 @@ const CustomerReport = ({ currentUser, filterSource }) => {
             <table className="w-full text-left border-collapse whitespace-nowrap text-crm-textDark min-w-[800px]">
               <thead>
                 <tr className="bg-crm-primary border-b border-crm-primary text-white">
+                  {['admin', 'super_admin', 'superadmin'].includes(userRole?.toLowerCase()) && (
+                    <th className="px-3 py-2 font-semibold text-xs border-r border-white/20 w-10 text-center">
+                      <input
+                        type="checkbox"
+                        checked={filteredCustomers.length > 0 && selectedIds.length === filteredCustomers.length}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedIds(filteredCustomers.map(c => c.id));
+                          } else {
+                            setSelectedIds([]);
+                          }
+                        }}
+                        className="cursor-pointer"
+                        title="Select All"
+                      />
+                    </th>
+                  )}
                   <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20 w-14">S.No</th>
                   <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Date</th>
                   <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Expo / Source</th>
@@ -1050,6 +1111,22 @@ const CustomerReport = ({ currentUser, filterSource }) => {
               <tbody>
                 {paginatedCustomers.map((cust, index) => (
                   <tr key={cust.id} className="border-b border-gray-300 hover:bg-crm-primaryLighter/40 transition-colors duration-150">
+                    {['admin', 'super_admin', 'superadmin'].includes(userRole?.toLowerCase()) && (
+                      <td className="px-3 py-2 text-sm text-gray-600 border-r border-gray-300 text-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(cust.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedIds(prev => [...prev, cust.id]);
+                            } else {
+                              setSelectedIds(prev => prev.filter(id => id !== cust.id));
+                            }
+                          }}
+                          className="cursor-pointer"
+                        />
+                      </td>
+                    )}
                     <td className="px-3 py-2 text-sm text-gray-600 border-r border-gray-300 text-center">{(currentPage - 1) * itemsPerPage + index + 1}</td>
                     <td className="px-3 py-2 text-sm text-gray-600 border-r border-gray-300">{formatDateTime(cust.visit_date)}</td>
                     <td className="px-3 py-2 border-r border-gray-300">
@@ -1095,7 +1172,9 @@ const CustomerReport = ({ currentUser, filterSource }) => {
                         )}
 
                         <button onClick={() => setEditingCustomer({ ...cust })} className="text-crm-primary hover:text-crm-primaryDark p-1.5 rounded-lg hover:bg-crm-primaryLighter" title="Edit"><i className="ph-bold ph-pencil-simple text-lg"></i></button>
-                        <button onClick={() => handleDelete(cust.id, cust.company_name)} className="text-red-600 hover:text-red-800 p-1.5 rounded-lg hover:bg-red-50" title="Delete"><i className="ph-bold ph-trash text-lg"></i></button>
+                        {showAllCustomers && (
+                          <button onClick={() => handleDelete(cust.id, cust.company_name)} className="text-red-600 hover:text-red-800 p-1.5 rounded-lg hover:bg-red-50" title="Delete"><i className="ph-bold ph-trash text-lg"></i></button>
+                        )}
                       </div>
                     </td>
                   </tr>

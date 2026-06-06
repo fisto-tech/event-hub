@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { fetchApi } from '../utils/api';
 import { isPrivilegedRole } from '../utils/roles';
 import LoadingSpinner from './common/LoadingSpinner';
 import { formatDateTime } from '../utils/dateUtils';
 import { FollowupHistoryModal } from './CustomerFollowup';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { showToast } from '../utils/toast';
 
 const FollowupReport = ({ currentUser }) => {
   const [followups, setFollowups] = useState([]);
@@ -11,6 +14,21 @@ const FollowupReport = ({ currentUser }) => {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [historyModal, setHistoryModal] = useState(null);
+  const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  const [selectedIds, setSelectedIds] = useState([]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsExportDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Filters
   const [filterExpo, setFilterExpo] = useState('all');
@@ -36,6 +54,7 @@ const FollowupReport = ({ currentUser }) => {
       
       const usersData = resU.status === 'success' ? (resU.data || []) : [];
       const customersData = resC.status === 'success' ? (resC.data || []) : [];
+      const exposData = resE.status === 'success' ? (resE.data || []) : [];
       let followupsData = resF.status === 'success' ? (resF.data || []) : [];
 
       // Enrich followups with customer's expo_id and created_by so filters work
@@ -47,10 +66,15 @@ const FollowupReport = ({ currentUser }) => {
         if (!user && String(createdBy) === String(currentUser?.id)) {
           user = currentUser;
         }
+
+        const eId = f.expo_id || (customer ? customer.expo_id : null);
+        const expoObj = exposData.find(e => String(e.id) === String(eId));
         
         return {
           ...f,
-          expo_id: f.expo_id || (customer ? customer.expo_id : null),
+          expo_id: eId,
+          expo_name: f.expo_name || (expoObj ? expoObj.expo_name : null),
+          reference_source: f.reference_source || (customer ? customer.reference_source : null),
           created_by: createdBy,
           registered_by_name: f.registered_by_name || (user ? (user.name || user.username) : '')
         };
@@ -195,7 +219,89 @@ const FollowupReport = ({ currentUser }) => {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
+    setSelectedIds([]);
   }, [filterExpo, filterEmployee, searchField, searchText, startDate, endDate]);
+
+  const getExpoOrSource = (f) => {
+    if (f.reference_source && String(f.reference_source).toLowerCase() !== 'none') return `Source: ${f.reference_source}`;
+    if (f.expo_name) return `Expo: ${f.expo_name}`;
+    return '—';
+  };
+
+  const handleExportCSV = () => {
+    const dataToExport = selectedIds.length > 0 ? filteredData.filter(f => selectedIds.includes(f.id)) : filteredData;
+    if (dataToExport.length === 0) {
+      alert("No data available to export");
+      return;
+    }
+    const headers = ["S.No", "Date", "Expo/Source", "Company Name", "Contact Person", "Phone", "Status", "Reason"];
+    const rows = dataToExport.map((f, i) => [
+      i + 1,
+      f.follow_up_date || '',
+      `"${getExpoOrSource(f).replace(/"/g, '""')}"`,
+      `"${(f.company_name || '').replace(/"/g, '""')}"`,
+      `"${(f.customer_name || '').replace(/"/g, '""')}"`,
+      f.phone_1 ? `="${f.phone_1}"` : '',
+      f.status === 'completed' ? 'Completed' : 'Pending',
+      f.followup_reason || ''
+    ]);
+    const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `followup_report_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setIsExportDropdownOpen(false);
+  };
+
+  const handleExportPDF = () => {
+    const dataToExport = selectedIds.length > 0 ? filteredData.filter(f => selectedIds.includes(f.id)) : filteredData;
+    if (dataToExport.length === 0) {
+      alert("No data available to export");
+      return;
+    }
+    try {
+      const doc = new jsPDF({ orientation: 'landscape' });
+      doc.setFontSize(16);
+      doc.text('Followup Report', 14, 18);
+      doc.setFontSize(10);
+      doc.text(
+        `Generated on: ${new Date().toLocaleDateString()}`,
+        14,
+        24
+      );
+
+      const headers = ["S.No", "Date", "Expo/Source", "Company Name", "Contact Person", "Phone", "Status", "Reason"];
+      const rows = dataToExport.map((f, i) => [
+        i + 1,
+        f.follow_up_date || '',
+        getExpoOrSource(f),
+        String(f.company_name || ''),
+        String(f.customer_name || ''),
+        f.phone_1 || '',
+        f.status === 'completed' ? 'Completed' : 'Pending',
+        f.followup_reason || ''
+      ]);
+
+      autoTable(doc, {
+        startY: 30,
+        head: [headers],
+        body: rows,
+        theme: 'striped',
+        headStyles: { fillColor: [153, 0, 51] }, // CRM primary crimson
+        styles: { fontSize: 8, font: 'helvetica' },
+      });
+
+      doc.save(`followup_report_${new Date().toISOString().slice(0, 10)}.pdf`);
+      setIsExportDropdownOpen(false);
+    } catch (err) {
+      console.error('PDF export failed:', err);
+      showToast(err?.message || 'PDF export failed', 'error');
+    }
+  };
 
   return (
     <div className=" pb-10 max-w-[1600px] mx-auto fade-in">
@@ -236,7 +342,7 @@ const FollowupReport = ({ currentUser }) => {
       </div>
 
       {/* 2. FILTERS CONTAINER */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mt-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-end">
           
           <div className="lg:col-span-1">
@@ -308,7 +414,7 @@ const FollowupReport = ({ currentUser }) => {
           
         </div>
         
-        <div className="mt-4 border-t border-gray-100 pt-4">
+        <div className="mt-4 border-t border-gray-100 pt-4 flex justify-between items-center gap-3">
           <button
             type="button"
             onClick={resetAll}
@@ -316,6 +422,38 @@ const FollowupReport = ({ currentUser }) => {
           >
             Reset All
           </button>
+
+          {['admin', 'super_admin', 'superadmin'].includes(userRole?.toLowerCase()) && (
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setIsExportDropdownOpen(!isExportDropdownOpen)}
+                className="w-full lg:w-auto bg-gradient-to-r from-crm-primary to-crm-primaryDark hover:from-crm-primaryDark hover:to-crm-primary text-white px-6 py-2 rounded-lg text-sm font-semibold shadow-sm flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-95"
+              >
+                <i className="ph-bold ph-download-simple text-lg"></i>
+                Export Reports
+                <i className={`ph-bold ph-caret-down transition-transform duration-300 ${isExportDropdownOpen ? 'rotate-180' : ''}`}></i>
+              </button>
+
+              {isExportDropdownOpen && (
+                <div className="absolute right-0 bottom-full mb-2 w-56 bg-white border border-gray-100 rounded-xl shadow-2xl z-30 overflow-hidden divide-y divide-gray-100 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                  <button
+                    onClick={handleExportCSV}
+                    className="w-full px-5 py-3.5 text-left text-sm font-semibold text-gray-700 hover:bg-emerald-50/30 flex items-center gap-3 transition-colors group"
+                  >
+                    <i className="ph-fill ph-file-xls text-emerald-600 text-xl group-hover:scale-110 transition-transform"></i>
+                    Export to Excel (.csv)
+                  </button>
+                  <button
+                    onClick={handleExportPDF}
+                    className="w-full px-5 py-3.5 text-left text-sm font-semibold text-gray-700 hover:bg-red-50/30 flex items-center gap-3 transition-colors group"
+                  >
+                    <i className="ph-fill ph-file-pdf text-red-600 text-xl group-hover:scale-110 transition-transform"></i>
+                    Export to PDF (.pdf)
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -334,6 +472,23 @@ const FollowupReport = ({ currentUser }) => {
             <table className="w-full text-left border-collapse whitespace-nowrap">
               <thead>
                 <tr className="bg-crm-primary text-white">
+                  {['admin', 'super_admin', 'superadmin'].includes(userRole?.toLowerCase()) && (
+                    <th className="px-4 py-3 font-semibold text-sm border-r border-white/20 w-10 text-center">
+                      <input
+                        type="checkbox"
+                        checked={filteredData.length > 0 && selectedIds.length === filteredData.length}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedIds(filteredData.map(f => f.id));
+                          } else {
+                            setSelectedIds([]);
+                          }
+                        }}
+                        className="cursor-pointer"
+                        title="Select All"
+                      />
+                    </th>
+                  )}
                   <th className="px-4 py-3 font-semibold text-sm border-r border-white/20">S.No.</th>
                   <th className="px-4 py-3 font-semibold text-sm border-r border-white/20">Details</th>
                   <th className="px-4 py-3 font-semibold text-sm border-r border-white/20">Followup Date</th>
@@ -348,6 +503,22 @@ const FollowupReport = ({ currentUser }) => {
                 {paginatedData.length > 0 ? (
                   paginatedData.map((row, i) => (
                     <tr key={row.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                      {['admin', 'super_admin', 'superadmin'].includes(userRole?.toLowerCase()) && (
+                        <td className="px-4 py-3 text-sm text-gray-700 text-center">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.includes(row.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedIds(prev => [...prev, row.id]);
+                              } else {
+                                setSelectedIds(prev => prev.filter(id => id !== row.id));
+                              }
+                            }}
+                            className="cursor-pointer"
+                          />
+                        </td>
+                      )}
                       <td className="px-4 py-3 text-sm text-gray-700">{((currentPage - 1) * itemsPerPage) + i + 1}</td>
                       <td className="px-4 py-3 text-sm text-gray-700 capitalize">{row.followup_reason || row.status || '—'}</td>
                       <td className="px-4 py-3 text-sm text-gray-700">{formatDateTime(row.follow_up_date)}</td>

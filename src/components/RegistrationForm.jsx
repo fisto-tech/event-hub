@@ -1297,7 +1297,7 @@ END:VCARD`;
           </FormField>
 
           <SectionHeader title="Image Upload" />
-          <FormField label="Visit Card Image" isFullWidth>
+          <FormField label="Image" isFullWidth>
             <div className="flex items-center gap-4">
               <input
                 ref={imageInputRef}
