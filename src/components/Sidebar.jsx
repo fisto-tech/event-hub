@@ -15,7 +15,6 @@ const Sidebar = ({ activeTab, setActiveTab, activeSubTab, setActiveSubTab, onLog
       subItems: [
         { id: 'master-expo', label: 'Expo', icon: 'ph-storefront' },
         { id: 'employee-registration', label: 'Employee Registration', icon: 'ph-user-plus' },
-        // { id: 'master-allocation', label: 'Allocation', icon: 'ph-arrows-left-right' },
       ]
     },
     { 
@@ -40,6 +39,12 @@ const Sidebar = ({ activeTab, setActiveTab, activeSubTab, setActiveSubTab, onLog
       id: 'date-wise-analyse', 
       label: 'Date wise analyse', 
       icon: 'ph-calendar-blank'
+    },
+    { 
+      id: 'allocation', 
+      label: 'Allocation', 
+      icon: 'ph-arrows-left-right',
+      adminOnly: true
     },
   ];
 

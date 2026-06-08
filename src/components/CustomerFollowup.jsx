@@ -10,6 +10,7 @@ import { formatDateTime } from '../utils/dateUtils';
 
 const REASON_TABS = [
   { label: 'Followup', value: 'first followup' },
+  { label: 'Appointment', value: 'appointment' },
   { label: 'Project Onboard', value: 'project onboard' },
   { label: 'Dropped', value: 'dropped' },
 ];
@@ -223,9 +224,8 @@ const CustomContactSelect = ({ value, onChange, options }) => {
             <button
               key={o.value}
               type="button"
-              className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${
-                String(o.value) === String(value) ? 'bg-crm-primary/5 text-crm-primary font-bold' : 'text-gray-700'
-              }`}
+              className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${String(o.value) === String(value) ? 'bg-crm-primary/5 text-crm-primary font-bold' : 'text-gray-700'
+                }`}
               onClick={() => {
                 onChange(o.value);
                 setOpen(false);
@@ -265,66 +265,48 @@ const FollowupHistoryModal = ({ customer, history, onClose }) => (
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {history.map((h) => (
-            <div key={h.id} className="rounded-2xl overflow-hidden border border-crm-primary/20 shadow-sm">
-
+            <div key={h.id} className="rounded-2xl overflow-hidden border border-gray-200 shadow-sm">
               {/* ── Card Header ── */}
-              <div className="bg-crm-primary px-5 py-3 flex items-center gap-3">
-                <span className="text-white text-sm font-bold capitalize">
+              <div className="bg-crm-primary px-5 py-4 flex items-center justify-between">
+                <span className="text-white text-base font-bold capitalize flex items-center gap-2">
+                  <i className="ph-fill ph-clock-counter-clockwise"></i>
                   {h.followup_status || h.status || 'Unknown'}
                 </span>
-                <span className="px-3 py-0.5 rounded-md bg-red-500 text-white text-xs font-bold tracking-wide">
-                  Current Status
+                <span className="px-3 py-1 rounded bg-white/20 text-white text-xs font-bold tracking-wide">
+                  {h.updated_at ? formatDateTime(h.updated_at) : (h.created_at ? formatDateTime(h.created_at) : formatDateTime(h.follow_up_date))}
                 </span>
               </div>
 
               {/* ── Card Body ── */}
-              <div className="bg-white px-5 py-4 space-y-4">
-
-                {/* Title + timestamp */}
-                <div>
-                  <div className="text-base font-semibold text-black">
-                    Followup Reason : <span className="capitalize">{h.followup_reason || '—'}</span>
-                  </div>
-                  <div className="text-xs text-gray-800 mt-1">
-                    <span className="font-semibold text-gray-700">Followup Taken :</span>{' '}
-                    {h.created_at
-                      ? formatDateTime(h.created_at)
-                      : formatDateTime(h.follow_up_date)}
-                  </div>
+              <div className="bg-white px-6 py-5 flex flex-col gap-3">
+                <div className="text-sm">
+                  <span className="font-bold text-gray-900">Contact Person: </span>
+                  <span className="font-medium text-gray-700">{h.contact_person || '—'}</span>
+                </div>
+                <div className="text-sm">
+                  <span className="font-bold text-gray-900">Contact No: </span>
+                  <span className="font-medium text-gray-700">{h.contact_phone || '—'}</span>
+                </div>
+                <div className="text-sm">
+                  <span className="font-bold text-gray-900">Next Follow-up: </span>
+                  <span className="font-medium text-gray-700">{formatDateTime(h.follow_up_date) || '—'}</span>
+                </div>
+                <div className="text-sm">
+                  <span className="font-bold text-gray-900">Reason: </span>
+                  <span className="font-medium text-gray-700 capitalize">{h.followup_reason || '—'}</span>
                 </div>
 
-                {/* Info grid */}
-                <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-                  <div>
-                    <div className="text-sm font-semibold text-gray-900 mb-0.5">Contact Person</div>
-                    <div className="text-sm font-medium text-gray-700">{h.contact_person || '—'}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm font-semibold text-gray-900 mb-0.5">Contact No</div>
-                    <div className="text-sm font-medium text-gray-700">{h.contact_phone || '—'}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm font-semibold text-gray-900 mb-0.5">Next Follow-up</div>
-                    <div className="text-sm font-medium text-gray-700">{formatDateTime(h.follow_up_date) || '—'}</div>
-                  </div>
-                  <div>
-                    <div className="text-sm font-semibold text-gray-900 mb-0.5">Reason</div>
-                    <div className="text-sm font-medium text-gray-700 capitalize">{h.followup_reason || '—'}</div>
-                  </div>
-                </div>
-
-                {/* Remarks */}
                 {h.remarks && (
-                  <div className="border-t border-gray-100 pt-3">
-                    <div className="text-xs font-semibold text-gray-500 mb-1">Remarks</div>
-                    <div className="text-sm text-gray-700">{h.remarks}</div>
+                  <div className="text-sm mt-1">
+                    <span className="font-bold text-gray-900">Remarks: </span>
+                    <span className="font-medium text-gray-700">{h.remarks}</span>
                   </div>
                 )}
 
                 {/* Voice note (if any) */}
                 {h.voice_note_base64 && (
-                  <div className="mt-2">
-                    <audio controls controlsList="nodownload noplaybackrate" className="w-full">
+                  <div className="mt-3 border-t border-gray-100 pt-3">
+                    <audio controls controlsList="nodownload noplaybackrate" className="w-full h-10">
                       <source src={h.voice_note_base64} />
                     </audio>
                   </div>
@@ -344,7 +326,7 @@ const CustomerFollowup = ({ currentUser }) => {
   const [selectedDate, setSelectedDate] = useState(todayISO());
   const [activeReason, setActiveReason] = useState('first followup');
   const [loading, setLoading] = useState(true);
-  const [tabData, setTabData] = useState({ 'first followup': [], 'project onboard': [], 'dropped': [] });
+  const [tabData, setTabData] = useState({ 'first followup': [], 'appointment': [], 'project onboard': [], 'dropped': [] });
 
   const [historyModal, setHistoryModal] = useState(null); // { customer, rows }
   const [formModal, setFormModal] = useState(null); // { customer, card }
@@ -352,6 +334,8 @@ const CustomerFollowup = ({ currentUser }) => {
   const [expos, setExpos] = useState([]);
   const [sources, setSources] = useState([]);
   const [filterExpoSource, setFilterExpoSource] = useState('all');
+  const [employees, setEmployees] = useState([]);
+  const [filterEmployee, setFilterEmployee] = useState('all');
 
   const loadExposAndSources = async () => {
     try {
@@ -360,6 +344,10 @@ const CustomerFollowup = ({ currentUser }) => {
       const lkRes = await fetchApi('master_data.php?type=source');
       if (lkRes.status === 'success') {
         setSources(lkRes.data || []);
+      }
+      if (['admin', 'super_admin', 'superadmin'].includes(userRole.toLowerCase())) {
+        const empRes = await fetchApi('users.php');
+        if (empRes.status === 'success') setEmployees(empRes.data || []);
       }
     } catch (e) {
       console.error(e);
@@ -386,10 +374,10 @@ const CustomerFollowup = ({ currentUser }) => {
         let url = `follow_ups.php?action=board&date=${selectedDate || 'all'}&reason=${encodeURIComponent(t.value)}&role=${encodeURIComponent(userRole)}&user_id=${currentUser.id}`;
         return fetchApi(url);
       });
-      
+
       const results = await Promise.all(promises);
-      const newData = { 'first followup': [], 'project onboard': [], 'dropped': [] };
-      
+      const newData = { 'first followup': [], 'appointment': [], 'project onboard': [], 'dropped': [] };
+
       results.forEach((res, index) => {
         const tabValue = REASON_TABS[index].value;
         if (res.status === 'success') {
@@ -398,19 +386,19 @@ const CustomerFollowup = ({ currentUser }) => {
             data = data.filter(c => {
               const reason = String(c.followup_reason || 'first followup').toLowerCase().trim();
               if (tabValue === 'first followup') {
-                return reason !== 'project onboard' && reason !== 'dropped' && reason !== 'droped';
+                return reason !== 'project onboard' && reason !== 'dropped' && reason !== 'droped' && reason !== 'appointment';
               }
               return reason === String(tabValue).toLowerCase().trim();
             });
           }
-          
+
           if (userRole !== 'super_admin' && userRole !== 'admin') {
             data = data.filter(c => String(c.created_by || c.registered_by) === String(currentUser.id));
           }
           newData[tabValue] = data;
         }
       });
-      
+
       setTabData(newData);
     } catch (e) {
       console.error(e);
@@ -436,10 +424,13 @@ const CustomerFollowup = ({ currentUser }) => {
           return true;
         });
       }
+      if (filterEmployee !== 'all') {
+        filtered = filtered.filter(c => String(c.created_by || c.registered_by) === String(filterEmployee));
+      }
       result[key] = filtered;
     }
     return result;
-  }, [tabData, filterExpoSource]);
+  }, [tabData, filterExpoSource, filterEmployee]);
 
   const cards = filteredTabData[activeReason] || [];
   const total = cards.length;
@@ -477,25 +468,27 @@ const CustomerFollowup = ({ currentUser }) => {
       <div className="bg-white  rounded-xl border border-gray-200 shadow-sm p-4 flex flex-col gap-3">
         <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <div className="flex items-center gap-3">
-              <label className="text-sm font-semibold text-gray-700">Date</label>
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                <i className="ph-fill ph-calendar-blank text-gray-400 group-hover:text-crm-primary transition-colors"></i>
+              </div>
               <input
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="px-4 py-2 rounded-lg border border-gray-200 crm-input w-48"
+                className="w-full pl-10 pr-4 py-2 text-sm font-medium rounded-full bg-white border border-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-crm-primary/50 focus:border-crm-primary/50 shadow-sm transition-all cursor-pointer hover:bg-gray-50"
               />
             </div>
             {document.getElementById('top-nav-filters') ? createPortal(
-              <div className="flex items-center w-full max-w-sm">
-                <div className="relative w-full group">
+              <div className="flex items-center gap-3 w-full justify-center">
+                <div className="relative w-64 group">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
                     <i className="ph-fill ph-funnel text-gray-400 group-hover:text-crm-primary transition-colors"></i>
                   </div>
                   <select
                     value={filterExpoSource}
                     onChange={(e) => setFilterExpoSource(e.target.value)}
-                    className="w-full pl-10 pr-10 py-2 text-sm font-medium rounded-full bg-gray-50 border border-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-crm-primary/50 focus:bg-white focus:border-crm-primary/50 shadow-sm transition-all cursor-pointer appearance-none"
+                    className="w-full pl-10 pr-10 py-2 text-sm font-medium rounded-full bg-white border border-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-crm-primary/50 focus:border-crm-primary/50 shadow-sm transition-all cursor-pointer appearance-none hover:bg-gray-50"
                   >
                     <option value="all">All Expos & Sources</option>
                     {expos.map(e => <option key={`expo-${e.id}`} value={`expo::${e.id}`}>{e.expo_name}</option>)}
@@ -505,21 +498,70 @@ const CustomerFollowup = ({ currentUser }) => {
                     <i className="ph-bold ph-caret-down text-gray-400 text-xs"></i>
                   </div>
                 </div>
+
+                {['admin', 'super_admin', 'superadmin'].includes(userRole.toLowerCase()) && (
+                  <div className="relative w-56 group">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                      <i className="ph-fill ph-users text-gray-400 group-hover:text-crm-primary transition-colors"></i>
+                    </div>
+                    <select
+                      value={filterEmployee}
+                      onChange={(e) => setFilterEmployee(e.target.value)}
+                      className="w-full pl-10 pr-10 py-2 text-sm font-medium rounded-full bg-white border border-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-crm-primary/50 focus:border-crm-primary/50 shadow-sm transition-all cursor-pointer appearance-none hover:bg-gray-50"
+                    >
+                      <option value="all">All Employees</option>
+                      {employees.map(emp => (
+                        <option key={emp.id} value={emp.id}>{emp.name || emp.username}</option>
+                      ))}
+                    </select>
+                    <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                      <i className="ph-bold ph-caret-down text-gray-400 text-xs"></i>
+                    </div>
+                  </div>
+                )}
               </div>,
               document.getElementById('top-nav-filters')
             ) : (
-              <div className="flex items-center gap-3">
-                <label className="text-sm font-semibold text-gray-700">Expo/Source</label>
-                <select
-                  value={filterExpoSource}
-                  onChange={(e) => setFilterExpoSource(e.target.value)}
-                  className="px-4 py-2 rounded-lg border border-gray-200 crm-input w-56"
-                >
-                  <option value="all">All Expos & Sources</option>
-                  {expos.map(e => <option key={`expo-${e.id}`} value={`expo::${e.id}`}>{e.expo_name}</option>)}
-                  {sources.map(s => <option key={`source-${s.id || s.name}`} value={`source::${s.name}`}>{s.name}</option>)}
-                </select>
-              </div>
+              <>
+                <div className="relative w-48 group">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                    <i className="ph-fill ph-funnel text-gray-400 group-hover:text-crm-primary transition-colors"></i>
+                  </div>
+                  <select
+                    value={filterExpoSource}
+                    onChange={(e) => setFilterExpoSource(e.target.value)}
+                    className="w-full pl-10 pr-10 py-2 text-sm font-medium rounded-full bg-white border border-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-crm-primary/50 focus:border-crm-primary/50 shadow-sm transition-all cursor-pointer appearance-none hover:bg-gray-50"
+                  >
+                    <option value="all">All Expos & Sources</option>
+                    {expos.map(e => <option key={`expo-${e.id}`} value={`expo::${e.id}`}>{e.expo_name}</option>)}
+                    {sources.map(s => <option key={`source-${s.id || s.name}`} value={`source::${s.name}`}>{s.name}</option>)}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                    <i className="ph-bold ph-caret-down text-gray-400 text-xs"></i>
+                  </div>
+                </div>
+
+                {['admin', 'super_admin', 'superadmin'].includes(userRole.toLowerCase()) && (
+                  <div className="relative w-48 group">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                      <i className="ph-fill ph-users text-gray-400 group-hover:text-crm-primary transition-colors"></i>
+                    </div>
+                    <select
+                      value={filterEmployee}
+                      onChange={(e) => setFilterEmployee(e.target.value)}
+                      className="w-full pl-10 pr-10 py-2 text-sm font-medium rounded-full bg-white border border-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-crm-primary/50 focus:border-crm-primary/50 shadow-sm transition-all cursor-pointer appearance-none hover:bg-gray-50"
+                    >
+                      <option value="all">All Employees</option>
+                      {employees.map(emp => (
+                        <option key={emp.id} value={emp.id}>{emp.name || emp.username}</option>
+                      ))}
+                    </select>
+                    <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                      <i className="ph-bold ph-caret-down text-gray-400 text-xs"></i>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
@@ -531,7 +573,7 @@ const CustomerFollowup = ({ currentUser }) => {
                   return null;
                 }
               }
-              
+
               return (
                 <button
                   key={t.value}
@@ -540,7 +582,7 @@ const CustomerFollowup = ({ currentUser }) => {
                   className={`px-6 py-2 rounded-full border text-sm font-semibold transition-colors flex items-center gap-2 ${activeReason === t.value
                     ? 'bg-crm-primary text-white border-crm-primary'
                     : 'bg-white text-gray-800 border-gray-300 hover:bg-crm-primaryLighter/60'
-                  }`}
+                    }`}
                 >
                   <span>{t.label}</span>
                   <span className={`px-2 py-0.5 rounded-md text-xs ${activeReason === t.value ? 'bg-white text-crm-primary' : 'bg-gray-100 text-gray-600'}`}>
@@ -562,54 +604,57 @@ const CustomerFollowup = ({ currentUser }) => {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-5">
           {cards.map((c) => (
-            <div key={c.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 space-y-4">
-                  <div>
-                    <span className="text-sm font-bold text-gray-800 uppercase tracking-wider block mb-0.5">Company Name</span>
-                    <span className="text-sm font-medium text-gray-600 block leading-tight">
-                      {c.company_name || '—'}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-3 mt-4 border-t border-gray-100 pt-4">
-                    <div>
-                      <span className="text-sm font-bold text-gray-800 uppercase tracking-wider block mb-0.5">Contact Person</span>
-                      <span className="text-sm font-medium text-gray-600 block">
-                        {c.contact_person || c.display_contact_person || c.customer_name || '—'}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-sm font-bold text-gray-800 uppercase tracking-wider block mb-0.5">Status</span>
-                      <span className="text-sm font-medium text-gray-600 block capitalize">
-                        {c.followup_status || c.status || '—'}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-sm font-bold text-gray-800 uppercase tracking-wider block mb-0.5">Next Follow-up</span>
-                      <span className="text-sm font-medium text-gray-600 block">
-                        {formatDateTime(c.follow_up_date)}
-                      </span>
-                    </div>
-                    <div className="col-span-2">
-                      <span className="text-sm font-bold text-gray-800 uppercase tracking-wider block mb-0.5">Remarks</span>
-                      <span className="text-sm font-medium text-gray-600 block">
-                        {c.remarks || c.notes || '—'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                {stageBadge(c) && (
-                  <span className="px-3 py-1 rounded-full bg-crm-primaryDark text-white text-xs font-semibold capitalize">
+            <div key={c.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 relative">
+              {stageBadge(c) && (
+                <div className="absolute top-4 right-4">
+                  <span 
+                    className={`px-3 py-1 rounded-full text-white text-xs font-semibold capitalize ${
+                      stageBadge(c).toLowerCase() === 'appointment' ? '' : 'bg-crm-primaryDark'
+                    }`}
+                    style={stageBadge(c).toLowerCase() === 'appointment' ? { backgroundColor: '#db7070' } : {}}
+                  >
                     {stageBadge(c)}
                   </span>
+                </div>
+              )}
+              <div className="flex flex-col gap-2 mt-2">
+                <div className="text-sm">
+                  <span className="font-bold text-gray-900">Company Name: </span>
+                  <span className="font-medium text-gray-700">{c.company_name || '—'}</span>
+                </div>
+                <div className="text-sm">
+                  <span className="font-bold text-gray-900">Contact Person: </span>
+                  <span className="font-medium text-gray-700">{c.contact_person || c.display_contact_person || c.customer_name || '—'}</span>
+                </div>
+                <div className="text-sm">
+                  <span className="font-bold text-gray-900">Status: </span>
+                  <span className="font-medium text-gray-700 capitalize">{c.followup_status || c.status || '—'}</span>
+                </div>
+                <div className="text-sm">
+                  <span className="font-bold text-gray-900">Previous Followup Date: </span>
+                  <span className="font-medium text-gray-700">{c.created_at ? formatDateTime(c.created_at) : (c.visit_date ? formatDateTime(c.visit_date) : '—')}</span>
+                </div>
+                <div className="text-sm">
+                  <span className="font-bold text-gray-900">Followup Date: </span>
+                  <span className="font-medium text-gray-700">{formatDateTime(c.follow_up_date) || '—'}</span>
+                </div>
+                <div className="text-sm">
+                  <span className="font-bold text-gray-900">Remarks: </span>
+                  <span className="font-medium text-gray-700">{c.remarks || c.notes || c.customer_remarks || '—'}</span>
+                </div>
+                {['admin', 'super_admin', 'superadmin'].includes(userRole.toLowerCase()) && (
+                  <div className="text-sm">
+                    <span className="font-bold text-gray-900">Employee Name: </span>
+                    <span className="font-medium text-gray-700">{c.registered_by_name || '—'}</span>
+                  </div>
                 )}
               </div>
 
-              <div className="mt-5 pt-4 border-t border-gray-100 flex items-center justify-between gap-3">
+              <div className="mt-6 flex items-center justify-between gap-3">
                 <button
                   type="button"
                   onClick={() => openHistory(c)}
-                  className="text-sm font-semibold text-crm-primary hover:text-crm-primaryDark inline-flex items-center gap-2"
+                  className="text-sm font-bold text-crm-primary hover:text-crm-primaryDark inline-flex items-center gap-2 bg-crm-primary/10 px-4 py-2 rounded-lg"
                 >
                   <i className="ph-bold ph-clock-counter-clockwise" />
                   View History
@@ -617,7 +662,7 @@ const CustomerFollowup = ({ currentUser }) => {
                 <button
                   type="button"
                   onClick={() => setFormModal({ card: c })}
-                  className="px-6 py-2.5 rounded-xl bg-crm-primary hover:bg-crm-primaryDark text-white text-sm font-semibold shadow"
+                  className="px-6 py-2 rounded bg-crm-primary hover:bg-crm-primaryDark text-white text-sm font-semibold shadow"
                 >
                   Follow Up
                 </button>
@@ -964,12 +1009,12 @@ const FollowupFormModal = ({ card, currentUser, onClose, onSaved }) => {
                           { value: '', displayName: 'Select Contact Person', listName: 'Select Contact Person' },
                           ...(card.customer_name || card.phone_1
                             ? [
-                                {
-                                  value: 'main',
-                                  displayName: card.customer_name || '—',
-                                  listName: `${card.customer_name || '—'}${card.phone_1 ? ` (${card.phone_1})` : ''}`,
-                                },
-                              ]
+                              {
+                                value: 'main',
+                                displayName: card.customer_name || '—',
+                                listName: `${card.customer_name || '—'}${card.phone_1 ? ` (${card.phone_1})` : ''}`,
+                              },
+                            ]
                             : []),
                           ...contacts.map((c) => ({
                             value: String(c.id),

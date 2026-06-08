@@ -200,12 +200,14 @@ const FollowupReport = ({ currentUser }) => {
   // Calculate Statistics dynamically based on filteredData
   const stats = {
     total: filteredData.length,
-    inProgress: filteredData.filter(f => ['inprogress', 'pending'].includes(String(f.status).toLowerCase())).length,
-    notInterested: filteredData.filter(f => String(f.status).toLowerCase() === 'not interested').length,
-    notPicking: filteredData.filter(f => String(f.status).toLowerCase() === 'not picking').length,
-    confirmed: filteredData.filter(f => ['confirmed', 'completed'].includes(String(f.status).toLowerCase())).length,
-    proposal: filteredData.filter(f => String(f.followup_reason).toLowerCase() === 'proposal').length,
-    leadFollowup: filteredData.filter(f => ['lead', 'first followup', 'followup'].includes(String(f.followup_reason).toLowerCase())).length,
+    followupLeadQuotation: filteredData.filter(f => {
+      const reason = String(f.followup_reason || 'first followup').toLowerCase().trim();
+      return reason !== 'project onboard' && reason !== 'dropped' && reason !== 'droped' && reason !== 'proposal' && reason !== 'appointment';
+    }).length,
+    proposal: filteredData.filter(f => String(f.followup_reason).toLowerCase().trim() === 'proposal').length,
+    projectOnboard: filteredData.filter(f => String(f.followup_reason).toLowerCase().trim() === 'project onboard').length,
+    dropped: filteredData.filter(f => ['dropped', 'droped'].includes(String(f.followup_reason).toLowerCase().trim())).length,
+    appointment: filteredData.filter(f => String(f.followup_reason).toLowerCase().trim() === 'appointment').length,
   };
 
   // Pagination State
@@ -311,32 +313,26 @@ const FollowupReport = ({ currentUser }) => {
           Total Followup Taken : <span className="text-red-600 text-2xl ml-1">{stats.total}</span>
         </h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-12 text-sm font-semibold text-gray-600">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-4 gap-x-12 text-sm font-semibold text-gray-600">
           <div className="flex justify-between items-center pb-2 border-b border-gray-100">
-            <span>In Progress</span>
-            <span className="text-orange-500 font-bold">{stats.inProgress}</span>
+            <span>Followup / Lead / Quotation</span>
+            <span className="text-purple-600 font-bold">{stats.followupLeadQuotation}</span>
           </div>
           <div className="flex justify-between items-center pb-2 border-b border-gray-100">
             <span>Proposal</span>
             <span className="text-blue-500 font-bold">{stats.proposal}</span>
           </div>
-          
           <div className="flex justify-between items-center pb-2 border-b border-gray-100">
-            <span>Not Interested</span>
-            <span className="text-red-500 font-bold">{stats.notInterested}</span>
+            <span>Project Onboard</span>
+            <span className="text-emerald-600 font-bold">{stats.projectOnboard}</span>
           </div>
           <div className="flex justify-between items-center pb-2 border-b border-gray-100">
-            <span>Lead / Followup</span>
-            <span className="text-purple-600 font-bold">{stats.leadFollowup}</span>
-          </div>
-
-          <div className="flex justify-between items-center pb-2 border-b border-gray-100">
-            <span>Not Picking</span>
-            <span className="text-amber-600 font-bold">{stats.notPicking}</span>
+            <span>Dropped</span>
+            <span className="text-red-500 font-bold">{stats.dropped}</span>
           </div>
           <div className="flex justify-between items-center pb-2 border-b border-gray-100">
-            <span>Confirmed</span>
-            <span className="text-emerald-600 font-bold">{stats.confirmed}</span>
+            <span>Appointment</span>
+            <span className="text-amber-600 font-bold">{stats.appointment}</span>
           </div>
         </div>
       </div>

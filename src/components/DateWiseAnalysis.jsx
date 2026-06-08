@@ -149,13 +149,15 @@ const DateWiseAnalysis = ({ currentUser }) => {
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex flex-col gap-3">
         <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
           <div className="flex flex-col md:flex-row md:items-center gap-3">
-            <div className="flex items-center gap-3">
-              <label className="text-sm font-semibold text-gray-700">Date</label>
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                <i className="ph-fill ph-calendar-blank text-gray-400 group-hover:text-crm-primary transition-colors"></i>
+              </div>
               <input
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="px-4 py-2 rounded-lg border border-gray-200 crm-input w-40"
+                className="w-full pl-10 pr-4 py-2 text-sm font-medium rounded-full bg-white border border-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-crm-primary/50 focus:border-crm-primary/50 shadow-sm transition-all cursor-pointer hover:bg-gray-50"
               />
             </div>
 
@@ -168,7 +170,7 @@ const DateWiseAnalysis = ({ currentUser }) => {
                   <select
                     value={filterExpoSource}
                     onChange={(e) => setFilterExpoSource(e.target.value)}
-                    className="w-full pl-10 pr-10 py-2 text-sm font-medium rounded-full bg-gray-50 border border-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-crm-primary/50 focus:bg-white focus:border-crm-primary/50 shadow-sm transition-all cursor-pointer appearance-none"
+                    className="w-full pl-10 pr-10 py-2 text-sm font-medium rounded-full bg-white border border-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-crm-primary/50 focus:border-crm-primary/50 shadow-sm transition-all cursor-pointer appearance-none hover:bg-gray-50"
                   >
                     <option value="all">All Expos & Sources</option>
                     {expos.map(e => <option key={`expo-${e.id}`} value={`expo::${e.id}`}>{e.expo_name}</option>)}
@@ -187,7 +189,7 @@ const DateWiseAnalysis = ({ currentUser }) => {
                     <select
                       value={filterEmployee}
                       onChange={(e) => setFilterEmployee(e.target.value)}
-                      className="w-full pl-10 pr-10 py-2 text-sm font-medium rounded-full bg-gray-50 border border-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-crm-primary/50 focus:bg-white focus:border-crm-primary/50 shadow-sm transition-all cursor-pointer appearance-none"
+                      className="w-full pl-10 pr-10 py-2 text-sm font-medium rounded-full bg-white border border-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-crm-primary/50 focus:border-crm-primary/50 shadow-sm transition-all cursor-pointer appearance-none hover:bg-gray-50"
                     >
                       <option value="all">All Employees</option>
                       {employees.map(emp => (
@@ -203,32 +205,42 @@ const DateWiseAnalysis = ({ currentUser }) => {
               document.getElementById('top-nav-filters')
             ) : (
               <>
-                <div className="flex items-center gap-3">
-                  <label className="text-sm font-semibold text-gray-700">Expo/Source</label>
+                <div className="relative w-48 group">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                    <i className="ph-fill ph-funnel text-gray-400 group-hover:text-crm-primary transition-colors"></i>
+                  </div>
                   <select
                     value={filterExpoSource}
                     onChange={(e) => setFilterExpoSource(e.target.value)}
-                    className="px-4 py-2 rounded-lg border border-gray-200 crm-input w-48"
+                    className="w-full pl-10 pr-10 py-2 text-sm font-medium rounded-full bg-white border border-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-crm-primary/50 focus:border-crm-primary/50 shadow-sm transition-all cursor-pointer appearance-none hover:bg-gray-50"
                   >
                     <option value="all">All Expos & Sources</option>
                     {expos.map(e => <option key={`expo-${e.id}`} value={`expo::${e.id}`}>{e.expo_name}</option>)}
                     {sources.map(s => <option key={`source-${s.id || s.name}`} value={`source::${s.name}`}>{s.name}</option>)}
                   </select>
+                  <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                    <i className="ph-bold ph-caret-down text-gray-400 text-xs"></i>
+                  </div>
                 </div>
 
                 {['admin', 'super_admin', 'superadmin'].includes(userRole.toLowerCase()) && (
-                  <div className="flex items-center gap-3">
-                    <label className="text-sm font-semibold text-gray-700">Employee</label>
+                  <div className="relative w-48 group">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                      <i className="ph-fill ph-users text-gray-400 group-hover:text-crm-primary transition-colors"></i>
+                    </div>
                     <select
                       value={filterEmployee}
                       onChange={(e) => setFilterEmployee(e.target.value)}
-                      className="px-4 py-2 rounded-lg border border-gray-200 crm-input w-48"
+                      className="w-full pl-10 pr-10 py-2 text-sm font-medium rounded-full bg-white border border-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-crm-primary/50 focus:border-crm-primary/50 shadow-sm transition-all cursor-pointer appearance-none hover:bg-gray-50"
                     >
                       <option value="all">All Employees</option>
                       {employees.map(emp => (
                         <option key={emp.id} value={emp.id}>{emp.name || emp.username}</option>
                       ))}
                     </select>
+                    <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                      <i className="ph-bold ph-caret-down text-gray-400 text-xs"></i>
+                    </div>
                   </div>
                 )}
               </>
@@ -320,54 +332,57 @@ const DateWiseAnalysis = ({ currentUser }) => {
             }
 
             return (
-              <div key={c.id} className={`bg-white rounded-2xl border shadow-sm p-6 ${borderColor}`}>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 space-y-4">
-                    <div>
-                      <span className="text-sm font-bold text-gray-800 uppercase tracking-wider block mb-0.5">Company Name</span>
-                      <span className="text-sm font-medium text-gray-600 block leading-tight">
-                        {c.company_name || '—'}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-3 mt-4 border-t border-gray-100 pt-4">
-                      <div>
-                        <span className="text-sm font-bold text-gray-800 uppercase tracking-wider block mb-0.5">Contact Person</span>
-                        <span className="text-sm font-medium text-gray-600 block">
-                          {c.contact_person || c.display_contact_person || c.customer_name || '—'}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-sm font-bold text-gray-800 uppercase tracking-wider block mb-0.5">Status</span>
-                        <span className="text-sm font-medium text-gray-600 block capitalize">
-                          {c.followup_status || c.status || '—'}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-sm font-bold text-gray-800 uppercase tracking-wider block mb-0.5">Next Follow-up</span>
-                        <span className="text-sm font-medium text-gray-600 block">
-                          {formatDateTime(c.follow_up_date)}
-                        </span>
-                      </div>
-                      <div className="col-span-2">
-                        <span className="text-sm font-bold text-gray-800 uppercase tracking-wider block mb-0.5">Remarks</span>
-                        <span className="text-sm font-medium text-gray-600 block">
-                          {c.remarks || c.notes || '—'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  {stageBadge(c) && (
-                    <span className="px-3 py-1 rounded-full bg-crm-primaryDark text-white text-xs font-semibold capitalize flex-shrink-0">
+              <div key={c.id} className={`bg-white rounded-2xl border shadow-sm p-6 relative ${borderColor}`}>
+                {stageBadge(c) && (
+                  <div className="absolute top-4 right-4">
+                    <span 
+                      className={`px-3 py-1 rounded-full text-white text-xs font-semibold capitalize flex-shrink-0 ${
+                        stageBadge(c).toLowerCase() === 'appointment' ? '' : 'bg-crm-primaryDark'
+                      }`}
+                      style={stageBadge(c).toLowerCase() === 'appointment' ? { backgroundColor: '#db7070' } : {}}
+                    >
                       {stageBadge(c)}
                     </span>
+                  </div>
+                )}
+                <div className="flex flex-col gap-2 mt-2">
+                  <div className="text-sm">
+                    <span className="font-bold text-gray-900">Company Name: </span>
+                    <span className="font-medium text-gray-700">{c.company_name || '—'}</span>
+                  </div>
+                  <div className="text-sm">
+                    <span className="font-bold text-gray-900">Contact Person: </span>
+                    <span className="font-medium text-gray-700">{c.contact_person || c.display_contact_person || c.customer_name || '—'}</span>
+                  </div>
+                  <div className="text-sm">
+                    <span className="font-bold text-gray-900">Status: </span>
+                    <span className="font-medium text-gray-700 capitalize">{c.followup_status || c.status || '—'}</span>
+                  </div>
+                  <div className="text-sm">
+                    <span className="font-bold text-gray-900">Previous Followup Date: </span>
+                    <span className="font-medium text-gray-700">{c.created_at ? formatDateTime(c.created_at) : (c.visit_date ? formatDateTime(c.visit_date) : '—')}</span>
+                  </div>
+                  <div className="text-sm">
+                    <span className="font-bold text-gray-900">Followup Date: </span>
+                    <span className="font-medium text-gray-700">{formatDateTime(c.follow_up_date) || '—'}</span>
+                  </div>
+                  <div className="text-sm">
+                    <span className="font-bold text-gray-900">Remarks: </span>
+                    <span className="font-medium text-gray-700">{c.remarks || c.notes || c.customer_remarks || '—'}</span>
+                  </div>
+                  {['admin', 'super_admin', 'superadmin'].includes(userRole.toLowerCase()) && (
+                    <div className="text-sm">
+                      <span className="font-bold text-gray-900">Employee Name: </span>
+                      <span className="font-medium text-gray-700">{c.registered_by_name || '—'}</span>
+                    </div>
                   )}
                 </div>
 
-                <div className="mt-5 pt-4 border-t border-gray-100 flex items-center justify-between gap-3">
+                <div className="mt-6 flex items-center justify-between gap-3">
                   <button
                     type="button"
                     onClick={() => openHistory(c)}
-                    className="text-sm font-semibold text-crm-primary hover:text-crm-primaryDark inline-flex items-center gap-2"
+                    className="text-sm font-bold text-crm-primary hover:text-crm-primaryDark inline-flex items-center gap-2 bg-crm-primary/10 px-4 py-2 rounded-lg"
                   >
                     <i className="ph-bold ph-clock-counter-clockwise" />
                     View History

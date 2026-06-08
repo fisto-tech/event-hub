@@ -85,9 +85,12 @@ const App = () => {
       return '/date-wise-analyse/today';
     }
 
+    if (tabId === 'allocation') {
+      return '/allocation';
+    }
+
     if (tabId === 'master-data') {
       if (subTabId === 'employee-registration') return '/master-data/employee-registration';
-      if (subTabId === 'master-allocation') return '/master-data/allocation';
 
       // Expo (master-expo + internal tabs)
       const expoTab =
@@ -136,12 +139,13 @@ const App = () => {
       return { tab: 'date-wise-analyse', subTab: 'today-analyse' };
     }
 
+    if (root === 'allocation') {
+      return { tab: 'allocation', subTab: '' };
+    }
+
     if (root === 'master-data') {
       if (parts[1] === 'employee-registration') {
         return { tab: 'master-data', subTab: 'employee-registration' };
-      }
-      if (parts[1] === 'allocation') {
-        return { tab: 'master-data', subTab: 'master-allocation' };
       }
       if (parts[1] === 'expo') {
         const expoLeaf = parts[2] || 'sources';
@@ -229,6 +233,18 @@ const App = () => {
       return <Dashboard currentUser={currentUser} />;
     }
 
+    if (activeTab === 'allocation') {
+      return (
+        <MasterPageShell
+          title="Lead Allocation"
+          subtitle="Transfer leads between employees"
+          icon="ph-arrows-left-right"
+        >
+          <MasterDataAllocation currentUser={currentUser} />
+        </MasterPageShell>
+      );
+    }
+
     if (activeTab === 'master-data') {
       if (
         activeSubTab === 'master-expo' ||
@@ -251,16 +267,6 @@ const App = () => {
               <div className="flex-1 p-6 overflow-y-auto">
                 <EmployeeRegistration currentUser={currentUser} />
               </div>
-            </MasterPageShell>
-          );
-        case 'master-allocation':
-          return (
-            <MasterPageShell
-              title="Lead Allocation"
-              subtitle="Transfer leads between employees"
-              icon="ph-arrows-left-right"
-            >
-              <MasterDataAllocation currentUser={currentUser} />
             </MasterPageShell>
           );
         default:

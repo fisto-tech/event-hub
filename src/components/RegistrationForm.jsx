@@ -7,6 +7,7 @@ import {
 } from '../utils/registrationDataCache';
 import { showToast } from '../utils/toast';
 import CityAutocomplete from './common/CityAutocomplete';
+import SourceAutocomplete from './common/SourceAutocomplete';
 import PhoneInput from './common/PhoneInput';
 import { validateStoredPhone, normalizePhoneForSubmit, parseStoredPhone, digitsOnly } from '../utils/phoneUtils';
 import ReactCrop from 'react-image-crop';
@@ -977,20 +978,13 @@ END:VCARD`;
 
           {showSourceField && (
             <FormField label="Source Name">
-              <input
-                type="text"
+              <SourceAutocomplete
                 name="referenceSource"
                 value={formData.referenceSource}
-                onChange={handleChange}
+                onChange={(val) => setFormData((prev) => ({ ...prev, referenceSource: val }))}
                 placeholder="Enter source name..."
-                className="w-full px-3 py-1.5 crm-input"
-                list="source-suggestions"
+                options={sourceOptions}
               />
-              <datalist id="source-suggestions">
-                {sourceOptions.map((item, idx) => (
-                  <option key={`src-opt-${idx}`} value={item.name} />
-                ))}
-              </datalist>
             </FormField>
           )}
 
