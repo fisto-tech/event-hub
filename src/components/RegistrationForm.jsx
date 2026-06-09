@@ -9,6 +9,7 @@ import { showToast } from '../utils/toast';
 import CityAutocomplete from './common/CityAutocomplete';
 import SourceAutocomplete from './common/SourceAutocomplete';
 import PhoneInput from './common/PhoneInput';
+import ExcelImportModal from './ExcelImportModal';
 import { validateStoredPhone, normalizePhoneForSubmit, parseStoredPhone, digitsOnly } from '../utils/phoneUtils';
 import ReactCrop from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
@@ -129,6 +130,7 @@ const RegistrationForm = ({ currentUser }) => {
 
   // Modal Scanner States (from raw HTML design context)
   const [showScanModal, setShowScanModal] = useState(false);
+  const [showExcelModal, setShowExcelModal] = useState(false);
   const [modalTab, setModalTab] = useState('upload'); // 'upload' or 'camera'
   const [selectedFile, setSelectedFile] = useState(null);
   const [capturedBlob, setCapturedBlob] = useState(null);
@@ -947,14 +949,24 @@ END:VCARD`;
         <div>
           <h2 className="text-xl font-medium text-gray-800">Create Customer Record</h2>
         </div>
-        <button
-          type="button"
-          onClick={() => { setShowScanModal(true); resetScanModalState(); }}
-          className="scan-card-btn flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold transition-all"
-        >
-          <i className="ph-bold ph-scan text-base"></i>
-          Scan Card
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setShowExcelModal(true)}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-all text-gray-700"
+          >
+            <i className="ph-fill ph-file-xls text-base text-green-600"></i>
+            Import from Excel
+          </button>
+          <button
+            type="button"
+            onClick={() => { setShowScanModal(true); resetScanModalState(); }}
+            className="scan-card-btn flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold transition-all"
+          >
+            <i className="ph-bold ph-scan text-base"></i>
+            Scan Card
+          </button>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-0 w-full max-w-5xl mx-auto">
@@ -1629,6 +1641,18 @@ END:VCARD`;
 
           </div>
         </div>
+      )}
+
+      {showExcelModal && (
+        <ExcelImportModal
+          expos={expos}
+          sourceOptions={sourceOptions}
+          currentUser={currentUser}
+          onClose={() => setShowExcelModal(false)}
+          onSuccess={() => {
+            resetMainForm();
+          }}
+        />
       )}
 
       {/* Hidden canvas for capturing photo frames */}

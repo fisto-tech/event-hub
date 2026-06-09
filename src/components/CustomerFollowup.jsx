@@ -279,37 +279,52 @@ const FollowupHistoryModal = ({ customer, history, onClose }) => (
 
               {/* ── Card Body ── */}
               <div className="bg-white px-6 py-5 flex flex-col gap-3">
-                <div className="text-sm">
-                  <span className="font-bold text-gray-900">Contact Person: </span>
-                  <span className="font-medium text-gray-700">{h.contact_person || '—'}</span>
-                </div>
-                <div className="text-sm">
-                  <span className="font-bold text-gray-900">Contact No: </span>
-                  <span className="font-medium text-gray-700">{h.contact_phone || '—'}</span>
-                </div>
-                <div className="text-sm">
-                  <span className="font-bold text-gray-900">Next Follow-up: </span>
-                  <span className="font-medium text-gray-700">{formatDateTime(h.follow_up_date) || '—'}</span>
-                </div>
-                <div className="text-sm">
-                  <span className="font-bold text-gray-900">Reason: </span>
-                  <span className="font-medium text-gray-700 capitalize">{h.followup_reason || '—'}</span>
-                </div>
+                {h.followup_status === 'Allocated' ? (
+                  <>
+                    <div className="text-sm">
+                      <span className="font-bold text-gray-900">From Employee: </span>
+                      <span className="font-medium text-gray-700">{h.notes?.match(/from\s+(.*?)\s+to/i)?.[1] || 'Unknown'}</span>
+                    </div>
+                    <div className="text-sm">
+                      <span className="font-bold text-gray-900">To Employee: </span>
+                      <span className="font-medium text-gray-700">{h.notes?.match(/to\s+(.*)$/i)?.[1] || 'Unknown'}</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-sm">
+                      <span className="font-bold text-gray-900">Contact Person: </span>
+                      <span className="font-medium text-gray-700">{h.contact_person || '—'}</span>
+                    </div>
+                    <div className="text-sm">
+                      <span className="font-bold text-gray-900">Contact No: </span>
+                      <span className="font-medium text-gray-700">{h.contact_phone || '—'}</span>
+                    </div>
+                    <div className="text-sm">
+                      <span className="font-bold text-gray-900">Next Follow-up: </span>
+                      <span className="font-medium text-gray-700">{formatDateTime(h.follow_up_date) || '—'}</span>
+                    </div>
+                    <div className="text-sm">
+                      <span className="font-bold text-gray-900">Reason: </span>
+                      <span className="font-medium text-gray-700 capitalize">{h.followup_reason || '—'}</span>
+                    </div>
 
-                {h.remarks && (
-                  <div className="text-sm mt-1">
-                    <span className="font-bold text-gray-900">Remarks: </span>
-                    <span className="font-medium text-gray-700">{h.remarks}</span>
-                  </div>
-                )}
+                    {h.remarks && (
+                      <div className="text-sm mt-1">
+                        <span className="font-bold text-gray-900">Remarks: </span>
+                        <span className="font-medium text-gray-700">{h.remarks}</span>
+                      </div>
+                    )}
 
-                {/* Voice note (if any) */}
-                {h.voice_note_base64 && (
-                  <div className="mt-3 border-t border-gray-100 pt-3">
-                    <audio controls controlsList="nodownload noplaybackrate" className="w-full h-10">
-                      <source src={h.voice_note_base64} />
-                    </audio>
-                  </div>
+                    {/* Voice note (if any) */}
+                    {h.voice_note_base64 && (
+                      <div className="mt-3 border-t border-gray-100 pt-3">
+                        <audio controls controlsList="nodownload noplaybackrate" className="w-full h-10">
+                          <source src={h.voice_note_base64} />
+                        </audio>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -631,16 +646,16 @@ const CustomerFollowup = ({ currentUser }) => {
                   <span className="font-medium text-gray-700 capitalize">{c.followup_status || c.status || '—'}</span>
                 </div>
                 <div className="text-sm">
-                  <span className="font-bold text-gray-900">Previous Followup Date: </span>
+                  <span className="font-bold text-gray-900">Last Followup Date: </span>
                   <span className="font-medium text-gray-700">{c.created_at ? formatDateTime(c.created_at) : (c.visit_date ? formatDateTime(c.visit_date) : '—')}</span>
                 </div>
                 <div className="text-sm">
-                  <span className="font-bold text-gray-900">Followup Date: </span>
+                  <span className="font-bold text-gray-900">Next Followup Date: </span>
                   <span className="font-medium text-gray-700">{formatDateTime(c.follow_up_date) || '—'}</span>
                 </div>
                 <div className="text-sm">
                   <span className="font-bold text-gray-900">Remarks: </span>
-                  <span className="font-medium text-gray-700">{c.remarks || c.notes || c.customer_remarks || '—'}</span>
+                  <span className="font-medium text-gray-700">{c.last_completed_remarks || c.remarks || c.notes || c.customer_remarks || '—'}</span>
                 </div>
                 {['admin', 'super_admin', 'superadmin'].includes(userRole.toLowerCase()) && (
                   <div className="text-sm">

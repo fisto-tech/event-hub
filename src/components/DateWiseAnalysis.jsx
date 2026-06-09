@@ -138,6 +138,12 @@ const DateWiseAnalysis = ({ currentUser }) => {
   };
 
   const stageBadge = (card) => {
+    const reason = String(card.followup_reason || '').trim().toLowerCase();
+    const st = String(card.followup_status || card.status || '').trim().toLowerCase();
+    
+    if (reason === 'appointment' || st === 'appointment') return 'Appointment';
+    if (reason === 'dropped' || st === 'dropped' || reason === 'droped') return 'Dropped';
+
     const label = String(card.followup_reason || '').trim();
     if (!label) return '';
     return label;
@@ -359,16 +365,16 @@ const DateWiseAnalysis = ({ currentUser }) => {
                     <span className="font-medium text-gray-700 capitalize">{c.followup_status || c.status || '—'}</span>
                   </div>
                   <div className="text-sm">
-                    <span className="font-bold text-gray-900">Previous Followup Date: </span>
+                    <span className="font-bold text-gray-900">Last Followup Date: </span>
                     <span className="font-medium text-gray-700">{c.created_at ? formatDateTime(c.created_at) : (c.visit_date ? formatDateTime(c.visit_date) : '—')}</span>
                   </div>
                   <div className="text-sm">
-                    <span className="font-bold text-gray-900">Followup Date: </span>
+                    <span className="font-bold text-gray-900">Next Followup Date: </span>
                     <span className="font-medium text-gray-700">{formatDateTime(c.follow_up_date) || '—'}</span>
                   </div>
                   <div className="text-sm">
                     <span className="font-bold text-gray-900">Remarks: </span>
-                    <span className="font-medium text-gray-700">{c.remarks || c.notes || c.customer_remarks || '—'}</span>
+                    <span className="font-medium text-gray-700">{c.last_completed_remarks || c.remarks || c.notes || c.customer_remarks || '—'}</span>
                   </div>
                   {['admin', 'super_admin', 'superadmin'].includes(userRole.toLowerCase()) && (
                     <div className="text-sm">
