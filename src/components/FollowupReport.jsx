@@ -242,8 +242,8 @@ const FollowupReport = ({ currentUser }) => {
       f.follow_up_date || '',
       `"${getExpoOrSource(f).replace(/"/g, '""')}"`,
       `"${(f.company_name || '').replace(/"/g, '""')}"`,
-      `"${(f.customer_name || '').replace(/"/g, '""')}"`,
-      f.phone_1 ? `="${f.phone_1}"` : '',
+      `"${(f.display_contact_person || f.customer_name || '').replace(/"/g, '""')}"`,
+      f.display_contact_phone || f.phone_1 ? `="${f.display_contact_phone || f.phone_1}"` : '',
       f.status === 'completed' ? 'Completed' : 'Pending',
       f.followup_reason || ''
     ]);
@@ -282,8 +282,8 @@ const FollowupReport = ({ currentUser }) => {
         f.follow_up_date || '',
         getExpoOrSource(f),
         String(f.company_name || ''),
-        String(f.customer_name || ''),
-        f.phone_1 || '',
+        String(f.display_contact_person || f.customer_name || ''),
+        f.display_contact_phone || f.phone_1 || '',
         f.status === 'completed' ? 'Completed' : 'Pending',
         f.followup_reason || ''
       ]);
@@ -455,7 +455,7 @@ const FollowupReport = ({ currentUser }) => {
 
       {/* 3. DATA TABLE */}
       <div>
-        <h3 className="font-bold text-sm text-gray-800 mb-2">
+        <h3 className="font-bold text-sm text-gray-800 mb-2 mt-2">
           Total records : <span className="text-red-500">{filteredData.length}</span>
         </h3>
         
@@ -520,8 +520,8 @@ const FollowupReport = ({ currentUser }) => {
                       <td className="px-4 py-3 text-sm text-gray-700">{formatDateTime(row.follow_up_date)}</td>
                       <td className="px-4 py-3 text-sm text-gray-700">{row.registered_by_name || '—'}</td>
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">{row.company_name || '—'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 font-medium">{row.customer_name || '—'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{row.phone_1 || '—'}</td>
+                      <td className="px-4 py-3 text-sm text-gray-900 font-medium">{row.display_contact_person || row.customer_name || '—'}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700">{row.display_contact_phone || row.phone_1 || '—'}</td>
                       <td className="px-4 py-3 text-sm text-center">
                         <button
                           type="button"

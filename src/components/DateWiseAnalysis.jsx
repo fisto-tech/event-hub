@@ -13,7 +13,11 @@ const TABS = [
   { label: 'Missed', value: 'missed' },
 ];
 
-const todayISO = () => new Date().toISOString().slice(0, 10);
+const todayISO = () => {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 10);
+};
 
 const DateWiseAnalysis = ({ currentUser }) => {
   const [selectedDate, setSelectedDate] = useState(todayISO());
@@ -56,20 +60,17 @@ const DateWiseAnalysis = ({ currentUser }) => {
     setLoading(true);
     try {
       const tabs = ['inprogress', 'upcoming', 'completed', 'missed'];
-      const promises = tabs.map(tab => 
-        fetchApi(`follow_ups.php?action=date_wise_analysis&date=${selectedDate || 'all'}&tab=${tab}&role=${encodeURIComponent(userRole)}&user_id=${currentUser.id}`)
-      );
-      const results = await Promise.all(promises);
-      
       const newData = { inprogress: [], upcoming: [], completed: [], missed: [] };
       
-      results.forEach((res, index) => {
+      for (const tab of tabs) {
+        const res = await fetchApi(`follow_ups.php?action=date_wise_analysis&date=${selectedDate || 'all'}&tab=${tab}&role=${encodeURIComponent(userRole)}&user_id=${currentUser.id}`);
         let data = res.status === 'success' ? (res.data || []) : [];
         if (userRole !== 'super_admin' && userRole !== 'admin') {
           data = data.filter(c => String(c.created_by || c.registered_by) === String(currentUser.id));
         }
-        newData[tabs[index]] = data;
-      });
+        newData[tab] = data;
+      }
+      
       
       setTabData(newData);
     } catch (e) {
@@ -108,15 +109,18 @@ const DateWiseAnalysis = ({ currentUser }) => {
 
   // Make sure appropriate tab is selected based on date
   useEffect(() => {
+    if (!selectedDate) {
+      return;
+    }
     const today = todayISO();
     if (selectedDate > today) {
-      if (activeTab !== 'upcoming') setActiveTab('upcoming');
+      setActiveTab('upcoming');
     } else if (selectedDate < today) {
-      if (activeTab === 'inprogress' || activeTab === 'upcoming') setActiveTab('completed');
+      setActiveTab('missed'); // Past dates should default to Missed or Completed, let's use missed
     } else {
-      if (activeTab === 'upcoming') setActiveTab('inprogress');
+      setActiveTab('inprogress');
     }
-  }, [selectedDate, activeTab]);
+  }, [selectedDate]);
 
   const openHistory = async (card) => {
     try {

@@ -9,7 +9,7 @@ const LOCAL_API = 'http://127.0.0.1:8080'
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   // Default: local PHP (npm run dev:api). Set VITE_DEV_API_REMOTE=true to hit production.
-  const useRemote = env.VITE_DEV_API_REMOTE === 'true'
+  const useRemote = true // Changed to always use remote
   const apiTarget = useRemote ? REMOTE_API : LOCAL_API
 
   return {

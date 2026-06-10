@@ -338,7 +338,7 @@ const FollowupHistoryModal = ({ customer, history, onClose }) => (
 const CustomerFollowup = ({ currentUser }) => {
   const userRole = currentUser?.role || 'employee';
 
-  const [selectedDate, setSelectedDate] = useState(todayISO());
+  const [selectedDate, setSelectedDate] = useState('');
   const [activeReason, setActiveReason] = useState('first followup');
   const [loading, setLoading] = useState(true);
   const [tabData, setTabData] = useState({ 'first followup': [], 'appointment': [], 'project onboard': [], 'dropped': [] });
