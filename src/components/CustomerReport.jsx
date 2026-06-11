@@ -9,6 +9,8 @@ import { showToast } from '../utils/toast';
 import ReportModalShell, { EditField, reportInputClass } from './common/ReportModalShell';
 import CityAutocomplete from './common/CityAutocomplete';
 import { formatDateTime } from '../utils/dateUtils';
+import ExcelImportModal from './ExcelImportModal';
+import { loadRegistrationBootstrap } from '../utils/registrationDataCache';
 
 const ENQUIRY_OPTIONS = ['IDC', 'Website', 'Web page', 'Application', 'General Inquiry', 'Unknown'];
 
@@ -21,6 +23,8 @@ const CustomerReport = ({ currentUser, filterSource }) => {
   const [filterEmployee, setFilterEmployee] = useState('all');
   const [expos, setExpos] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [sourceOptions, setSourceOptions] = useState([]);
+  const [showExcelModal, setShowExcelModal] = useState(false);
 
   const activeEmployeeIds = React.useMemo(() => {
     const ids = new Set();
@@ -72,12 +76,16 @@ const CustomerReport = ({ currentUser, filterSource }) => {
     try {
       const uid = currentUser?.id ? `&user_id=${currentUser.id}` : '';
       const role = `&role=${encodeURIComponent(userRole)}`;
-      const [custRes, expoRes, usersRes] = await Promise.all([
+      const [custRes, expoRes, usersRes, bootstrap] = await Promise.all([
         fetchApi(`customers.php?_${Date.now()}${uid}${role}`),
         fetchApi('expos.php'),
         showAllCustomers ? fetchApi('users.php') : Promise.resolve({ data: [] }),
+        loadRegistrationBootstrap()
       ]);
       let serverCustomers = custRes.status === 'success' ? (custRes.data || []) : [];
+      if (bootstrap && bootstrap.lookups && bootstrap.lookups.source) {
+        setSourceOptions(bootstrap.lookups.source);
+      }
       
       try {
         const { getPendingRecords } = await import('../utils/offlineDB');
@@ -368,7 +376,7 @@ const CustomerReport = ({ currentUser, filterSource }) => {
       doc.text('Customer Leads Report', 14, 18);
       doc.setFontSize(10);
       doc.text(
-        `Generated on: ${new Date().toLocaleDateString()} | Filter: ${activeTab.toUpperCase()}`,
+        `Generated on: ${formatDateTime(new Date().toISOString().split('T')[0])} | Filter: ${activeTab.toUpperCase()}`,
         14,
         24
       );
@@ -418,7 +426,7 @@ const CustomerReport = ({ currentUser, filterSource }) => {
   // Word export intentionally removed as requested.
 
   return (
-    <div className="space-y-6 pb-12 font-sans animate-in fade-in duration-300">
+    <div className=" pb-12 font-sans animate-in fade-in duration-300">
 
       {viewingCustomer && (
         <ReportModalShell
@@ -940,17 +948,17 @@ const CustomerReport = ({ currentUser, filterSource }) => {
                 </EditField>
               </div>
             </div>
-            <div className="shrink-0 px-6 py-4 bg-gray-50/90 border-t border-gray-100 flex justify-end gap-3">
+            <div className="shrink-0 px-6 py-4 bg-gray-50/90 border-t border-gray-100 flex flex-col sm:flex-row justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setEditingCustomer(null)}
-                className="px-5 py-2.5 border border-gray-200 rounded-lg hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors text-sm font-medium text-gray-700"
+                className="w-full sm:w-auto px-5 py-2.5 border border-gray-200 rounded-lg hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors text-sm font-medium text-gray-700"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-5 py-2.5 bg-crm-primary text-white rounded-lg hover:bg-crm-primaryDark text-sm font-medium"
+                className="w-full sm:w-auto px-5 py-2.5 bg-crm-primary text-white rounded-lg hover:bg-crm-primaryDark text-sm font-medium"
               >
                 Save Changes
               </button>
@@ -961,7 +969,7 @@ const CustomerReport = ({ currentUser, filterSource }) => {
 
 
       {/* Advanced Filters: Search, Expo, Date Range */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+      <div className="bg-white mb-5 rounded-xl border border-gray-200 shadow-sm p-5">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-end">
           
           <div className={`md:col-span-1 ${showAllCustomers ? 'lg:col-span-1' : 'lg:col-span-2'}`}>
@@ -1041,7 +1049,7 @@ const CustomerReport = ({ currentUser, filterSource }) => {
           
         </div>
         
-        <div className="mt-4 border-t border-gray-100 pt-4 flex justify-between items-center gap-3">
+        <div className="mt-4 border-t border-gray-100 pt-4 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
           <button
             type="button"
             onClick={() => {
@@ -1053,43 +1061,53 @@ const CustomerReport = ({ currentUser, filterSource }) => {
               setEndDate('');
               setSortBy('date-desc');
             }}
-            className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold shadow-sm transition-colors"
+            className="w-full md:w-auto px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold shadow-sm transition-colors"
           >
             Reset All
           </button>
 
-          {/* Premium Interactive Dropdown Export Button */}
-          {['admin', 'super_admin', 'superadmin'].includes(userRole?.toLowerCase()) && (
-            <div className="relative" ref={dropdownRef}>
-              <button
-                onClick={() => setIsExportDropdownOpen(!isExportDropdownOpen)}
-                className="w-full lg:w-auto bg-gradient-to-r from-crm-primary to-crm-primaryDark hover:from-crm-primaryDark hover:to-crm-primary text-white px-6 py-2 rounded-lg text-sm font-semibold shadow-sm flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-95"
-              >
-                <i className="ph-bold ph-download-simple text-lg"></i>
-                Export Reports
-                <i className={`ph-bold ph-caret-down transition-transform duration-300 ${isExportDropdownOpen ? 'rotate-180' : ''}`}></i>
-              </button>
+          {/* Import / Export Buttons */}
+          <div className="w-full md:w-auto flex flex-col md:flex-row gap-3">
+            <button
+              onClick={() => setShowExcelModal(true)}
+              className="w-full md:w-auto bg-white border border-emerald-500 hover:bg-emerald-50 text-emerald-600 px-6 py-2 rounded-lg text-sm font-semibold shadow-sm flex items-center justify-center gap-2 transition-colors duration-300"
+            >
+              <i className="ph-bold ph-upload-simple text-lg"></i>
+              Import from Excel
+            </button>
 
-              {isExportDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-100 rounded-xl shadow-2xl z-30 overflow-hidden divide-y divide-gray-100 animate-in fade-in slide-in-from-top-2 duration-200">
-                  <button
-                    onClick={handleExportExcel}
-                    className="w-full px-5 py-3.5 text-left text-sm font-semibold text-gray-700 hover:bg-emerald-50/30 flex items-center gap-3 transition-colors group"
-                  >
-                    <i className="ph-fill ph-file-xls text-emerald-600 text-xl group-hover:scale-110 transition-transform"></i>
-                    Export to Excel (.csv)
-                  </button>
-                  <button
-                    onClick={handleExportPDF}
-                    className="w-full px-5 py-3.5 text-left text-sm font-semibold text-gray-700 hover:bg-red-50/30 flex items-center gap-3 transition-colors group"
-                  >
-                    <i className="ph-fill ph-file-pdf text-red-600 text-xl group-hover:scale-110 transition-transform"></i>
-                    Export to PDF (.pdf)
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+            {['admin', 'super_admin', 'superadmin'].includes(userRole?.toLowerCase()) && (
+              <div className="relative w-full md:w-auto" ref={dropdownRef}>
+                <button
+                  onClick={() => setIsExportDropdownOpen(!isExportDropdownOpen)}
+                  className="w-full md:w-auto bg-gradient-to-r from-crm-primary to-crm-primaryDark hover:from-crm-primaryDark hover:to-crm-primary text-white px-6 py-2 rounded-lg text-sm font-semibold shadow-sm flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-95"
+                >
+                  <i className="ph-bold ph-download-simple text-lg"></i>
+                  Export Reports
+                  <i className={`ph-bold ph-caret-down transition-transform duration-300 ${isExportDropdownOpen ? 'rotate-180' : ''}`}></i>
+                </button>
+
+                {isExportDropdownOpen && (
+                  <div className="absolute right-0 left-0 md:left-auto mt-2 w-full md:w-56 bg-white border border-gray-100 rounded-xl shadow-2xl z-30 overflow-hidden divide-y divide-gray-100 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <button
+                      onClick={handleExportExcel}
+                      className="w-full px-5 py-3.5 text-left text-sm font-semibold text-gray-700 hover:bg-emerald-50/30 flex items-center gap-3 transition-colors group"
+                    >
+                      <i className="ph-fill ph-file-xls text-emerald-600 text-xl group-hover:scale-110 transition-transform"></i>
+                      Export to Excel (.csv)
+                    </button>
+                    <button
+                      onClick={handleExportPDF}
+                      className="w-full px-5 py-3.5 text-left text-sm font-semibold text-gray-700 hover:bg-red-50/30 flex items-center gap-3 transition-colors group"
+                    >
+                      <i className="ph-fill ph-file-pdf text-red-600 text-xl group-hover:scale-110 transition-transform"></i>
+                      Export to PDF (.pdf)
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -1102,7 +1120,7 @@ const CustomerReport = ({ currentUser, filterSource }) => {
       {loading ? (
         <LoadingSpinner label="Loading customer report..." />
       ) : (
-        <div className="report-table-wrap">
+        <div className="report-table-wrap mt-5">
           <div className="report-table-scroll rounded-xl border border-gray-300 shadow-sm overflow-hidden">
             <table className="w-full text-left border-collapse whitespace-nowrap text-crm-textDark min-w-[800px]">
               <thead>
@@ -1270,6 +1288,19 @@ const CustomerReport = ({ currentUser, filterSource }) => {
             </div>
           )}
         </div>
+      )}
+
+      {showExcelModal && (
+        <ExcelImportModal
+          expos={expos}
+          sourceOptions={sourceOptions}
+          currentUser={currentUser}
+          existingCustomers={customers}
+          onClose={() => setShowExcelModal(false)}
+          onSuccess={() => {
+            loadData();
+          }}
+        />
       )}
     </div>
   );

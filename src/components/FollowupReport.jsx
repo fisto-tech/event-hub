@@ -296,7 +296,7 @@ const FollowupReport = ({ currentUser }) => {
       doc.text('Followup Report', 14, 18);
       doc.setFontSize(10);
       doc.text(
-        `Generated on: ${new Date().toLocaleDateString()}`,
+        `Generated on: ${formatDateTime(new Date().toISOString().split('T')[0])}`,
         14,
         24
       );
@@ -435,20 +435,20 @@ const FollowupReport = ({ currentUser }) => {
           
         </div>
         
-        <div className="mt-4 border-t border-gray-100 pt-4 flex justify-between items-center gap-3">
+        <div className="mt-4 border-t border-gray-100 pt-4 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
           <button
             type="button"
             onClick={resetAll}
-            className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold shadow-sm transition-colors"
+            className="w-full md:w-auto px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold shadow-sm transition-colors"
           >
             Reset All
           </button>
 
           {['admin', 'super_admin', 'superadmin'].includes(userRole?.toLowerCase()) && (
-            <div className="relative" ref={dropdownRef}>
+            <div className="relative w-full md:w-auto" ref={dropdownRef}>
               <button
                 onClick={() => setIsExportDropdownOpen(!isExportDropdownOpen)}
-                className="w-full lg:w-auto bg-gradient-to-r from-crm-primary to-crm-primaryDark hover:from-crm-primaryDark hover:to-crm-primary text-white px-6 py-2 rounded-lg text-sm font-semibold shadow-sm flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-95"
+                className="w-full md:w-auto bg-gradient-to-r from-crm-primary to-crm-primaryDark hover:from-crm-primaryDark hover:to-crm-primary text-white px-6 py-2 rounded-lg text-sm font-semibold shadow-sm flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-95"
               >
                 <i className="ph-bold ph-download-simple text-lg"></i>
                 Export Reports
@@ -456,7 +456,7 @@ const FollowupReport = ({ currentUser }) => {
               </button>
 
               {isExportDropdownOpen && (
-                <div className="absolute right-0 bottom-full mb-2 w-56 bg-white border border-gray-100 rounded-xl shadow-2xl z-30 overflow-hidden divide-y divide-gray-100 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                <div className="absolute right-0 left-0 md:left-auto bottom-full mb-2 w-full md:w-56 bg-white border border-gray-100 rounded-xl shadow-2xl z-30 overflow-hidden divide-y divide-gray-100 animate-in fade-in slide-in-from-bottom-2 duration-200">
                   <button
                     onClick={handleExportCSV}
                     className="w-full px-5 py-3.5 text-left text-sm font-semibold text-gray-700 hover:bg-emerald-50/30 flex items-center gap-3 transition-colors group"

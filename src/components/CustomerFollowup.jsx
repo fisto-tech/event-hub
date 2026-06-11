@@ -620,47 +620,50 @@ const CustomerFollowup = ({ currentUser }) => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-5">
           {cards.map((c) => (
             <div key={c.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 relative">
-              {stageBadge(c) && (
-                <div className="absolute top-4 right-4">
+              <div className="absolute top-4 right-4 flex items-center gap-2">
+                <span className="bg-crm-primary/10 text-crm-primary px-2.5 py-1 rounded-md text-xs font-bold whitespace-nowrap border border-crm-primary/20">
+                  {c.expo_name || c.manual_expo_name || c.reference_source || '—'}
+                </span>
+                {stageBadge(c) && (
                   <span 
-                    className={`px-3 py-1 rounded-full text-white text-xs font-semibold capitalize ${
+                    className={`px-3 py-1 rounded-full text-white text-xs font-semibold capitalize flex-shrink-0 ${
                       stageBadge(c).toLowerCase() === 'appointment' ? '' : 'bg-crm-primaryDark'
                     }`}
                     style={stageBadge(c).toLowerCase() === 'appointment' ? { backgroundColor: '#db7070' } : {}}
                   >
                     {stageBadge(c)}
                   </span>
-                </div>
-              )}
+                )}
+              </div>
               <div className="flex flex-col gap-2 mt-2">
-                <div className="text-sm">
-                  <span className="font-bold text-gray-900">Company Name: </span>
-                  <span className="font-medium text-gray-700">{c.company_name || '—'}</span>
+                <div className="text-sm flex flex-col md:flex-row md:items-center gap-1 md:gap-2">
+                  <span className="text-gray-500 font-normal w-32">Company Name:</span>
+                  <span className="font-bold text-gray-900">{c.company_name || '—'}</span>
                 </div>
-                <div className="text-sm">
-                  <span className="font-bold text-gray-900">Contact Person: </span>
-                  <span className="font-medium text-gray-700">{c.contact_person || c.display_contact_person || c.customer_name || '—'}</span>
+                <div className="text-sm flex flex-col md:flex-row md:items-center gap-1 md:gap-2">
+                  <span className="text-gray-500 font-normal w-32">Contact Person:</span>
+                  <span className="font-bold text-gray-900">{c.contact_person || c.display_contact_person || c.customer_name || '—'}</span>
                 </div>
-                <div className="text-sm">
-                  <span className="font-bold text-gray-900">Status: </span>
-                  <span className="font-medium text-gray-700 capitalize">{c.followup_status || c.status || '—'}</span>
+                <div className="text-sm flex flex-col md:flex-row md:items-center gap-1 md:gap-2">
+                  <span className="text-gray-500 font-normal w-32">Status:</span>
+                  <span className="font-bold text-gray-900 capitalize">{c.followup_status || c.status || '—'}</span>
                 </div>
-                <div className="text-sm">
-                  <span className="font-bold text-gray-900">Last Followup Date: </span>
-                  <span className="font-medium text-gray-700">{c.created_at ? formatDateTime(c.created_at) : (c.visit_date ? formatDateTime(c.visit_date) : '—')}</span>
+                <div className="text-sm flex flex-col md:flex-row md:items-center gap-1 md:gap-2">
+                  <span className="text-gray-500 font-normal w-32">Last Followup:</span>
+                  <span className="font-bold text-gray-900">{c.created_at ? formatDateTime(c.created_at) : (c.visit_date ? formatDateTime(c.visit_date) : '—')}</span>
                 </div>
-                <div className="text-sm">
-                  <span className="font-bold text-gray-900">Next Followup Date: </span>
-                  <span className="font-medium text-gray-700">{formatDateTime(c.follow_up_date) || '—'}</span>
+                <div className="text-sm flex flex-col md:flex-row md:items-center gap-1 md:gap-2">
+                  <span className="text-gray-500 font-normal w-32">Next Followup:</span>
+                  <span className="font-bold text-gray-900">{formatDateTime(c.follow_up_date) || '—'}</span>
                 </div>
-                <div className="text-sm">
-                  <span className="font-bold text-gray-900">Remarks: </span>
-                  <span className="font-medium text-gray-700">{c.last_completed_remarks || c.remarks || c.notes || c.customer_remarks || '—'}</span>
+                <div className="text-sm flex flex-col md:flex-row md:items-start gap-1 md:gap-2 mt-1">
+                  <span className="text-gray-500 font-normal w-32 shrink-0">Remarks:</span>
+                  <span className="font-bold text-gray-900 whitespace-pre-line">{c.last_completed_remarks || c.remarks || c.notes || c.customer_remarks || '—'}</span>
                 </div>
                 {['admin', 'super_admin', 'superadmin'].includes(userRole.toLowerCase()) && (
-                  <div className="text-sm">
-                    <span className="font-bold text-gray-900">Employee Name: </span>
-                    <span className="font-medium text-gray-700">{c.registered_by_name || '—'}</span>
+                  <div className="text-sm flex flex-col md:flex-row md:items-center gap-1 md:gap-2">
+                    <span className="text-gray-500 font-normal w-32">Employee Name:</span>
+                    <span className="font-bold text-gray-900">{c.registered_by_name || '—'}</span>
                   </div>
                 )}
               </div>
@@ -1244,18 +1247,18 @@ const FollowupFormModal = ({ card, currentUser, onClose, onSaved }) => {
           </div>
         </div>
 
-        <div className="shrink-0 px-6 py-4 bg-gray-50/90 border-t border-gray-100 flex justify-end gap-3">
+        <div className="shrink-0 px-6 py-4 bg-gray-50/90 border-t border-gray-100 flex flex-col sm:flex-row justify-end gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="px-6 py-2.5 border border-gray-200 rounded-lg text-sm font-semibold text-gray-700 hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors"
+            className="w-full sm:w-auto px-6 py-2.5 border border-gray-200 rounded-lg text-sm font-semibold text-gray-700 hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={submitting}
-            className="px-7 py-2.5 bg-crm-primary text-white rounded-lg hover:bg-crm-primaryDark text-sm font-semibold disabled:opacity-60"
+            className="w-full sm:w-auto px-7 py-2.5 bg-crm-primary text-white rounded-lg hover:bg-crm-primaryDark text-sm font-semibold disabled:opacity-60"
           >
             {submitting ? 'Submitting...' : 'Submit'}
           </button>

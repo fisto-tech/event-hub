@@ -1,10 +1,10 @@
 import React from 'react';
-import MasterLookupView from './MasterLookupView';
+import MasterScopedLookupView from './MasterScopedLookupView';
 
 const MasterSourcesView = () => {
   return (
     <div className="w-full">
-      <MasterLookupView lookupType="source" />
+      <MasterScopedLookupView lookupType="source" />
     </div>
   );
 };

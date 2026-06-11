@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { formatDateTime } from '../utils/dateUtils';
 import { fetchApi } from '../utils/api';
 import LoadingSpinner from './common/LoadingSpinner';
 import { showToast } from '../utils/toast';
@@ -327,7 +328,7 @@ const EmployeeRegistration = ({ currentUser }) => {
       doc.text('Employee Report', 14, 18);
       doc.setFontSize(10);
       doc.text(
-        `Generated on: ${new Date().toLocaleDateString()}`,
+        `Generated on: ${formatDateTime(new Date().toISOString().split('T')[0])}`,
         14,
         24
       );

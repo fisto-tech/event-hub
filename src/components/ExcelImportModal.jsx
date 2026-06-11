@@ -36,7 +36,7 @@ const mapHeaders = (rawHeaders) => {
   return mapping;
 };
 
-const ExcelImportModal = ({ expos, sourceOptions, currentUser, onClose, onSuccess }) => {
+const ExcelImportModal = ({ expos, sourceOptions, currentUser, onClose, onSuccess, existingCustomers = [] }) => {
   const [expoId, setExpoId] = useState('');
   const [referenceSource, setReferenceSource] = useState('');
   const [file, setFile] = useState(null);
@@ -133,6 +133,38 @@ const ExcelImportModal = ({ expos, sourceOptions, currentUser, onClose, onSucces
 
           return customer;
         });
+
+        // Validation against existing records
+        const existingPhones = new Set();
+        const existingCompanies = new Set();
+        
+        if (existingCustomers && existingCustomers.length > 0) {
+          existingCustomers.forEach(c => {
+            if (c.phone_1) existingPhones.add(String(c.phone_1).replace(/\D/g, ''));
+            if (c.phone_2) existingPhones.add(String(c.phone_2).replace(/\D/g, ''));
+            if (c.company_name) existingCompanies.add(String(c.company_name).trim().toLowerCase());
+          });
+        }
+
+        const duplicateErrors = [];
+        customersToImport.forEach((c, index) => {
+          const rowNum = index + 2; // +1 for 0-index, +1 for header
+          const p1 = c.phone1 ? String(c.phone1).replace(/\D/g, '') : '';
+          const p2 = c.phone2 ? String(c.phone2).replace(/\D/g, '') : '';
+          const comp = c.companyName ? String(c.companyName).trim().toLowerCase() : '';
+
+          if ((p1 && existingPhones.has(p1)) || (p2 && existingPhones.has(p2))) {
+            duplicateErrors.push(`Row ${rowNum}: Phone number already exists in database (${c.phone1 || c.phone2}).`);
+          } else if (comp && existingCompanies.has(comp)) {
+            duplicateErrors.push(`Row ${rowNum}: Company name already exists in database ("${c.companyName}").`);
+          }
+        });
+
+        if (duplicateErrors.length > 0) {
+          setErrors(['Duplicate data found in database. Import blocked for:', ...duplicateErrors]);
+          setIsProcessing(false);
+          return;
+        }
 
         // Send to backend
         const response = await fetchApi('import_customers.php', {

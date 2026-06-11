@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { fetchApi } from '../../utils/api';
+import { formatDateTime } from '../../utils/dateUtils';
 
 const CONFIG = {
   source: {
@@ -93,7 +94,7 @@ const MasterLookupView = ({ lookupType }) => {
   const formatDate = (d) => {
     if (!d) return 'From registrations';
     try {
-      return `Added ${new Date(d).toLocaleDateString()}`;
+      return `Added ${formatDateTime(d)}`;
     } catch {
       return '';
     }

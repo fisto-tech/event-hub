@@ -343,8 +343,11 @@ const DateWiseAnalysis = ({ currentUser }) => {
 
             return (
               <div key={c.id} className={`bg-white rounded-2xl border shadow-sm p-6 relative ${borderColor}`}>
-                {stageBadge(c) && (
-                  <div className="absolute top-4 right-4">
+                <div className="absolute top-4 right-4 flex items-center gap-2">
+                  <span className="bg-crm-primary/10 text-crm-primary px-2.5 py-1 rounded-md text-xs font-bold whitespace-nowrap border border-crm-primary/20">
+                    {c.expo_name || c.manual_expo_name || c.reference_source || '—'}
+                  </span>
+                  {stageBadge(c) && (
                     <span 
                       className={`px-3 py-1 rounded-full text-white text-xs font-semibold capitalize flex-shrink-0 ${
                         stageBadge(c).toLowerCase() === 'appointment' ? '' : 'bg-crm-primaryDark'
@@ -353,37 +356,37 @@ const DateWiseAnalysis = ({ currentUser }) => {
                     >
                       {stageBadge(c)}
                     </span>
-                  </div>
-                )}
+                  )}
+                </div>
                 <div className="flex flex-col gap-2 mt-2">
-                  <div className="text-sm">
-                    <span className="font-bold text-gray-900">Company Name: </span>
-                    <span className="font-medium text-gray-700">{c.company_name || '—'}</span>
+                  <div className="text-sm flex flex-col md:flex-row md:items-center gap-1 md:gap-2">
+                    <span className="text-gray-500 font-normal w-32 shrink-0">Company Name:</span>
+                    <span className="font-bold text-gray-900">{c.company_name || '—'}</span>
                   </div>
-                  <div className="text-sm">
-                    <span className="font-bold text-gray-900">Contact Person: </span>
-                    <span className="font-medium text-gray-700">{c.contact_person || c.display_contact_person || c.customer_name || '—'}</span>
+                  <div className="text-sm flex flex-col md:flex-row md:items-center gap-1 md:gap-2">
+                    <span className="text-gray-500 font-normal w-32 shrink-0">Contact Person:</span>
+                    <span className="font-bold text-gray-900">{c.contact_person || c.display_contact_person || c.customer_name || '—'}</span>
                   </div>
-                  <div className="text-sm">
-                    <span className="font-bold text-gray-900">Status: </span>
-                    <span className="font-medium text-gray-700 capitalize">{c.followup_status || c.status || '—'}</span>
+                  <div className="text-sm flex flex-col md:flex-row md:items-center gap-1 md:gap-2">
+                    <span className="text-gray-500 font-normal w-32 shrink-0">Status:</span>
+                    <span className="font-bold text-gray-900 capitalize">{c.followup_status || c.status || '—'}</span>
                   </div>
-                  <div className="text-sm">
-                    <span className="font-bold text-gray-900">Last Followup Date: </span>
-                    <span className="font-medium text-gray-700">{c.created_at ? formatDateTime(c.created_at) : (c.visit_date ? formatDateTime(c.visit_date) : '—')}</span>
+                  <div className="text-sm flex flex-col md:flex-row md:items-center gap-1 md:gap-2">
+                    <span className="text-gray-500 font-normal w-32 shrink-0">Last Followup:</span>
+                    <span className="font-bold text-gray-900">{c.created_at ? formatDateTime(c.created_at) : (c.visit_date ? formatDateTime(c.visit_date) : '—')}</span>
                   </div>
-                  <div className="text-sm">
-                    <span className="font-bold text-gray-900">Next Followup Date: </span>
-                    <span className="font-medium text-gray-700">{formatDateTime(c.follow_up_date) || '—'}</span>
+                  <div className="text-sm flex flex-col md:flex-row md:items-center gap-1 md:gap-2">
+                    <span className="text-gray-500 font-normal w-32 shrink-0">Next Followup:</span>
+                    <span className="font-bold text-gray-900">{formatDateTime(c.follow_up_date) || '—'}</span>
                   </div>
-                  <div className="text-sm">
-                    <span className="font-bold text-gray-900">Remarks: </span>
-                    <span className="font-medium text-gray-700">{c.last_completed_remarks || c.remarks || c.notes || c.customer_remarks || '—'}</span>
+                  <div className="text-sm flex flex-col md:flex-row md:items-start gap-1 md:gap-2 mt-1">
+                    <span className="text-gray-500 font-normal w-32 shrink-0">Remarks:</span>
+                    <span className="font-bold text-gray-900 whitespace-pre-line">{c.last_completed_remarks || c.remarks || c.notes || c.customer_remarks || '—'}</span>
                   </div>
                   {['admin', 'super_admin', 'superadmin'].includes(userRole.toLowerCase()) && (
-                    <div className="text-sm">
-                      <span className="font-bold text-gray-900">Employee Name: </span>
-                      <span className="font-medium text-gray-700">{c.registered_by_name || '—'}</span>
+                    <div className="text-sm flex flex-col md:flex-row md:items-center gap-1 md:gap-2">
+                      <span className="text-gray-500 font-normal w-32 shrink-0">Employee Name:</span>
+                      <span className="font-bold text-gray-900">{c.registered_by_name || '—'}</span>
                     </div>
                   )}
                 </div>

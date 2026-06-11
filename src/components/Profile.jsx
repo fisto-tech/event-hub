@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { fetchApi } from '../utils/api';
+import { formatDateTime } from '../utils/dateUtils';
 import CityAutocomplete from './common/CityAutocomplete';
 import PhoneInput from './common/PhoneInput';
 import { parseStoredPhone, digitsOnly, normalizePhoneForSubmit } from '../utils/phoneUtils';
@@ -205,7 +206,7 @@ const Profile = ({ user, onProfileUpdate }) => {
               { label: 'Department', value: profileData.department, icon: 'ph-buildings' },
               { label: 'Role', value: profileData.role, icon: 'ph-shield-check' },
               { label: 'Status', value: profileData.status, icon: 'ph-pulse' },
-              { label: 'Joined', value: profileData.created_at ? new Date(profileData.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '-', icon: 'ph-calendar' },
+              { label: 'Joined', value: profileData.created_at ? formatDateTime(profileData.created_at) : '-', icon: 'ph-calendar' },
             ].map((item, idx) => (
               <div key={idx} className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
                 <div className="h-10 w-10 rounded-lg bg-crm-primaryLighter text-crm-primary flex items-center justify-center shrink-0 mt-0.5">

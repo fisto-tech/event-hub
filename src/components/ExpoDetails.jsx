@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { fetchApi } from '../utils/api';
-import ExpoMultiDatePicker, { normalizeDateString } from './common/ExpoMultiDatePicker';
+import ExpoMultiDatePicker, { normalizeDateString, formatChip } from './common/ExpoMultiDatePicker';
 import LoadingSpinner from './common/LoadingSpinner';
 import { showToast } from '../utils/toast';
 import { confirmDelete } from '../utils/confirm';
@@ -141,6 +141,16 @@ const ExpoDetails = ({ embedded = false }) => {
     setIsEditing(false);
   };
 
+  const getEmployeeNames = (employeeIdsStr) => {
+    if (!employeeIdsStr) return '-';
+    const ids = String(employeeIdsStr).split(',').map(id => id.trim());
+    const names = ids.map(id => {
+      const emp = employees.find(e => String(e.id) === String(id));
+      return emp ? emp.name : `Unknown (${id})`;
+    });
+    return names.join(', ');
+  };
+
   return (
     <div className="">
       {embedded && (
@@ -153,77 +163,6 @@ const ExpoDetails = ({ embedded = false }) => {
         </div>
       )}
 
-      {viewingExpo && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setViewingExpo(null)}>
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <div className="bg-crm-primaryLighter border-b border-crm-primary/10 px-6 py-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-crm-primary flex items-center gap-2">
-                <i className="ph-fill ph-calendar-star" /> Expo Details
-              </h3>
-              <button type="button" onClick={() => setViewingExpo(null)} className="text-gray-400 hover:text-gray-600">
-                <i className="ph-bold ph-x text-lg" />
-              </button>
-            </div>
-            <div className="p-6">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-normal text-crm-primary">
-                    Expo Name
-                  </label>
-                  <input
-                    type="text"
-                    disabled
-                    value={viewingExpo.expo_name || ''}
-                    className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 bg-gray-50 text-gray-600 cursor-not-allowed"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-normal text-crm-primary mb-2">Dates</label>
-                  <div className="w-full px-4 py-2 rounded-lg outline-none crm-input bg-gray-50 text-gray-600 cursor-not-allowed min-h-[42px] flex flex-wrap gap-1.5 items-center">
-                    {viewingExpo.start_date
-                      ? viewingExpo.start_date.split(',').map((d, i) => (
-                        <span key={i} className="bg-gray-200 border border-gray-300 px-2 py-0.5 rounded text-sm text-gray-700">
-                          {d.trim()}
-                        </span>
-                      ))
-                      : <span className="text-gray-400">No dates selected</span>}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-normal text-crm-primary mb-2">Assigned Employees</label>
-                  <div className="w-full px-4 py-2 rounded-lg outline-none crm-input bg-gray-50 text-gray-600 cursor-not-allowed min-h-[42px] flex flex-wrap gap-1.5 items-center">
-                    {viewingExpo.assigned_employees
-                      ? viewingExpo.assigned_employees.split(',').map((empId, i) => {
-                          const emp = employees.find(e => String(e.id) === String(empId));
-                          return (
-                            <span key={i} className="bg-gray-200 border border-gray-300 px-2 py-0.5 rounded text-sm text-gray-700">
-                              {emp ? emp.name : `User #${empId}`}
-                            </span>
-                          );
-                        })
-                      : <span className="text-gray-400">All Employees</span>}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-normal text-crm-primary">Remarks</label>
-                  <textarea
-                    disabled
-                    value={viewingExpo.remarks || ''}
-                    rows={3}
-                    className="w-full px-4 py-2 rounded-lg outline-none crm-input mt-1 resize-y bg-gray-50 text-gray-600 cursor-not-allowed"
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="px-6 py-4 bg-gray-50 border-t flex justify-end">
-              <button type="button" onClick={() => setViewingExpo(null)} className="px-4 py-2 border rounded-lg text-sm">
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
         <h3 className="text-lg font-semibold text-crm-primary mb-4">
@@ -348,7 +287,7 @@ const ExpoDetails = ({ embedded = false }) => {
       {showSpinner ? (
         <LoadingSpinner label="Loading expos..." />
       ) : (
-        <div className="bg-white rounded-xl border border-gray-300 shadow-sm overflow-x-auto">
+        <div className="bg-white rounded-xl border border-gray-300 shadow-sm overflow-x-auto mt-6">
           <table className="w-full text-left border-collapse text-crm-textDark min-w-[600px] border border-gray-300">
             <thead>
               <tr className="bg-crm-primary border-b border-crm-primary text-white">
@@ -367,13 +306,20 @@ const ExpoDetails = ({ embedded = false }) => {
                     {expo.start_date
                       ? expo.start_date.split(',').map((d, i) => (
                         <span key={i} className="inline-block bg-white border border-gray-300 px-2 py-0.5 rounded text-xs mr-1 mb-1">
-                          {d.trim()}
+                          {formatChip(d.trim())}
                         </span>
                       ))
                       : '-'}
                   </td>
                   <td className="px-4 py-3 text-right">
-
+                    <button
+                      type="button"
+                      onClick={() => setViewingExpo(expo)}
+                      className="text-crm-primary hover:text-crm-primaryDark mr-3"
+                      title="View Details"
+                    >
+                      <i className="ph-bold ph-eye text-lg" />
+                    </button>
                     <button type="button" onClick={() => handleEdit(expo)} className="text-crm-primary hover:text-crm-primaryDark mr-3" title="Edit">
                       <i className="ph-bold ph-pencil-simple text-lg" />
                     </button>
@@ -397,6 +343,54 @@ const ExpoDetails = ({ embedded = false }) => {
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {viewingExpo && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setViewingExpo(null)}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="bg-crm-primaryLighter border-b border-crm-primary/10 px-6 py-4 flex items-center justify-between shrink-0">
+              <h3 className="text-lg font-semibold text-crm-primary flex items-center gap-2">
+                <i className="ph-fill ph-storefront" /> Expo Details
+              </h3>
+              <button type="button" onClick={() => setViewingExpo(null)} className="text-gray-500 hover:text-gray-800">
+                <i className="ph-bold ph-x text-lg" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4 overflow-y-auto">
+               <div>
+                  <label className="text-sm font-semibold text-crm-primary mb-1 block">Expo Name</label>
+                  <div className="font-medium bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">{viewingExpo.expo_name}</div>
+               </div>
+               <div>
+                  <label className="text-sm font-semibold text-crm-primary mb-1 block">Assigned Employees</label>
+                  <div className="font-medium bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
+                    {getEmployeeNames(viewingExpo.assigned_employees)}
+                  </div>
+               </div>
+               <div>
+                  <label className="text-sm font-semibold text-crm-primary mb-1 block">Dates</label>
+                  <div className="font-medium bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
+                    {viewingExpo.start_date 
+                      ? viewingExpo.start_date.split(',').map(d => formatChip(d.trim())).join(', ')
+                      : '-'}
+                  </div>
+               </div>
+               <div>
+                  <label className="text-sm font-semibold text-crm-primary mb-1 block">Remarks</label>
+                  <div className="font-medium bg-gray-50 px-4 py-3 rounded-lg border border-gray-200 text-sm whitespace-pre-wrap">
+                    {viewingExpo.remarks || '-'}
+                  </div>
+               </div>
+            </div>
+
+            <div className="px-6 py-4 bg-gray-50 border-t flex justify-end shrink-0">
+               <button onClick={() => setViewingExpo(null)} className="px-5 py-2 bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-lg text-sm font-medium transition-colors">
+                 Close
+               </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -5,6 +5,16 @@ import { confirmDelete } from '../../utils/confirm';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 const CONFIG = {
+  source: {
+    title: 'Sources',
+    subtitle: 'Define lead source categories',
+    icon: 'ph-link',
+    addLabel: 'Add Source',
+    placeholder: 'Enter source name...',
+    savedMsg: 'Source saved successfully!',
+    updatedMsg: 'Source updated successfully!',
+    deletedMsg: 'Source deleted successfully!',
+  },
   enquiry_type: {
     title: 'Enquiry Types',
     subtitle: 'Define enquiry categories',
@@ -64,6 +74,18 @@ const MasterScopedLookupView = ({ lookupType }) => {
     }
     setLoading(false);
   };
+
+  const [viewingGroup, setViewingGroup] = useState(null);
+
+  const groupedItems = React.useMemo(() => {
+    const groups = {};
+    items.forEach(item => {
+      const key = item.expo_name || 'General (All Expos)';
+      if (!groups[key]) groups[key] = { expoName: key, items: [] };
+      groups[key].items.push(item);
+    });
+    return Object.values(groups).sort((a, b) => a.expoName.localeCompare(b.expoName));
+  }, [items]);
 
   useEffect(() => {
     loadExpos();
@@ -164,8 +186,8 @@ const MasterScopedLookupView = ({ lookupType }) => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start gap-4">
+    <div className="">
+      <div className="flex items-start gap-4 mb-6">
         <div className="h-12 w-12 rounded-xl bg-crm-primaryLighter flex items-center justify-center shrink-0">
           <i className={`ph-fill ${cfg.icon} text-2xl text-crm-primary`} />
         </div>
@@ -179,7 +201,8 @@ const MasterScopedLookupView = ({ lookupType }) => {
         <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-4 py-3">{error}</div>
       )}
 
-      <div className="bg-white rounded-xl border border-crm-primary/15 shadow-sm overflow-hidden">
+      {lookupType !== 'source' && (
+        <div className="bg-white rounded-xl border border-crm-primary/15 shadow-sm overflow-hidden">
         <div className="bg-crm-primaryLighter/80 px-5 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-crm-primary/10">
           <span className="font-bold text-crm-primary text-base" style={{ fontFamily: "'Open Sans', sans-serif" }}>
             {editingId ? `Edit ${cfg.title.slice(0, -1)}` : cfg.addLabel}
@@ -249,60 +272,141 @@ const MasterScopedLookupView = ({ lookupType }) => {
             </div>
           </div>
         </form>
+        </div>
+      )}
 
-        <div className="max-h-[420px] overflow-y-auto">
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-300 mt-6">
+        <div className="overflow-x-auto">
           {loading ? (
             <LoadingSpinner label="Loading entries..." className="py-8" />
           ) : (
-            <ul className="divide-y divide-gray-100">
-              {items.map((item, idx) => (
-                <li
-                  key={item.id ? `id-${item.id}` : `n-${item.name}-${idx}`}
-                  className="flex items-center justify-between gap-4 px-5 py-3.5 hover:bg-gray-50/80"
-                >
-                  <div className="min-w-0">
-                    <p className="font-medium text-crm-textDark truncate">{item.name}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{scopeLabel(item)}</p>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    {item.id ? (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => handleEdit(item)}
-                          className="text-crm-primary hover:text-crm-primaryDark p-2"
-                          title="Edit"
-                        >
-                          <i className="ph-bold ph-pencil-simple" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(item)}
-                          className="text-red-500 hover:text-red-700 p-2"
-                          title="Delete"
-                        >
-                          <i className="ph-bold ph-trash" />
-                        </button>
-                      </>
-                    ) : (
-                      <span className="text-[10px] uppercase tracking-wide text-gray-400 px-2">From forms</span>
-                    )}
-                  </div>
-                </li>
-              ))}
-              {items.length === 0 && (
-                <li className="px-5 py-10 text-center text-gray-400 text-sm">No entries yet. Add one above.</li>
-              )}
-            </ul>
+            <table className="w-full text-left border-collapse min-w-[600px]">
+              <thead>
+                <tr className="bg-crm-primary text-white text-sm">
+                  <th className="px-4 py-3 font-medium border border-gray-300 w-16 text-center">S.No</th>
+                  <th className="px-4 py-3 font-medium border border-gray-300">Expo Name</th>
+                  <th className="px-4 py-3 font-medium border border-gray-300 text-center w-32">Total Items</th>
+                  <th className="px-4 py-3 font-medium border border-gray-300 text-center w-36">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {groupedItems.map((group, index) => (
+                  <tr
+                    key={index}
+                    className="border-b border-gray-300 hover:bg-gray-50/80 transition-colors"
+                  >
+                    <td className="px-4 py-3 text-center border border-gray-300 text-sm">{index + 1}</td>
+                    <td className="px-4 py-3 border border-gray-300 font-medium text-gray-800">
+                      {group.expoName}
+                    </td>
+                    <td className="px-4 py-3 border border-gray-300 text-center text-gray-600">
+                      <span className="bg-gray-100 px-2.5 py-0.5 rounded-full text-xs font-semibold">
+                        {new Set(group.items.map(i => (i.name || '').toLowerCase().trim())).size}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 border border-gray-300 text-center">
+                      <button
+                        type="button"
+                        onClick={() => setViewingGroup(group)}
+                        className="text-crm-primary hover:opacity-80 px-3 py-1.5 rounded-lg border border-crm-primary hover:bg-crm-primary hover:text-white transition-colors text-sm font-medium flex items-center justify-center gap-1.5 mx-auto"
+                        title="View Details"
+                      >
+                        <i className="ph-bold ph-eye text-lg" /> View
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {groupedItems.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-5 py-10 text-center text-gray-400 text-sm border border-gray-300">
+                      No entries yet. Add one above.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           )}
         </div>
       </div>
 
-      <div className="flex gap-3 rounded-xl bg-crm-primaryLighter/50 border border-crm-primary/15 px-4 py-3 text-sm text-crm-primary">
-        <i className="ph-fill ph-info text-lg shrink-0 mt-0.5" />
-        <p>
-          <span className="font-semibold">Note:</span> Custom values from customer registration appear automatically.
-          Only admin-added entries can be edited or deleted here.
+      {viewingGroup && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setViewingGroup(null)}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-screen" onClick={e => e.stopPropagation()}>
+            <div className="bg-crm-primaryLighter border-b border-crm-primary/10 px-6 py-4 flex items-center justify-between shrink-0">
+              <h3 className="text-lg font-semibold text-crm-primary flex items-center gap-2">
+                <i className={`ph-fill ${cfg.icon}`} /> {viewingGroup.expoName} - {cfg.title}
+              </h3>
+              <button type="button" onClick={() => setViewingGroup(null)} className="text-gray-500 hover:text-gray-800">
+                <i className="ph-bold ph-x text-lg" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto">
+              <table className="w-full text-left border-collapse border border-gray-300">
+                <thead className="bg-crm-primary sticky top-0 text-white shadow-sm">
+                  <tr>
+                    <th className="px-6 py-3 font-medium text-sm w-16 text-center border border-gray-300">S.No</th>
+                    <th className="px-6 py-3 font-medium text-sm border border-gray-300">Name</th>
+                    <th className="px-6 py-3 font-medium text-sm text-center w-36 border border-gray-300">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const seen = new Set();
+                    const uniqueItems = viewingGroup.items.filter(item => {
+                      const lowerName = (item.name || '').toLowerCase().trim();
+                      if (seen.has(lowerName)) return false;
+                      seen.add(lowerName);
+                      return true;
+                    });
+                    return uniqueItems.map((item, idx) => (
+                      <tr key={item.id ? `id-${item.id}` : `n-${item.name}-${idx}`} className="hover:bg-gray-50/80 transition-colors">
+                        <td className="px-6 py-3 text-sm text-center text-gray-600 border border-gray-300">{idx + 1}</td>
+                        <td className="px-6 py-3 text-sm font-medium text-gray-800 border border-gray-300">{item.name}</td>
+                        <td className="px-6 py-3 text-center border border-gray-300">
+                          <div className="flex items-center justify-center gap-3">
+                            {item.id ? (
+                              <>
+                                <button
+                                  onClick={() => { setViewingGroup(null); handleEdit(item); }}
+                                  className="text-crm-primary hover:opacity-80"
+                                  title="Edit"
+                                >
+                                  <i className="ph-bold ph-pencil-simple text-lg" />
+                                </button>
+                                <button
+                                  onClick={() => { setViewingGroup(null); handleDelete(item); }}
+                                  className="text-red-500 hover:text-red-700"
+                                  title="Delete"
+                                >
+                                  <i className="ph-bold ph-trash text-lg" />
+                                </button>
+                              </>
+                            ) : (
+                              <span className="text-xs text-gray-400 italic">User Data</span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ));
+                  })()}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="px-6 py-4 bg-gray-50 border-t flex justify-end shrink-0">
+              <button onClick={() => setViewingGroup(null)} className="px-5 py-2 bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-lg text-sm font-medium transition-colors">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center gap-3 rounded-xl bg-crm-primaryLighter/50 border border-crm-primary/15 px-4 py-3 text-sm text-crm-primary mt-6">
+        <i className="ph-fill ph-info text-xl shrink-0" />
+        <p className="leading-tight">
+          <span className="font-semibold">Note:</span> Custom values from customer registration appear automatically. Only admin-added entries can be edited or deleted here.
         </p>
       </div>
     </div>

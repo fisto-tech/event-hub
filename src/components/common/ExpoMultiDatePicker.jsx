@@ -5,8 +5,11 @@ const toIso = (y, m, d) =>
 
 const formatChip = (iso) => {
   try {
-    const d = new Date(`${iso}T12:00:00`);
-    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const parts = String(iso).split('-');
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return iso;
   } catch {
     return iso;
   }
