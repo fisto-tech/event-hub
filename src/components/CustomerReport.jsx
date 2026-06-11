@@ -77,7 +77,34 @@ const CustomerReport = ({ currentUser, filterSource }) => {
         fetchApi('expos.php'),
         showAllCustomers ? fetchApi('users.php') : Promise.resolve({ data: [] }),
       ]);
-      if (custRes.status === 'success') setCustomers(custRes.data || []);
+      let serverCustomers = custRes.status === 'success' ? (custRes.data || []) : [];
+      
+      try {
+        const { getPendingRecords } = await import('../utils/offlineDB');
+        const pending = await getPendingRecords();
+        const offlineCustomers = pending
+          .filter(r => r.type === 'registration')
+          .map(r => ({
+            ...r.payload,
+            id: r.localId,
+            isOffline: true,
+            syncStatus: r.syncStatus,
+            company_name: r.payload.companyName,
+            customer_name: r.payload.customerName,
+            phone_1: r.payload.phone1,
+            phone_2: r.payload.phone2,
+            enquiry_type: r.payload.enquiryType,
+            visit_date: r.payload.visitDate,
+            created_by: r.payload.createdBy,
+            expo_id: r.payload.expoId,
+            reference_source: r.payload.referenceSource,
+            city: r.payload.city,
+            status: 'pending' // UI expects 'pending' or 'completed'
+          }));
+        serverCustomers = [...offlineCustomers, ...serverCustomers];
+      } catch(err) { console.error('Failed to load offline records', err); }
+      
+      setCustomers(serverCustomers);
       if (expoRes.status === 'success') setExpos(expoRes.data || []);
       if (usersRes.status === 'success') setEmployees(usersRes.data || []);
     } catch (e) {
@@ -1145,13 +1172,22 @@ const CustomerReport = ({ currentUser, filterSource }) => {
                     <td className="px-3 py-2 text-sm text-gray-600 font-mono border-r border-gray-300">{cust.phone_1}</td>
                     <td className="px-3 py-2 text-sm text-gray-700 border-r border-gray-300">{registeredByLabel(cust)}</td>
                     <td className="px-3 py-2 text-sm border-r border-gray-300">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${cust.status === 'completed'
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200/50'
-                          : 'bg-amber-50 text-amber-700 border-amber-200/50'
-                        }`}>
-                        <i className={`ph-bold ${cust.status === 'completed' ? 'ph-check-circle' : 'ph-clock'} mr-1 text-xs`}></i>
-                        {cust.status === 'completed' ? 'Completed' : 'Pending'}
-                      </span>
+                      {cust.isOffline ? (
+                        <div className="flex flex-col gap-1">
+                          <span className="px-3 py-1 rounded-full text-xs font-semibold border bg-amber-50 text-amber-700 border-amber-200/50">
+                            <i className="ph-bold ph-wifi-slash mr-1 text-xs"></i>
+                            {cust.syncStatus === 'failed' ? 'Sync Failed' : 'Pending Sync'}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${cust.status === 'completed'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200/50'
+                            : 'bg-amber-50 text-amber-700 border-amber-200/50'
+                          }`}>
+                          <i className={`ph-bold ${cust.status === 'completed' ? 'ph-check-circle' : 'ph-clock'} mr-1 text-xs`}></i>
+                          {cust.status === 'completed' ? 'Completed' : 'Pending'}
+                        </span>
+                      )}
                     </td>
                     <td className="px-3 py-2 text-sm text-right whitespace-nowrap">
                       <div className="flex justify-end items-center gap-1">

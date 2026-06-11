@@ -57,6 +57,31 @@ const FollowupReport = ({ currentUser }) => {
       const exposData = resE.status === 'success' ? (resE.data || []) : [];
       let followupsData = resF.status === 'success' ? (resF.data || []) : [];
 
+      try {
+        const { getPendingRecords } = await import('../utils/offlineDB');
+        const pending = await getPendingRecords();
+        const offlineFollowups = pending
+          .filter(r => r.type === 'followup')
+          .map(r => {
+            const customer = customersData.find(c => String(c.id) === String(r.payload.customer_id));
+            return {
+              ...r.payload,
+              id: r.localId,
+              isOffline: true,
+              syncStatus: r.syncStatus,
+              follow_up_date: r.payload.next_follow_up_date || r.payload.follow_up_date,
+              followup_reason: r.payload.followup_reason,
+              company_name: customer ? customer.company_name : '—',
+              customer_name: customer ? customer.customer_name : '—',
+              display_contact_person: r.payload.contact_person,
+              display_contact_phone: r.payload.contact_phone,
+              phone_1: customer ? customer.phone_1 : '—',
+              status: 'pending'
+            };
+          });
+        followupsData = [...offlineFollowups, ...followupsData];
+      } catch(err) { console.error('Failed to load offline records', err); }
+
       // Enrich followups with customer's expo_id and created_by so filters work
       followupsData = followupsData.map(f => {
         const customer = customersData.find(c => String(c.id) === String(f.customer_id));
@@ -516,7 +541,19 @@ const FollowupReport = ({ currentUser }) => {
                         </td>
                       )}
                       <td className="px-4 py-3 text-sm text-gray-700">{((currentPage - 1) * itemsPerPage) + i + 1}</td>
-                      <td className="px-4 py-3 text-sm text-gray-700 capitalize">{row.followup_reason || row.status || '—'}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700 capitalize">
+                        {row.isOffline ? (
+                          <div className="flex flex-col gap-1">
+                            <span className="px-2 py-1 rounded-full text-xs font-semibold border bg-amber-50 text-amber-700 border-amber-200/50 inline-block w-max">
+                              <i className="ph-bold ph-wifi-slash mr-1"></i>
+                              {row.syncStatus === 'failed' ? 'Sync Failed' : 'Pending Sync'}
+                            </span>
+                            <span>{row.followup_reason || row.status || '—'}</span>
+                          </div>
+                        ) : (
+                          row.followup_reason || row.status || '—'
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-sm text-gray-700">{formatDateTime(row.follow_up_date)}</td>
                       <td className="px-4 py-3 text-sm text-gray-700">{row.registered_by_name || '—'}</td>
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">{row.company_name || '—'}</td>

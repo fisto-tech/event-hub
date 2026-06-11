@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { fetchApi, resolvePublicUrl } from '../utils/api';
+import { submitOfflineAware } from '../utils/offlineSync';
 import {
   loadRegistrationBootstrap,
   appendLookupToCache,
@@ -340,12 +341,9 @@ const RegistrationForm = ({ currentUser }) => {
     };
 
     try {
-      const result = await fetchApi('customers.php', {
-        method: 'POST',
-        body: JSON.stringify(submitPayload),
-      });
+      const result = await submitOfflineAware('customers.php', 'POST', submitPayload, 'registration');
       if (result.status === 'success') {
-        showToast('Customer saved successfully!');
+        showToast(result.message || 'Customer saved successfully!', result.isOffline ? 'info' : 'success');
         const expoIdNum =
           submitPayload.expoId
             ? Number(submitPayload.expoId)

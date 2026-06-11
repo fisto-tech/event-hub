@@ -874,22 +874,11 @@ const FollowupFormModal = ({ card, currentUser, onClose, onSaved }) => {
         role: userRole,
       };
 
-      // Use fetch directly: the backend sometimes returns an empty body on
-      // successful inserts (PHP output issue) so we can't rely on fetchApi
-      // which returns {} for empty responses, causing status check to fail.
-      const { API_BASE_URL } = await import('../utils/api');
-      const response = await fetch(`${API_BASE_URL}/follow_ups.php`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const text = await response.text();
-      let res = {};
-      try { res = text ? JSON.parse(text) : {}; } catch { /* ignore parse error */ }
+      const { submitOfflineAware } = await import('../utils/offlineSync');
+      const res = await submitOfflineAware('follow_ups.php', 'POST', payload, 'followup');
 
-      if (response.ok && (res.status === 'success' || !text || !res.status)) {
-        // HTTP 2xx + either explicit success OR empty body (backend inserted but didn't echo)
-        showToast('Followup saved');
+      if (res.status === 'success' || (!res.status && Object.keys(res).length === 0)) {
+        showToast(res.message || 'Followup saved', res.isOffline ? 'info' : 'success');
         onSaved?.();
       } else {
         showToast(res.message || 'Failed to save followup', 'error');

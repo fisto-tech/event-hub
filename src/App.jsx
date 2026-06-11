@@ -15,6 +15,8 @@ import MasterExpoHub from './components/master/MasterExpoHub';
 import MasterPageShell from './components/master/MasterPageShell';
 import MasterDataAllocation from './components/MasterDataAllocation';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useNetworkStatus } from './utils/useNetworkStatus';
+import { syncPendingRecords } from './utils/offlineSync';
 
 const App = () => {
   const navigate = useNavigate();
@@ -58,6 +60,14 @@ const App = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [activeSubTab, setActiveSubTab] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  
+  const isOnline = useNetworkStatus();
+
+  useEffect(() => {
+    if (isOnline) {
+      syncPendingRecords();
+    }
+  }, [isOnline]);
 
   if (!isLoggedIn || !currentUser) {
     return <Login onLogin={handleLoginSuccess} />;
@@ -296,7 +306,14 @@ const App = () => {
   };
 
   return (
-    <div className="flex h-screen h-[100dvh] bg-white font-sans text-crm-textDark overflow-hidden relative">
+    <div className="flex h-screen h-[100dvh] bg-white font-sans text-crm-textDark overflow-hidden relative flex-col">
+      {!isOnline && (
+        <div className="bg-amber-100 text-amber-800 text-sm font-medium px-4 py-2 text-center border-b border-amber-200 z-50 flex justify-center items-center gap-2 shrink-0">
+          <i className="ph-bold ph-wifi-slash"></i>
+          Offline Mode - Data will be saved locally and synced when connection is restored.
+        </div>
+      )}
+      <div className="flex flex-1 overflow-hidden relative">
       {/* Overlay — covers mobile + tablet (below lg = 1024px) */}
       {isSidebarOpen && (
         <div
@@ -360,6 +377,7 @@ const App = () => {
         </main>
       </div>
       <ToastHost />
+      </div>
     </div>
   );
 };
