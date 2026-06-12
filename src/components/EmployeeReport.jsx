@@ -76,17 +76,17 @@ const EmployeeReport = () => {
       const phone = (emp.phone || '').toLowerCase();
 
       if (searchField === 'all') {
-         if (!name.includes(q) && !empId.includes(q) && !dept.includes(q) && !email.includes(q) && !phone.includes(q)) return false;
+        if (!name.includes(q) && !empId.includes(q) && !dept.includes(q) && !email.includes(q) && !phone.includes(q)) return false;
       } else if (searchField === 'name') {
-         if (!name.includes(q)) return false;
+        if (!name.includes(q)) return false;
       } else if (searchField === 'id') {
-         if (!empId.includes(q)) return false;
+        if (!empId.includes(q)) return false;
       } else if (searchField === 'department') {
-         if (!dept.includes(q)) return false;
+        if (!dept.includes(q)) return false;
       } else if (searchField === 'email') {
-         if (!email.includes(q)) return false;
+        if (!email.includes(q)) return false;
       } else if (searchField === 'phone') {
-         if (!phone.includes(q)) return false;
+        if (!phone.includes(q)) return false;
       }
     }
 
@@ -167,7 +167,7 @@ const EmployeeReport = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `employee_report_${new Date().toISOString().slice(0,10)}.csv`);
+    link.setAttribute("download", `employee_report_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -229,31 +229,31 @@ const EmployeeReport = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold mb-1">Employee ID</label>
-                  <input type="text" value={editingEmployee.employee_id || ''} onChange={e => setEditingEmployee({...editingEmployee, employee_id: e.target.value})} className="w-full px-3 py-2 rounded-lg border outline-none focus:border-crm-primary" />
+                  <input type="text" value={editingEmployee.employee_id || ''} onChange={e => setEditingEmployee({ ...editingEmployee, employee_id: e.target.value })} className="w-full px-3 py-2 rounded-lg border outline-none focus:border-crm-primary" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold mb-1">Username *</label>
-                  <input type="text" required value={editingEmployee.username || ''} onChange={e => setEditingEmployee({...editingEmployee, username: e.target.value})} className="w-full px-3 py-2 rounded-lg border outline-none focus:border-crm-primary" />
+                  <input type="text" required value={editingEmployee.username || ''} onChange={e => setEditingEmployee({ ...editingEmployee, username: e.target.value })} className="w-full px-3 py-2 rounded-lg border outline-none focus:border-crm-primary" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold mb-1">Full Name *</label>
-                  <input type="text" required value={editingEmployee.name || ''} onChange={e => setEditingEmployee({...editingEmployee, name: e.target.value})} className="w-full px-3 py-2 rounded-lg border outline-none focus:border-crm-primary" />
+                  <input type="text" required value={editingEmployee.name || ''} onChange={e => setEditingEmployee({ ...editingEmployee, name: e.target.value })} className="w-full px-3 py-2 rounded-lg border outline-none focus:border-crm-primary" />
                 </div>
                 <div className="col-span-2">
                   <label className="block text-sm font-semibold mb-1">Email *</label>
-                  <input type="email" required value={editingEmployee.email || ''} onChange={e => setEditingEmployee({...editingEmployee, email: e.target.value})} className="w-full px-3 py-2 rounded-lg border outline-none focus:border-crm-primary" />
+                  <input type="email" required value={editingEmployee.email || ''} onChange={e => setEditingEmployee({ ...editingEmployee, email: e.target.value })} className="w-full px-3 py-2 rounded-lg border outline-none focus:border-crm-primary" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold mb-1">Phone</label>
-                  <input type="text" value={editingEmployee.phone || ''} onChange={e => setEditingEmployee({...editingEmployee, phone: e.target.value})} className="w-full px-3 py-2 rounded-lg border outline-none focus:border-crm-primary" />
+                  <input type="text" value={editingEmployee.phone || ''} onChange={e => setEditingEmployee({ ...editingEmployee, phone: e.target.value })} className="w-full px-3 py-2 rounded-lg border outline-none focus:border-crm-primary" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold mb-1">Department</label>
-                  <input type="text" value={editingEmployee.department || ''} onChange={e => setEditingEmployee({...editingEmployee, department: e.target.value})} className="w-full px-3 py-2 rounded-lg border outline-none focus:border-crm-primary" />
+                  <input type="text" value={editingEmployee.department || ''} onChange={e => setEditingEmployee({ ...editingEmployee, department: e.target.value })} className="w-full px-3 py-2 rounded-lg border outline-none focus:border-crm-primary" />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold mb-1">Role</label>
-                  <select value={editingEmployee.role || 'employee'} onChange={e => setEditingEmployee({...editingEmployee, role: e.target.value})} className="w-full px-3 py-2 rounded-lg border outline-none focus:border-crm-primary">
+                  <select value={editingEmployee.role || 'employee'} onChange={e => setEditingEmployee({ ...editingEmployee, role: e.target.value })} className="w-full px-3 py-2 rounded-lg border outline-none focus:border-crm-primary">
                     <option value="admin">Admin</option>
                     <option value="manager">Manager</option>
                     <option value="employee">Employee</option>
@@ -272,7 +272,7 @@ const EmployeeReport = () => {
       {/* Filters */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-end">
-          
+
           <div className="lg:col-span-1">
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 tracking-wider">ROLE</label>
             <select
@@ -290,7 +290,7 @@ const EmployeeReport = () => {
           <div className="lg:col-span-2">
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 tracking-wider">SEARCH</label>
             <div className="flex rounded-lg border border-gray-300 overflow-hidden focus-within:border-crm-primary">
-              <select 
+              <select
                 value={searchField}
                 onChange={(e) => setSearchField(e.target.value)}
                 className="px-3 py-2.5 bg-gray-50 text-sm outline-none border-r border-gray-300 min-w-[110px]"
@@ -330,7 +330,7 @@ const EmployeeReport = () => {
               />
             </div>
           </div>
-          
+
           {['admin', 'super_admin', 'superadmin'].includes(filterRole?.toLowerCase()) ? (
             <div className="lg:col-span-1 flex gap-2">
               <button
@@ -341,9 +341,9 @@ const EmployeeReport = () => {
               </button>
             </div>
           ) : <div className="lg:col-span-1"></div>}
-          
+
         </div>
-        
+
         <div className="mt-4 border-t border-gray-100 pt-4">
           <button
             type="button"
@@ -453,11 +453,10 @@ const EmployeeReport = () => {
                 <button
                   key={page}
                   onClick={() => setCurrentPage(page)}
-                  className={`w-8 h-8 rounded flex items-center justify-center text-sm font-medium transition-colors ${
-                    currentPage === page
+                  className={`w-8 h-8 rounded flex items-center justify-center text-sm font-medium transition-colors ${currentPage === page
                       ? 'bg-crm-primary text-white border-crm-primary'
                       : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
-                  }`}
+                    }`}
                 >
                   {page}
                 </button>

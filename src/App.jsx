@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Login from './components/Login';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
@@ -58,9 +58,27 @@ const App = () => {
   };
 
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [showNotificationPopup, setShowNotificationPopup] = useState(false);
+  const notificationRef = useRef(null);
   const [activeSubTab, setActiveSubTab] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Listen for clicks outside of the notification popup to close it
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setShowNotificationPopup(false);
+      }
+    };
+    if (showNotificationPopup) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showNotificationPopup]);
   
+
   const isOnline = useNetworkStatus();
 
   useEffect(() => {
@@ -334,27 +352,56 @@ const App = () => {
       />
 
       <div className="flex-1 flex flex-col overflow-hidden bg-white">
-        <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-4 lg:px-6 shrink-0 shadow-sm">
-          <div className="flex items-center gap-3 lg:gap-6 w-1/3">
+        <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-2 lg:px-6 shrink-0 shadow-sm gap-2 w-full">
+          <div className="flex items-center gap-2 lg:gap-6 shrink-0 max-w-[40%] md:max-w-none">
             {/* Hamburger — visible on mobile + tablet (below lg) */}
             <button
               type="button"
               onClick={() => setIsSidebarOpen(true)}
-              className="lg:hidden p-2 -ml-1 rounded-lg text-crm-primary hover:bg-crm-primaryLighter transition-colors"
+              className="lg:hidden p-1.5 -ml-1 rounded-lg text-crm-primary hover:bg-crm-primaryLighter transition-colors shrink-0"
             >
               <i className="ph-bold ph-list text-2xl" />
             </button>
-            <h2 className="text-lg lg:text-xl font-medium capitalize text-crm-primary whitespace-nowrap">
+            <h2 className="text-base lg:text-xl font-medium capitalize text-crm-primary whitespace-nowrap overflow-hidden text-ellipsis">
               {getPageTitle()}
             </h2>
           </div>
 
           {/* Center Part: Filters */}
-          <div className="flex-1 flex justify-center items-center px-4">
-            <div id="top-nav-filters" className="flex items-center justify-center gap-3 w-full max-w-2xl"></div>
+          <div className="flex-1 flex justify-start md:justify-center items-center overflow-x-auto no-scrollbar h-full px-1">
+            <div id="top-nav-filters" className="flex items-center justify-start md:justify-center gap-2 md:gap-3 w-max min-w-min max-w-2xl"></div>
           </div>
 
-          <div className="flex items-center justify-end gap-3 w-1/3">
+          <div className="flex items-center justify-end gap-3 shrink-0">
+            {/* Notification Button */}
+            <div className="relative" ref={notificationRef}>
+              <button
+                type="button"
+                onClick={() => setShowNotificationPopup(!showNotificationPopup)}
+                className="relative h-9 w-9 md:h-10 md:w-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors cursor-pointer"
+                title="Notifications"
+              >
+                <i className="ph-bold ph-bell text-lg md:text-xl"></i>
+                {/* Badge */}
+                <span className="absolute top-0 right-0 transform translate-x-1/4 -translate-y-1/4 bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white">
+                  3
+                </span>
+              </button>
+              
+              {/* Dummy Popup */}
+              {showNotificationPopup && (
+                <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-100 z-50 overflow-hidden">
+                  <div className="p-3 border-b border-gray-100 font-semibold text-gray-700 bg-gray-50">
+                    Notifications
+                  </div>
+                  <div className="p-8 text-center text-sm text-gray-400 flex flex-col items-center gap-2">
+                    <i className="ph ph-bell-slash text-3xl text-gray-300"></i>
+                    No new notifications
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="text-right hidden sm:block">
               <p className="text-sm font-normal text-crm-textDark">{userName}</p>
               <p className="text-xs text-crm-primary font-normal capitalize">
@@ -364,7 +411,7 @@ const App = () => {
             <button
               type="button"
               onClick={() => handleTabChange('profile')}
-              className="h-10 w-10 rounded-full bg-crm-primaryLighter text-crm-primary flex items-center justify-center font-semibold shadow-sm border border-crm-primary/20 hover:bg-crm-primary hover:text-white transition-all cursor-pointer"
+              className="h-9 w-9 md:h-10 md:w-10 rounded-full bg-crm-primaryLighter text-crm-primary flex items-center justify-center font-semibold shadow-sm border border-crm-primary/20 hover:bg-crm-primary hover:text-white transition-all cursor-pointer shrink-0 text-sm md:text-base"
               title="View Profile"
             >
               {userInitials}
@@ -372,7 +419,7 @@ const App = () => {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto custom-scrollbar p-4 lg:p-6 xl:p-8 bg-gray-50 tab-content">
+        <main className="flex-1 overflow-y-auto custom-scrollbar p-3 lg:p-6 xl:p-8 bg-gray-50 tab-content">
           {renderContent()}
         </main>
       </div>

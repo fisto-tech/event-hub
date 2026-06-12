@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { fetchApi } from '../utils/api';
 import LoadingSpinner from './common/LoadingSpinner';
 import { showToast } from '../utils/toast';
-import { FollowupHistoryModal } from './CustomerFollowup';
+import { FollowupHistoryModal, FollowupFormModal } from './CustomerFollowup';
 import { formatDateTime } from '../utils/dateUtils';
 
 const TABS = [
@@ -22,12 +22,13 @@ const todayISO = () => {
 const DateWiseAnalysis = ({ currentUser }) => {
   const [selectedDate, setSelectedDate] = useState(todayISO());
   const [activeTab, setActiveTab] = useState('inprogress');
-  
+
   const [tabData, setTabData] = useState({ inprogress: [], upcoming: [], completed: [], missed: [] });
   const [loading, setLoading] = useState(true);
-  
+
   const [historyModal, setHistoryModal] = useState(null); // { customer, rows }
-  
+  const [formModal, setFormModal] = useState(null);
+
   const userRole = currentUser?.role || 'employee';
 
   const [expos, setExpos] = useState([]);
@@ -61,7 +62,7 @@ const DateWiseAnalysis = ({ currentUser }) => {
     try {
       const tabs = ['inprogress', 'upcoming', 'completed', 'missed'];
       const newData = { inprogress: [], upcoming: [], completed: [], missed: [] };
-      
+
       for (const tab of tabs) {
         const res = await fetchApi(`follow_ups.php?action=date_wise_analysis&date=${selectedDate || 'all'}&tab=${tab}&role=${encodeURIComponent(userRole)}&user_id=${currentUser.id}`);
         let data = res.status === 'success' ? (res.data || []) : [];
@@ -70,8 +71,8 @@ const DateWiseAnalysis = ({ currentUser }) => {
         }
         newData[tab] = data;
       }
-      
-      
+
+
       setTabData(newData);
     } catch (e) {
       console.error(e);
@@ -144,7 +145,7 @@ const DateWiseAnalysis = ({ currentUser }) => {
   const stageBadge = (card) => {
     const reason = String(card.followup_reason || '').trim().toLowerCase();
     const st = String(card.followup_status || card.status || '').trim().toLowerCase();
-    
+
     if (reason === 'appointment' || st === 'appointment') return 'Appointment';
     if (reason === 'dropped' || st === 'dropped' || reason === 'droped') return 'Dropped';
 
@@ -158,90 +159,164 @@ const DateWiseAnalysis = ({ currentUser }) => {
       {/* Top row: Date (left) + Filters + Stage buttons (center-ish) */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex flex-col gap-3">
         <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
-          <div className="flex flex-col md:flex-row md:items-center gap-3">
-            <div className="relative group">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                <i className="ph-fill ph-calendar-blank text-gray-400 group-hover:text-crm-primary transition-colors"></i>
-              </div>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 text-sm font-medium rounded-full bg-white border border-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-crm-primary/50 focus:border-crm-primary/50 shadow-sm transition-all cursor-pointer hover:bg-gray-50"
-              />
-            </div>
-
+          <div className="flex flex-col md:flex-row md:items-center gap-3 w-full md:w-auto">
             {document.getElementById('top-nav-filters') ? createPortal(
-              <div className="flex items-center gap-3 w-full justify-center">
-                <div className="relative w-64 group">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                    <i className="ph-fill ph-funnel text-gray-400 group-hover:text-crm-primary transition-colors"></i>
+              <div className="flex items-center gap-2 md:gap-3 w-full justify-center">
+                {/* Date Picker inside Portal */}
+                <div className="relative group flex items-center">
+                  <div className="md:hidden relative flex items-center justify-center w-10 h-10 rounded-full bg-white border border-blue-500 shadow-sm hover:bg-blue-50 overflow-hidden transition-colors">
+                    <i className="ph-bold ph-calendar-blank text-blue-600 text-lg pointer-events-none z-10"></i>
+                    <input
+                      type="date"
+                      value={selectedDate}
+                      onChange={(e) => setSelectedDate(e.target.value)}
+                      onClick={(e) => e.target.showPicker && e.target.showPicker()}
+                      className="absolute inset-0 opacity-0 cursor-pointer z-20 hide-date-icon"
+                    />
                   </div>
-                  <select
-                    value={filterExpoSource}
-                    onChange={(e) => setFilterExpoSource(e.target.value)}
-                    className="w-full pl-10 pr-10 py-2 text-sm font-medium rounded-full bg-white border border-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-crm-primary/50 focus:border-crm-primary/50 shadow-sm transition-all cursor-pointer appearance-none hover:bg-gray-50"
-                  >
-                    <option value="all">All Expos & Sources</option>
-                    {expos.map(e => <option key={`expo-${e.id}`} value={`expo::${e.id}`}>{e.expo_name}</option>)}
-                    {sources.map(s => <option key={`source-${s.id || s.name}`} value={`source::${s.name}`}>{s.name}</option>)}
-                  </select>
-                  <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-                    <i className="ph-bold ph-caret-down text-gray-400 text-xs"></i>
+                  <div className="hidden md:block relative w-44 group">
+                    <input
+                      type="date"
+                      value={selectedDate}
+                      onChange={(e) => setSelectedDate(e.target.value)}
+                      onClick={(e) => e.target.showPicker && e.target.showPicker()}
+                      className="relative z-0 w-full pl-10 pr-4 py-2 text-sm font-medium rounded-full bg-white border border-blue-500 text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-600 shadow-sm transition-all cursor-pointer hover:bg-blue-50 hide-date-icon"
+                    />
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10">
+                      <i className="ph-bold ph-calendar-blank text-blue-500 group-hover:text-blue-600 transition-colors"></i>
+                    </div>
                   </div>
                 </div>
 
-                {['admin', 'super_admin', 'superadmin'].includes(userRole.toLowerCase()) && (
-                  <div className="relative w-56 group">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                      <i className="ph-fill ph-users text-gray-400 group-hover:text-crm-primary transition-colors"></i>
+                {/* Expo & Source Filter */}
+                <div className="relative group flex items-center">
+                  {/* Mobile: Icon Only */}
+                  <div className="md:hidden relative flex items-center justify-center w-10 h-10 rounded-full bg-white border border-emerald-500 shadow-sm hover:bg-emerald-50 overflow-hidden transition-colors">
+                    <i className="ph-bold ph-funnel text-emerald-600 text-lg pointer-events-none"></i>
+                    <select
+                      value={filterExpoSource}
+                      onChange={(e) => setFilterExpoSource(e.target.value)}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer appearance-none"
+                    >
+                      <option value="all">All Expos & Sources</option>
+                      {expos.map(e => <option key={`expo-${e.id}`} value={`expo::${e.id}`}>{e.expo_name}</option>)}
+                      {sources.map(s => <option key={`source-${s.id || s.name}`} value={`source::${s.name}`}>{s.name}</option>)}
+                    </select>
+                  </div>
+                  {/* Desktop: Full Dropdown */}
+                  <div className="hidden md:block relative w-64 group">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10">
+                      <i className="ph-bold ph-funnel text-emerald-500 group-hover:text-emerald-600 transition-colors"></i>
                     </div>
                     <select
-                      value={filterEmployee}
-                      onChange={(e) => setFilterEmployee(e.target.value)}
-                      className="w-full pl-10 pr-10 py-2 text-sm font-medium rounded-full bg-white border border-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-crm-primary/50 focus:border-crm-primary/50 shadow-sm transition-all cursor-pointer appearance-none hover:bg-gray-50"
+                      value={filterExpoSource}
+                      onChange={(e) => setFilterExpoSource(e.target.value)}
+                      className="w-full pl-10 pr-10 py-2 text-sm font-medium rounded-full bg-white border border-emerald-500 text-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-600 shadow-sm transition-all cursor-pointer appearance-none hover:bg-emerald-50"
                     >
-                      <option value="all">All Employees</option>
-                      {employees.map(emp => (
-                        <option key={emp.id} value={emp.id}>{emp.name || emp.username}</option>
-                      ))}
+                      <option value="all">All Expos & Sources</option>
+                      {expos.map(e => <option key={`expo-${e.id}`} value={`expo::${e.id}`}>{e.expo_name}</option>)}
+                      {sources.map(s => <option key={`source-${s.id || s.name}`} value={`source::${s.name}`}>{s.name}</option>)}
                     </select>
-                    <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-                      <i className="ph-bold ph-caret-down text-gray-400 text-xs"></i>
+                    <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none z-10">
+                      <i className="ph-bold ph-caret-down text-emerald-500 text-xs"></i>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Employee Filter */}
+                {['admin', 'super_admin', 'superadmin'].includes(userRole.toLowerCase()) && (
+                  <div className="relative group flex items-center">
+                    {/* Mobile: Icon Only */}
+                    <div className="md:hidden relative flex items-center justify-center w-10 h-10 rounded-full bg-white border border-amber-500 shadow-sm hover:bg-amber-50 overflow-hidden transition-colors">
+                      <i className="ph-bold ph-users text-amber-600 text-lg pointer-events-none"></i>
+                      <select
+                        value={filterEmployee}
+                        onChange={(e) => setFilterEmployee(e.target.value)}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer appearance-none"
+                      >
+                        <option value="all">All Employees</option>
+                        {employees.map(emp => (
+                          <option key={emp.id} value={emp.id}>{emp.name || emp.username}</option>
+                        ))}
+                      </select>
+                    </div>
+                    {/* Desktop: Full Dropdown */}
+                    <div className="hidden md:block relative w-56 group">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10">
+                        <i className="ph-bold ph-users text-amber-500 group-hover:text-amber-600 transition-colors"></i>
+                      </div>
+                      <select
+                        value={filterEmployee}
+                        onChange={(e) => setFilterEmployee(e.target.value)}
+                        className="w-full pl-10 pr-10 py-2 text-sm font-medium rounded-full bg-white border border-amber-500 text-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-600 shadow-sm transition-all cursor-pointer appearance-none hover:bg-amber-50"
+                      >
+                        <option value="all">All Employees</option>
+                        {employees.map(emp => (
+                          <option key={emp.id} value={emp.id}>{emp.name || emp.username}</option>
+                        ))}
+                      </select>
+                      <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none z-10">
+                        <i className="ph-bold ph-caret-down text-amber-500 text-xs"></i>
+                      </div>
                     </div>
                   </div>
                 )}
               </div>,
               document.getElementById('top-nav-filters')
             ) : (
-              <>
-                <div className="relative w-48 group">
+              <div className="flex items-center gap-2 md:gap-3 w-full flex-wrap">
+                <div className="relative group flex items-center">
+                  <div className="md:hidden relative flex items-center justify-center w-10 h-10 rounded-full bg-white border border-blue-500 shadow-sm hover:bg-blue-50 overflow-hidden transition-colors">
+                    <input
+                      type="date"
+                      value={selectedDate}
+                      onChange={(e) => setSelectedDate(e.target.value)}
+                      onClick={(e) => e.target.showPicker && e.target.showPicker()}
+                      className="absolute inset-0 opacity-0 cursor-pointer z-20 hide-date-icon"
+                    />
+                    <i className="ph-bold ph-calendar-blank text-blue-600 text-lg pointer-events-none z-10"></i>
+                  </div>
+                  <div className="hidden md:block relative w-44 group">
+                    <input
+                      type="date"
+                      value={selectedDate}
+                      onChange={(e) => setSelectedDate(e.target.value)}
+                      onClick={(e) => e.target.showPicker && e.target.showPicker()}
+                      className="relative z-0 w-full pl-10 pr-4 py-2 text-sm font-medium rounded-full bg-white border border-blue-500 text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-600 shadow-sm transition-all cursor-pointer hover:bg-blue-50 hide-date-icon"
+                    />
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10">
+                      <i className="ph-bold ph-calendar-blank text-blue-500 group-hover:text-blue-600 transition-colors"></i>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="relative w-40 md:w-48 group flex-1 md:flex-none">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                    <i className="ph-fill ph-funnel text-gray-400 group-hover:text-crm-primary transition-colors"></i>
+                    <i className="ph-bold ph-funnel text-emerald-500 group-hover:text-emerald-600 transition-colors"></i>
                   </div>
                   <select
                     value={filterExpoSource}
                     onChange={(e) => setFilterExpoSource(e.target.value)}
-                    className="w-full pl-10 pr-10 py-2 text-sm font-medium rounded-full bg-white border border-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-crm-primary/50 focus:border-crm-primary/50 shadow-sm transition-all cursor-pointer appearance-none hover:bg-gray-50"
+                    className="w-full pl-10 pr-10 py-2 text-sm font-medium rounded-full bg-white border border-emerald-500 text-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-600 shadow-sm transition-all cursor-pointer appearance-none hover:bg-emerald-50"
                   >
                     <option value="all">All Expos & Sources</option>
                     {expos.map(e => <option key={`expo-${e.id}`} value={`expo::${e.id}`}>{e.expo_name}</option>)}
                     {sources.map(s => <option key={`source-${s.id || s.name}`} value={`source::${s.name}`}>{s.name}</option>)}
                   </select>
                   <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-                    <i className="ph-bold ph-caret-down text-gray-400 text-xs"></i>
+                    <i className="ph-bold ph-caret-down text-emerald-500 text-xs"></i>
                   </div>
                 </div>
 
                 {['admin', 'super_admin', 'superadmin'].includes(userRole.toLowerCase()) && (
-                  <div className="relative w-48 group">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                      <i className="ph-fill ph-users text-gray-400 group-hover:text-crm-primary transition-colors"></i>
+                  <div className="relative w-36 md:w-48 group flex-1 md:flex-none">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10">
+                      <i className="ph-bold ph-users text-amber-500 group-hover:text-amber-600 transition-colors"></i>
                     </div>
                     <select
                       value={filterEmployee}
                       onChange={(e) => setFilterEmployee(e.target.value)}
-                      className="w-full pl-10 pr-10 py-2 text-sm font-medium rounded-full bg-white border border-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-crm-primary/50 focus:border-crm-primary/50 shadow-sm transition-all cursor-pointer appearance-none hover:bg-gray-50"
+                      className="w-full pl-10 pr-10 py-2 text-sm font-medium rounded-full bg-white border border-amber-500 text-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-600 shadow-sm transition-all cursor-pointer appearance-none hover:bg-amber-50"
                     >
                       <option value="all">All Employees</option>
                       {employees.map(emp => (
@@ -249,11 +324,11 @@ const DateWiseAnalysis = ({ currentUser }) => {
                       ))}
                     </select>
                     <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-                      <i className="ph-bold ph-caret-down text-gray-400 text-xs"></i>
+                      <i className="ph-bold ph-caret-down text-amber-500 text-xs"></i>
                     </div>
                   </div>
                 )}
-              </>
+              </div>
             )}
           </div>
 
@@ -263,14 +338,14 @@ const DateWiseAnalysis = ({ currentUser }) => {
                 // Hide inprogress tab if date is not today, hide upcoming if date is not future
                 const isFuture = selectedDate > todayISO();
                 const isToday = selectedDate === todayISO();
-                
+
                 if (t.value === 'inprogress' && !isToday) return null;
                 if (t.value === 'upcoming' && !isFuture) return null;
-                
+
                 // If it is a future date, hide completed and missed as well
                 if ((t.value === 'completed' || t.value === 'missed') && isFuture) return null;
               }
-              
+
               const getActiveTabClass = (val) => {
                 switch (val) {
                   case 'inprogress': return 'bg-yellow-500 text-white border-yellow-500 shadow-md shadow-yellow-500/20';
@@ -307,9 +382,8 @@ const DateWiseAnalysis = ({ currentUser }) => {
                   key={t.value}
                   type="button"
                   onClick={() => setActiveTab(t.value)}
-                  className={`px-6 py-2 rounded-full border text-sm font-semibold transition-all duration-200 flex items-center gap-2 ${
-                    activeTab === t.value ? getActiveTabClass(t.value) : getInactiveTabClass(t.value)
-                  }`}
+                  className={`px-6 py-2 rounded-full border text-sm font-semibold transition-all duration-200 flex items-center gap-2 ${activeTab === t.value ? getActiveTabClass(t.value) : getInactiveTabClass(t.value)
+                    }`}
                 >
                   <span>{t.label}</span>
                   <span className={`px-2 py-0.5 rounded-md text-xs font-bold transition-colors ${getBadgeClass(t.value, activeTab === t.value)}`}>
@@ -321,7 +395,16 @@ const DateWiseAnalysis = ({ currentUser }) => {
           </div>
 
           <div className="text-sm font-semibold text-gray-800 text-center md:text-right">
-            Total records: {cards.length}
+            Total records: {TABS.reduce((sum, t) => {
+              if (selectedDate) {
+                const isFuture = selectedDate > todayISO();
+                const isToday = selectedDate === todayISO();
+                if (t.value === 'inprogress' && !isToday) return sum;
+                if (t.value === 'upcoming' && !isFuture) return sum;
+                if ((t.value === 'completed' || t.value === 'missed') && isFuture) return sum;
+              }
+              return sum + (filteredTabData[t.value]?.length || 0);
+            }, 0)}
           </div>
         </div>
       </div>
@@ -334,11 +417,11 @@ const DateWiseAnalysis = ({ currentUser }) => {
             // Determine border color based on Missed tab logic
             let borderColor = 'border-gray-200';
             if (activeTab === 'missed') {
-               if (c.status === 'completed') {
-                  borderColor = 'border-emerald-500 border-2';
-               } else {
-                  borderColor = 'border-red-500 border-2';
-               }
+              if (c.status === 'completed') {
+                borderColor = 'border-emerald-500 border-2';
+              } else {
+                borderColor = 'border-red-500 border-2';
+              }
             }
 
             return (
@@ -348,10 +431,9 @@ const DateWiseAnalysis = ({ currentUser }) => {
                     {c.expo_name || c.manual_expo_name || c.reference_source || '—'}
                   </span>
                   {stageBadge(c) && (
-                    <span 
-                      className={`px-3 py-1 rounded-full text-white text-xs font-semibold capitalize flex-shrink-0 ${
-                        stageBadge(c).toLowerCase() === 'appointment' ? '' : 'bg-crm-primaryDark'
-                      }`}
+                    <span
+                      className={`px-3 py-1 rounded-full text-white text-xs font-semibold capitalize flex-shrink-0 ${stageBadge(c).toLowerCase() === 'appointment' ? '' : 'bg-crm-primaryDark'
+                        }`}
                       style={stageBadge(c).toLowerCase() === 'appointment' ? { backgroundColor: '#db7070' } : {}}
                     >
                       {stageBadge(c)}
@@ -400,6 +482,13 @@ const DateWiseAnalysis = ({ currentUser }) => {
                     <i className="ph-bold ph-clock-counter-clockwise" />
                     View History
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormModal({ card: c })}
+                    className="px-6 py-2 rounded bg-crm-primary hover:bg-crm-primaryDark text-white text-sm font-semibold shadow"
+                  >
+                    Follow Up
+                  </button>
                 </div>
               </div>
             );
@@ -417,6 +506,18 @@ const DateWiseAnalysis = ({ currentUser }) => {
           customer={historyModal.customer}
           history={historyModal.rows}
           onClose={() => setHistoryModal(null)}
+        />
+      )}
+
+      {formModal && (
+        <FollowupFormModal
+          card={formModal.card}
+          currentUser={currentUser}
+          onClose={() => setFormModal(null)}
+          onSaved={() => {
+            setFormModal(null);
+            loadDataForDate();
+          }}
         />
       )}
     </div>

@@ -21,9 +21,8 @@ const FormField = ({ label, children, isFullWidth, required }) => {
   const labelText = String(label).replace(/\s*\*+\s*$/, '').trim();
   return (
     <div
-      className={`flex flex-col sm:flex-row sm:items-start ${
-        isFullWidth ? 'col-span-1 md:col-span-2' : ''
-      }`}
+      className={`flex flex-col sm:flex-row sm:items-start ${isFullWidth ? 'col-span-1 md:col-span-2' : ''
+        }`}
     >
       <label className="w-full sm:w-1/3 text-left sm:text-right sm:pr-4 text-sm text-gray-600 sm:pt-2 font-medium mb-1.5 sm:mb-0">
         {labelText}
@@ -246,7 +245,7 @@ const RegistrationForm = ({ currentUser }) => {
     if (expoOnlyMatches.length > 0) return expoOnlyMatches;
     if (enquiryOnlyMatches.length > 0) return enquiryOnlyMatches;
     if (globalMatches.length > 0) return globalMatches;
-    
+
     return [];
   }, [formData.expoId, formData.enquiryType, customEnquiry, expos, whatsappTemplates]);
 
@@ -830,7 +829,7 @@ const RegistrationForm = ({ currentUser }) => {
     try {
       let finalFileOrBlob = selectedFile || capturedBlob;
       let displayUrl = capturedImage;
-      
+
       if (completedCrop && completedCrop.width && completedCrop.height && imgRef.current) {
         finalFileOrBlob = await getCroppedImg(imgRef.current, completedCrop);
         displayUrl = URL.createObjectURL(finalFileOrBlob);
@@ -1133,22 +1132,22 @@ END:VCARD`;
 
           <FormField label="WhatsApp Template" isFullWidth>
             <div className="space-y-4 bg-gray-50 border border-gray-200 rounded-lg p-4">
-              
+
               {matchedTemplates.length > 0 && (
                 <div className="mb-4">
                   <span className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Choose a Template</span>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                     {matchedTemplates.map(t => (
                       <label key={t.id} className={`cursor-pointer border rounded-lg px-3 py-2 flex items-center gap-2 transition-all ${selectedTemplateId === String(t.id) ? 'border-crm-primary bg-crm-primary/10 shadow-sm' : 'border-gray-200 hover:bg-white bg-white'}`}>
-                        <input 
-                          type="radio" 
-                          name="whatsappTemplateSelect" 
-                          value={String(t.id)} 
-                          checked={selectedTemplateId === String(t.id)} 
+                        <input
+                          type="radio"
+                          name="whatsappTemplateSelect"
+                          value={String(t.id)}
+                          checked={selectedTemplateId === String(t.id)}
                           onChange={(e) => {
                             whatsappUserEditedRef.current = false;
                             setSelectedTemplateId(e.target.value);
-                          }} 
+                          }}
                           className="text-crm-primary focus:ring-crm-primary h-4 w-4"
                         />
                         <span className={`text-xs font-medium truncate ${selectedTemplateId === String(t.id) ? 'text-crm-primary' : 'text-gray-700'}`}>
@@ -1157,17 +1156,17 @@ END:VCARD`;
                       </label>
                     ))}
                     <label className={`cursor-pointer border rounded-lg px-3 py-2 flex items-center gap-2 transition-all ${selectedTemplateId === 'custom' ? 'border-crm-primary bg-crm-primary/10 shadow-sm' : 'border-gray-200 hover:bg-white bg-white'}`}>
-                      <input 
-                        type="radio" 
-                        name="whatsappTemplateSelect" 
-                        value="custom" 
-                        checked={selectedTemplateId === 'custom'} 
-                        onChange={(e) => setSelectedTemplateId(e.target.value)} 
+                      <input
+                        type="radio"
+                        name="whatsappTemplateSelect"
+                        value="custom"
+                        checked={selectedTemplateId === 'custom'}
+                        onChange={(e) => setSelectedTemplateId(e.target.value)}
                         onClick={() => {
                           whatsappUserEditedRef.current = true;
                           setSelectedTemplateId('custom');
                           setFormData(prev => ({ ...prev, whatsappMessage: '' }));
-                        }} 
+                        }}
                         className="text-crm-primary focus:ring-crm-primary h-4 w-4"
                       />
                       <span className={`text-xs font-medium ${selectedTemplateId === 'custom' ? 'text-crm-primary' : 'text-gray-700'}`}>
@@ -1180,9 +1179,9 @@ END:VCARD`;
 
               {activeTemplate?.image_path && (
                 <div className="mb-2">
-                  <img 
-                    src={resolvePublicUrl(activeTemplate.image_path)} 
-                    alt="Template Attachment" 
+                  <img
+                    src={resolvePublicUrl(activeTemplate.image_path)}
+                    alt="Template Attachment"
                     className="h-32 w-auto max-w-full rounded-lg border border-gray-200 object-contain bg-white shadow-sm"
                   />
                 </div>
@@ -1192,16 +1191,16 @@ END:VCARD`;
                   {activeTemplate.template_title}
                 </div>
               )}
-              
-              <textarea 
-                name="whatsappMessage" 
-                value={formData.whatsappMessage} 
-                onChange={handleChange} 
-                rows="4" 
+
+              <textarea
+                name="whatsappMessage"
+                value={formData.whatsappMessage}
+                onChange={handleChange}
+                rows="4"
                 className="w-full px-3 py-2 crm-input bg-white text-sm"
                 placeholder="Message content..."
               ></textarea>
-              
+
               {formData.phone1 && (
                 <button
                   type="button"
@@ -1209,19 +1208,19 @@ END:VCARD`;
                     const cleanPhone = formData.phone1.replace(/[^0-9]/g, '');
                     let selectedExpoName = expos.find(e => String(e.id) === String(formData.expoId))?.expo_name || '';
                     let resolvedMsg = formData.whatsappMessage.replace(/{customer_name}/g, formData.customerName || 'Customer').replace(/{company_name}/g, formData.companyName || 'your company').replace(/{expo_name}/g, selectedExpoName || 'our expo');
-                    
+
                     // Add Title if it exists
                     if (activeTemplate?.template_title) {
                       resolvedMsg = `*${activeTemplate.template_title}*\n\n${resolvedMsg}`;
                     }
-                    
+
                     const openWhatsappWeb = () => {
                       window.open(`https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(resolvedMsg)}`, '_blank');
                     };
 
                     if (activeTemplate?.image_path) {
                       const imageUrl = resolvePublicUrl(activeTemplate.image_path);
-                      
+
                       // ALWAYS append the URL to the text message so the link is shared
                       resolvedMsg += '\n\n' + imageUrl;
 
@@ -1368,8 +1367,8 @@ END:VCARD`;
                     type="button"
                     onClick={() => { setModalTab('upload'); stopCamera(); }}
                     className={`flex-1 py-3 text-center font-semibold text-sm transition-all border-b-2 flex justify-center items-center gap-2 ${modalTab === 'upload'
-                        ? 'border-crm-primary text-crm-primary bg-crm-primaryLighter/20'
-                        : 'border-transparent text-gray-500 hover:text-crm-primary hover:bg-gray-50'
+                      ? 'border-crm-primary text-crm-primary bg-crm-primaryLighter/20'
+                      : 'border-transparent text-gray-500 hover:text-crm-primary hover:bg-gray-50'
                       }`}
                   >
                     📁 Upload File
@@ -1378,8 +1377,8 @@ END:VCARD`;
                     type="button"
                     onClick={() => { setModalTab('camera'); startCamera(); }}
                     className={`flex-1 py-3 text-center font-semibold text-sm transition-all border-b-2 flex justify-center items-center gap-2 ${modalTab === 'camera'
-                        ? 'border-crm-primary text-crm-primary bg-crm-primaryLighter/20'
-                        : 'border-transparent text-gray-500 hover:text-crm-primary hover:bg-gray-50'
+                      ? 'border-crm-primary text-crm-primary bg-crm-primaryLighter/20'
+                      : 'border-transparent text-gray-500 hover:text-crm-primary hover:bg-gray-50'
                       }`}
                   >
                     📷 Use Camera
@@ -1484,10 +1483,10 @@ END:VCARD`;
                   {/* Single Clean Card Preview (no duplicate images) */}
                   <div className="border rounded-xl p-4 bg-gray-50 flex items-center justify-center min-h-[220px] relative overflow-auto custom-scrollbar">
                     {parsedData ? (
-                      <img 
-                        src={finalCroppedImageUrl || capturedImage} 
-                        alt="Scanned Card" 
-                        className="max-h-[45vh] md:max-h-[55vh] object-contain rounded shadow-sm border mx-auto block" 
+                      <img
+                        src={finalCroppedImageUrl || capturedImage}
+                        alt="Scanned Card"
+                        className="max-h-[45vh] md:max-h-[55vh] object-contain rounded shadow-sm border mx-auto block"
                       />
                     ) : (
                       <ReactCrop
@@ -1496,11 +1495,11 @@ END:VCARD`;
                         onComplete={c => setCompletedCrop(c)}
                         className="max-h-[45vh] md:max-h-[55vh]"
                       >
-                        <img 
+                        <img
                           ref={imgRef}
-                          src={capturedImage} 
-                          alt="Visiting Card Preview" 
-                          className="max-h-[45vh] md:max-h-[55vh] object-contain rounded shadow-sm border mx-auto block" 
+                          src={capturedImage}
+                          alt="Visiting Card Preview"
+                          className="max-h-[45vh] md:max-h-[55vh] object-contain rounded shadow-sm border mx-auto block"
                           onLoad={e => {
                             const initialCrop = {
                               unit: '%',

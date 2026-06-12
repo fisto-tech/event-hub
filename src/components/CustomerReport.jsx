@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { fetchApi, resolvePublicUrl } from '../utils/api';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -86,7 +87,7 @@ const CustomerReport = ({ currentUser, filterSource }) => {
       if (bootstrap && bootstrap.lookups && bootstrap.lookups.source) {
         setSourceOptions(bootstrap.lookups.source);
       }
-      
+
       try {
         const { getPendingRecords } = await import('../utils/offlineDB');
         const pending = await getPendingRecords();
@@ -110,8 +111,8 @@ const CustomerReport = ({ currentUser, filterSource }) => {
             status: 'pending' // UI expects 'pending' or 'completed'
           }));
         serverCustomers = [...offlineCustomers, ...serverCustomers];
-      } catch(err) { console.error('Failed to load offline records', err); }
-      
+      } catch (err) { console.error('Failed to load offline records', err); }
+
       setCustomers(serverCustomers);
       if (expoRes.status === 'success') setExpos(expoRes.data || []);
       if (usersRes.status === 'success') setEmployees(usersRes.data || []);
@@ -128,7 +129,7 @@ const CustomerReport = ({ currentUser, filterSource }) => {
 
     // Check local employees array first if API doesn't return joined names
     let employee = employees.find(e => String(e.id) === String(creatorId));
-    
+
     // Fallback for employee role where the records belong to the current user
     if (!employee && String(creatorId) === String(currentUser?.id)) {
       employee = currentUser;
@@ -212,7 +213,7 @@ const CustomerReport = ({ currentUser, filterSource }) => {
     customers.forEach(c => {
       const uId = c.created_by || c.registered_by || c.user_id;
       if (!showAllCustomers && String(uId) !== String(currentUser.id)) return;
-      
+
       if (c.expo_id || c.linked_expo || c.manual_expo_name) {
         const lbl = expoLabel(c);
         if (lbl && lbl !== '—') {
@@ -245,7 +246,7 @@ const CustomerReport = ({ currentUser, filterSource }) => {
         const cust = customerName.toLowerCase();
         const ph1 = phone1.toLowerCase();
         const cty = (c.city || '').toLowerCase();
-        
+
         if (searchField === 'all') {
           return comp.includes(q) || cust.includes(q) || ph1.includes(q) || cty.includes(q);
         } else if (searchField === 'company') {
@@ -427,6 +428,92 @@ const CustomerReport = ({ currentUser, filterSource }) => {
 
   return (
     <div className=" pb-12 font-sans animate-in fade-in duration-300">
+      
+      {document.getElementById('top-nav-filters') ? createPortal(
+        <div className="flex items-center gap-2 md:gap-3 w-full justify-start md:justify-center">
+          {/* Expo & Source Filter */}
+          <div className="relative group flex items-center">
+            {/* Mobile: Icon Only */}
+            <div className="md:hidden relative flex items-center justify-center w-10 h-10 rounded-full bg-white border border-emerald-500 shadow-sm hover:bg-emerald-50 overflow-hidden transition-colors">
+              <i className="ph-bold ph-funnel text-emerald-600 text-lg pointer-events-none z-10"></i>
+              <select
+                value={filterExpo}
+                onChange={(e) => setFilterExpo(e.target.value)}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer appearance-none z-20"
+              >
+                <option value="all">All Expos & Sources</option>
+                {expoAndSourceOptions.map(opt => (
+                  <option key={`${opt.type}_${opt.id}`} value={`${opt.type}_${opt.id}`}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {/* Desktop: Full Dropdown */}
+            <div className="hidden md:block relative w-64 group">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10">
+                <i className="ph-bold ph-funnel text-emerald-500 group-hover:text-emerald-600 transition-colors"></i>
+              </div>
+              <select
+                value={filterExpo}
+                onChange={(e) => setFilterExpo(e.target.value)}
+                className="w-full pl-10 pr-10 py-2 text-sm font-medium rounded-full bg-white border border-emerald-500 text-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-600 shadow-sm transition-all cursor-pointer appearance-none hover:bg-emerald-50"
+              >
+                <option value="all">All Expos & Sources</option>
+                {expoAndSourceOptions.map(opt => (
+                  <option key={`${opt.type}_${opt.id}`} value={`${opt.type}_${opt.id}`}>
+                    {opt.label} ({opt.type === 'expo' ? 'Expo' : 'Source'})
+                  </option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none z-10">
+                <i className="ph-bold ph-caret-down text-emerald-500 text-xs"></i>
+              </div>
+            </div>
+          </div>
+
+          {/* Employee Filter */}
+          {showAllCustomers && (
+            <div className="relative group flex items-center">
+              {/* Mobile: Icon Only */}
+              <div className="md:hidden relative flex items-center justify-center w-10 h-10 rounded-full bg-white border border-amber-500 shadow-sm hover:bg-amber-50 overflow-hidden transition-colors">
+                <i className="ph-bold ph-users text-amber-600 text-lg pointer-events-none z-10"></i>
+                <select
+                  value={filterEmployee}
+                  onChange={(e) => setFilterEmployee(e.target.value)}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer appearance-none z-20"
+                >
+                  <option value="all">All Employees</option>
+                  {employees
+                    .filter(e => activeEmployeeIds.has(String(e.id)))
+                    .map(e => <option key={e.id} value={e.id}>{e.name || e.username || `User #${e.id}`}</option>)}
+                </select>
+              </div>
+              {/* Desktop: Full Dropdown */}
+              <div className="hidden md:block relative w-56 group">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10">
+                  <i className="ph-bold ph-users text-amber-500 group-hover:text-amber-600 transition-colors"></i>
+                </div>
+                <select
+                  value={filterEmployee}
+                  onChange={(e) => setFilterEmployee(e.target.value)}
+                  className="w-full pl-10 pr-10 py-2 text-sm font-medium rounded-full bg-white border border-amber-500 text-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-600 shadow-sm transition-all cursor-pointer appearance-none hover:bg-amber-50"
+                >
+                  <option value="all">All Employees</option>
+                  {employees
+                    .filter(e => activeEmployeeIds.has(String(e.id)))
+                    .map(e => <option key={e.id} value={e.id}>{e.name || e.username || `User #${e.id}`}</option>)}
+                </select>
+                <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none z-10">
+                  <i className="ph-bold ph-caret-down text-amber-500 text-xs"></i>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>,
+        document.getElementById('top-nav-filters')
+      ) : null}
+
 
       {viewingCustomer && (
         <ReportModalShell
@@ -971,43 +1058,13 @@ const CustomerReport = ({ currentUser, filterSource }) => {
       {/* Advanced Filters: Search, Expo, Date Range */}
       <div className="bg-white mb-5 rounded-xl border border-gray-200 shadow-sm p-5">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-end">
-          
-          <div className={`md:col-span-1 ${showAllCustomers ? 'lg:col-span-1' : 'lg:col-span-2'}`}>
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 tracking-wider">EXPO / SOURCE</label>
-            <select
-              value={filterExpo}
-              onChange={(e) => setFilterExpo(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm outline-none focus:border-crm-primary"
-            >
-              <option value="all">All Expos & Sources</option>
-              {expoAndSourceOptions.map(opt => (
-                <option key={`${opt.type}_${opt.id}`} value={`${opt.type}_${opt.id}`}>
-                  {opt.label} ({opt.type === 'expo' ? 'Expo' : 'Source'})
-                </option>
-              ))}
-            </select>
-          </div>
 
-          {showAllCustomers && (
-            <div className="md:col-span-1 lg:col-span-1">
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 tracking-wider">EMPLOYEE</label>
-              <select
-                value={filterEmployee}
-                onChange={(e) => setFilterEmployee(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm outline-none focus:border-crm-primary"
-              >
-                <option value="all">All Employees</option>
-                {employees
-                  .filter(e => activeEmployeeIds.has(String(e.id)))
-                  .map(e => <option key={e.id} value={e.id}>{e.name || e.username || `User #${e.id}`}</option>)}
-              </select>
-            </div>
-          )}
 
-          <div className="md:col-span-2 lg:col-span-2">
+
+          <div className="md:col-span-1 lg:col-span-3">
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 tracking-wider">SEARCH</label>
             <div className="flex rounded-lg border border-gray-300 overflow-hidden focus-within:border-crm-primary">
-              <select 
+              <select
                 value={searchField}
                 onChange={(e) => setSearchField(e.target.value)}
                 className="px-3 py-2.5 bg-gray-50 text-sm outline-none border-r border-gray-300 min-w-[110px]"
@@ -1028,7 +1085,7 @@ const CustomerReport = ({ currentUser, filterSource }) => {
             </div>
           </div>
 
-          <div className="md:col-span-2 lg:col-span-2">
+          <div className="md:col-span-1 lg:col-span-3">
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 tracking-wider">DATE RANGE</label>
             <div className="flex items-center gap-2">
               <input
@@ -1046,9 +1103,9 @@ const CustomerReport = ({ currentUser, filterSource }) => {
               />
             </div>
           </div>
-          
+
         </div>
-        
+
         <div className="mt-4 border-t border-gray-100 pt-4 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
           <button
             type="button"
@@ -1199,8 +1256,8 @@ const CustomerReport = ({ currentUser, filterSource }) => {
                         </div>
                       ) : (
                         <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${cust.status === 'completed'
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200/50'
-                            : 'bg-amber-50 text-amber-700 border-amber-200/50'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200/50'
+                          : 'bg-amber-50 text-amber-700 border-amber-200/50'
                           }`}>
                           <i className={`ph-bold ${cust.status === 'completed' ? 'ph-check-circle' : 'ph-clock'} mr-1 text-xs`}></i>
                           {cust.status === 'completed' ? 'Completed' : 'Pending'}
@@ -1267,11 +1324,10 @@ const CustomerReport = ({ currentUser, filterSource }) => {
                     <button
                       key={page}
                       onClick={() => setCurrentPage(page)}
-                      className={`w-8 h-8 rounded flex items-center justify-center text-sm font-medium transition-colors ${
-                        currentPage === page
+                      className={`w-8 h-8 rounded flex items-center justify-center text-sm font-medium transition-colors ${currentPage === page
                           ? 'bg-crm-primary text-white border-crm-primary'
                           : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
-                      }`}
+                        }`}
                     >
                       {page}
                     </button>

@@ -75,9 +75,9 @@ const ExcelImportModal = ({ expos, sourceOptions, currentUser, onClose, onSucces
         const workbook = XLSX.read(data, { type: 'array' });
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
-        
+
         const rawData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
-        
+
         if (rawData.length === 0) {
           setErrors(['The Excel file is empty.']);
           setIsProcessing(false);
@@ -86,11 +86,11 @@ const ExcelImportModal = ({ expos, sourceOptions, currentUser, onClose, onSucces
 
         const rawHeaders = Object.keys(rawData[0]);
         const mapping = mapHeaders(rawHeaders);
-        
+
         // Validate required columns
         const mappedValues = Object.values(mapping).map(v => v.toLowerCase());
         const missingCols = [];
-        
+
         if (!mappedValues.includes('customername')) missingCols.push('Customer Name');
         if (!mappedValues.includes('companyname')) missingCols.push('Company Name');
         if (!mappedValues.includes('phone1')) missingCols.push('Primary Phone');
@@ -137,7 +137,7 @@ const ExcelImportModal = ({ expos, sourceOptions, currentUser, onClose, onSucces
         // Validation against existing records
         const existingPhones = new Set();
         const existingCompanies = new Set();
-        
+
         if (existingCustomers && existingCustomers.length > 0) {
           existingCustomers.forEach(c => {
             if (c.phone_1) existingPhones.add(String(c.phone_1).replace(/\D/g, ''));
@@ -146,7 +146,9 @@ const ExcelImportModal = ({ expos, sourceOptions, currentUser, onClose, onSucces
           });
         }
 
+        const validCustomersToImport = [];
         const duplicateErrors = [];
+
         customersToImport.forEach((c, index) => {
           const rowNum = index + 2; // +1 for 0-index, +1 for header
           const p1 = c.phone1 ? String(c.phone1).replace(/\D/g, '') : '';
@@ -154,28 +156,47 @@ const ExcelImportModal = ({ expos, sourceOptions, currentUser, onClose, onSucces
           const comp = c.companyName ? String(c.companyName).trim().toLowerCase() : '';
 
           if ((p1 && existingPhones.has(p1)) || (p2 && existingPhones.has(p2))) {
-            duplicateErrors.push(`Row ${rowNum}: Phone number already exists in database (${c.phone1 || c.phone2}).`);
+            duplicateErrors.push(`Row ${rowNum}: Skipped - Phone number already exists (${c.phone1 || c.phone2}).`);
           } else if (comp && existingCompanies.has(comp)) {
-            duplicateErrors.push(`Row ${rowNum}: Company name already exists in database ("${c.companyName}").`);
+            duplicateErrors.push(`Row ${rowNum}: Skipped - Company name already exists ("${c.companyName}").`);
+          } else {
+            // Add to our Sets to prevent duplicates within the same Excel sheet
+            if (p1) existingPhones.add(p1);
+            if (p2) existingPhones.add(p2);
+            if (comp) existingCompanies.add(comp);
+            validCustomersToImport.push(c);
           }
         });
 
-        if (duplicateErrors.length > 0) {
-          setErrors(['Duplicate data found in database. Import blocked for:', ...duplicateErrors]);
+        if (validCustomersToImport.length === 0) {
+          if (duplicateErrors.length > 0) {
+            setErrors(['All records in this file are duplicates and were skipped:', ...duplicateErrors]);
+          } else {
+            setErrors(['No valid records found to import.']);
+          }
           setIsProcessing(false);
           return;
         }
 
-        // Send to backend
+        // Send valid records to backend
         const response = await fetchApi('import_customers.php', {
           method: 'POST',
-          body: JSON.stringify({ customers: customersToImport })
+          body: JSON.stringify({ customers: validCustomersToImport })
         });
 
         if (response.status === 'success') {
-          showToast(response.message || 'Customers imported successfully!', 'success');
+          showToast(`Successfully imported ${validCustomersToImport.length} records!`, 'success');
           onSuccess();
-          onClose();
+          
+          if (duplicateErrors.length > 0) {
+            showToast(`${duplicateErrors.length} duplicates were skipped.`, 'warning');
+            setErrors([`Import completed for ${validCustomersToImport.length} records. The following duplicates were skipped:`, ...duplicateErrors]);
+            // Clear the file so they don't accidentally import the same file again
+            setFile(null);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+          } else {
+            onClose();
+          }
         } else {
           setErrors([response.message || 'Import failed.', ...(response.errors || [])]);
         }
@@ -254,7 +275,7 @@ const ExcelImportModal = ({ expos, sourceOptions, currentUser, onClose, onSucces
                 onChange={handleFileChange}
                 className="hidden"
               />
-              <div 
+              <div
                 className="cursor-pointer flex flex-col items-center gap-2"
                 onClick={() => fileInputRef.current?.click()}
               >
@@ -266,7 +287,7 @@ const ExcelImportModal = ({ expos, sourceOptions, currentUser, onClose, onSucces
               </div>
             </div>
           </div>
-          
+
           <div className="bg-blue-50 text-blue-800 p-3 rounded-lg text-xs space-y-1 border border-blue-100">
             <p className="font-semibold mb-1">Template Instructions:</p>
             <ul className="list-disc pl-4 space-y-1 text-blue-700/80">

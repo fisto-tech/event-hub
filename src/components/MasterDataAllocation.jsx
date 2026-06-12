@@ -196,7 +196,7 @@ const MasterDataAllocation = ({ currentUser }) => {
               <th className="py-3 px-4 font-semibold border-b border-white/10">S.No</th>
               <th className="py-3 px-4 font-semibold border-b border-white/10">Company Name</th>
               <th className="py-3 px-4 font-semibold border-b border-white/10">Contact Person</th>
-              <th className="py-3 px-4 font-semibold border-b border-white/10">Designation</th>
+              <th className="py-3 px-4 font-semibold border-b border-white/10">Employee Name</th>
               <th className="py-3 px-4 font-semibold border-b border-white/10">City</th>
               <th className="py-3 px-4 font-semibold border-b border-white/10">Mobile No</th>
               <th className="py-3 px-4 font-semibold border-b border-white/10">Status</th>
@@ -206,6 +206,8 @@ const MasterDataAllocation = ({ currentUser }) => {
             {filteredLeads.length > 0 ? (
               filteredLeads.map((lead, idx) => {
                 const isSelected = selectedLeadIds.has(lead.id);
+                const emp = employees.find(e => String(e.id) === String(lead.created_by));
+                const employeeName = emp ? (emp.name || emp.username) : '-';
                 return (
                   <tr 
                     key={lead.id} 
@@ -222,7 +224,7 @@ const MasterDataAllocation = ({ currentUser }) => {
                     <td className="py-3 px-4 text-gray-500 font-medium">{idx + 1}</td>
                     <td className="py-3 px-4 font-medium text-gray-800">{lead.company_name || '-'}</td>
                     <td className="py-3 px-4 text-gray-600">{lead.customer_name || '-'}</td>
-                    <td className="py-3 px-4 text-gray-600">{lead.designation || '-'}</td>
+                    <td className="py-3 px-4 text-gray-600 font-medium">{employeeName}</td>
                     <td className="py-3 px-4 text-gray-600">{lead.city || '-'}</td>
                     <td className="py-3 px-4 font-medium text-gray-700">{lead.phone_1 || '-'}</td>
                     <td className="py-3 px-4">

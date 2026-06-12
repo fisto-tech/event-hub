@@ -17,6 +17,7 @@ const ExpoDetails = ({ embedded = false }) => {
     expoName: '',
     dates: [],
     assignedEmployees: [],
+    participationType: 'data_entry',
     remarks: '',
     status: 'upcoming',
   });
@@ -106,6 +107,7 @@ const ExpoDetails = ({ embedded = false }) => {
       assignedEmployees: expo.assigned_employees
         ? String(expo.assigned_employees).split(',').map(s => s.trim()).filter(Boolean)
         : [],
+      participationType: expo.participation_type || 'data_entry',
       remarks: expo.remarks || '',
       status: expo.status,
     });
@@ -135,6 +137,7 @@ const ExpoDetails = ({ embedded = false }) => {
       expoName: '',
       dates: [],
       assignedEmployees: [],
+      participationType: 'data_entry',
       remarks: '',
       status: 'upcoming',
     });
@@ -241,6 +244,36 @@ const ExpoDetails = ({ embedded = false }) => {
                     </div>
                   </>
                 )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-normal text-crm-primary mb-2">
+                  Participation Type <span className="text-red-600">*</span>
+                </label>
+                <div className="flex items-center gap-6 mt-1">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="participationType"
+                      value="participate"
+                      checked={formData.participationType === 'participate'}
+                      onChange={handleChange}
+                      className="w-4 h-4 text-crm-primary border-gray-300 focus:ring-crm-primary"
+                    />
+                    <span className="text-sm text-gray-700">Participate</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="participationType"
+                      value="data_entry"
+                      checked={formData.participationType === 'data_entry'}
+                      onChange={handleChange}
+                      className="w-4 h-4 text-crm-primary border-gray-300 focus:ring-crm-primary"
+                    />
+                    <span className="text-sm text-gray-700">Data Entry</span>
+                  </label>
+                </div>
               </div>
 
               <div>
@@ -367,6 +400,12 @@ const ExpoDetails = ({ embedded = false }) => {
                   <label className="text-sm font-semibold text-crm-primary mb-1 block">Assigned Employees</label>
                   <div className="font-medium bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
                     {getEmployeeNames(viewingExpo.assigned_employees)}
+                  </div>
+               </div>
+               <div>
+                  <label className="text-sm font-semibold text-crm-primary mb-1 block">Participation Type</label>
+                  <div className="font-medium bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
+                    {viewingExpo.participation_type === 'participate' ? 'Participate' : 'Data Entry'}
                   </div>
                </div>
                <div>

@@ -51,7 +51,7 @@ const FollowupReport = ({ currentUser }) => {
       const p4 = fetchApi(`customers.php?role=${encodeURIComponent(userRole)}&user_id=${currentUser.id}`);
 
       const [resF, resE, resU, resC] = await Promise.all([p1, p2, p3, p4]);
-      
+
       const usersData = resU.status === 'success' ? (resU.data || []) : [];
       const customersData = resC.status === 'success' ? (resC.data || []) : [];
       const exposData = resE.status === 'success' ? (resE.data || []) : [];
@@ -80,21 +80,21 @@ const FollowupReport = ({ currentUser }) => {
             };
           });
         followupsData = [...offlineFollowups, ...followupsData];
-      } catch(err) { console.error('Failed to load offline records', err); }
+      } catch (err) { console.error('Failed to load offline records', err); }
 
       // Enrich followups with customer's expo_id and created_by so filters work
       followupsData = followupsData.map(f => {
         const customer = customersData.find(c => String(c.id) === String(f.customer_id));
         const createdBy = f.created_by || (customer ? (customer.created_by || customer.registered_by || customer.user_id) : null);
         let user = usersData.find(u => String(u.id) === String(createdBy));
-        
+
         if (!user && String(createdBy) === String(currentUser?.id)) {
           user = currentUser;
         }
 
         const eId = f.expo_id || (customer ? customer.expo_id : null);
         const expoObj = exposData.find(e => String(e.id) === String(eId));
-        
+
         return {
           ...f,
           expo_id: eId,
@@ -106,7 +106,7 @@ const FollowupReport = ({ currentUser }) => {
       });
 
       setFollowups(followupsData);
-      
+
       if (resE.status === 'success') setExpos(resE.data || []);
       if (showAll) setEmployees(usersData);
     } catch (e) {
@@ -151,7 +151,7 @@ const FollowupReport = ({ currentUser }) => {
       const eId = f.expo_id || f.linked_expo_id;
       if (String(eId) !== String(filterExpo)) return false;
     }
-    
+
     // Employee Filter
     const uId = f.created_by || f.user_id || f.registered_by;
     if (!showAll) {
@@ -164,22 +164,22 @@ const FollowupReport = ({ currentUser }) => {
     const parseDate = (dStr) => {
       if (!dStr) return 0;
       let str = String(dStr).trim();
-      
+
       // Handle DD-MM-YYYY or DD-MM-YYYY HH:mm:ss
       if (str.includes('-') && str.split('-')[0].length <= 2) {
         const parts = str.split(/[\\sT]+/);
         const [day, month, year] = parts[0].split('-');
         str = `${year}-${month}-${day}${parts[1] ? ' ' + parts[1] : ''}`;
       }
-      
+
       // If it's strictly YYYY-MM-DD, append time to force local parsing
       if (/^\\d{4}-\\d{2}-\\d{2}$/.test(str)) {
         str += ' 00:00:00';
       }
-      
+
       // Replace - with / only for YYYY-MM-DD HH:mm:ss format, not ISO!
       if (!str.includes('T') && !str.includes('Z')) {
-          str = str.replace(/-/g, '/');
+        str = str.replace(/-/g, '/');
       }
 
       const time = new Date(str).getTime();
@@ -337,7 +337,7 @@ const FollowupReport = ({ currentUser }) => {
         <h2 className="text-center font-bold text-gray-800 text-lg mb-6">
           Total Followup Taken : <span className="text-red-600 text-2xl ml-1">{stats.total}</span>
         </h2>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-4 gap-x-12 text-sm font-semibold text-gray-600">
           <div className="flex justify-between items-center pb-2 border-b border-gray-100">
             <span>Followup / Lead / Quotation</span>
@@ -365,7 +365,7 @@ const FollowupReport = ({ currentUser }) => {
       {/* 2. FILTERS CONTAINER */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mt-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-end">
-          
+
           <div className="lg:col-span-1">
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 tracking-wider">EXPO NAME</label>
             <select
@@ -394,7 +394,7 @@ const FollowupReport = ({ currentUser }) => {
           <div className="lg:col-span-2">
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 tracking-wider">SEARCH</label>
             <div className="flex rounded-lg border border-gray-300 overflow-hidden focus-within:border-crm-primary">
-              <select 
+              <select
                 value={searchField}
                 onChange={(e) => setSearchField(e.target.value)}
                 className="px-3 py-2.5 bg-gray-50 text-sm outline-none border-r border-gray-300 min-w-[110px]"
@@ -432,9 +432,9 @@ const FollowupReport = ({ currentUser }) => {
               />
             </div>
           </div>
-          
+
         </div>
-        
+
         <div className="mt-4 border-t border-gray-100 pt-4 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
           <button
             type="button"
@@ -483,7 +483,7 @@ const FollowupReport = ({ currentUser }) => {
         <h3 className="font-bold text-sm text-gray-800 mb-2 mt-2">
           Total records : <span className="text-red-500">{filteredData.length}</span>
         </h3>
-        
+
         {loading ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 flex justify-center">
             <LoadingSpinner label="Loading Report..." />
@@ -583,7 +583,7 @@ const FollowupReport = ({ currentUser }) => {
           </div>
         )}
       </div>
-      
+
       {/* Pagination Controls */}
       {!loading && totalPages > 1 && (
         <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-gray-200/80 shadow-sm mt-4">
@@ -603,11 +603,10 @@ const FollowupReport = ({ currentUser }) => {
                 <button
                   key={page}
                   onClick={() => setCurrentPage(page)}
-                  className={`w-8 h-8 rounded flex items-center justify-center text-sm font-medium transition-colors ${
-                    currentPage === page
+                  className={`w-8 h-8 rounded flex items-center justify-center text-sm font-medium transition-colors ${currentPage === page
                       ? 'bg-crm-primary text-white border-crm-primary'
                       : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
-                  }`}
+                    }`}
                 >
                   {page}
                 </button>
