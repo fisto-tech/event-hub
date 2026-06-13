@@ -13,6 +13,7 @@ import PhoneInput from './common/PhoneInput';
 import { validateStoredPhone, normalizePhoneForSubmit, parseStoredPhone, digitsOnly } from '../utils/phoneUtils';
 import ReactCrop from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
+import muscutImage from '../assets/muscut-image.webp';
 
 const DEFAULT_WHATSAPP_MESSAGE =
   'Hello {customer_name}, Thank you for visiting us at our stall! We appreciate your interest in our products. Our team will contact you shortly to discuss further.';
@@ -20,15 +21,12 @@ const DEFAULT_WHATSAPP_MESSAGE =
 const FormField = ({ label, children, isFullWidth, required }) => {
   const labelText = String(label).replace(/\s*\*+\s*$/, '').trim();
   return (
-    <div
-      className={`flex flex-col sm:flex-row sm:items-start ${isFullWidth ? 'col-span-1 md:col-span-2' : ''
-        }`}
-    >
-      <label className="w-full sm:w-1/3 text-left sm:text-right sm:pr-4 text-sm text-gray-600 sm:pt-2 font-medium mb-1.5 sm:mb-0">
+    <div className={`flex flex-col ${isFullWidth ? 'col-span-1 md:col-span-2 lg:col-span-3' : ''}`}>
+      <label className="block text-sm font-semibold text-[#1e293b] mb-2">
         {labelText}
-        {required && <span className="text-red-600 ml-0.5" aria-hidden="true">*</span>}
+        {required && <span className="text-red-500 ml-1" aria-hidden="true">*</span>}
       </label>
-      <div className="w-full sm:w-2/3">{children}</div>
+      <div className="w-full">{children}</div>
     </div>
   );
 };
@@ -73,9 +71,12 @@ const validateRegistration = (payload, { customEnquiry, customIndustry, showSour
   return missing;
 };
 
-const SectionHeader = ({ title }) => (
-  <div className="col-span-1 md:col-span-2 mt-4 mb-2">
-    <h3 className="text-lg font-medium text-gray-800 border-b border-gray-200 pb-2">{title}</h3>
+const SectionHeader = ({ title, icon }) => (
+  <div className="col-span-1 md:col-span-2 lg:col-span-3 mt-8 mb-4 border-b border-gray-100 pb-3 flex items-center gap-3">
+    <div className="bg-[#00b5e2]/10 p-1.5 rounded-md">
+      <i className={`ph-fill ${icon} text-[#00b5e2] text-lg`}></i>
+    </div>
+    <h3 className="text-[16px] font-bold text-[#1e293b]">{title}</h3>
   </div>
 );
 
@@ -937,37 +938,44 @@ END:VCARD`;
   };
 
   return (
-    <div className=" pb-20 relative bg-white rounded-xl p-6">
-
-      {/* Top Bar matching Zoho Header style */}
-      <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
+    <>
+      <div className="relative bg-white min-h-[800px] w-full p-8 lg:p-12 overflow-hidden flex flex-col flex-1">
+        {/* Decorative Circles */}
+      <div className="absolute top-10 right-[35%] w-24 h-24 bg-amber-100/60 rounded-full blur-xl pointer-events-none" />
+      <div className="absolute top-20 right-[5%] w-32 h-32 bg-cyan-100/60 rounded-full blur-xl pointer-events-none" />
+      <div className="absolute bottom-40 left-[15%] w-20 h-20 bg-amber-100/60 rounded-full blur-xl pointer-events-none" />
+      <div className="absolute bottom-20 left-[40%] w-40 h-40 bg-cyan-100/40 rounded-full blur-xl pointer-events-none" />
+      <div className="absolute top-1/2 left-10 w-64 h-64 bg-cyan-100/50 rounded-full blur-2xl pointer-events-none" />
+      
+      {/* Header Row */}
+      <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 border-b border-gray-100 pb-6">
         <div>
-          <h2 className="text-xl font-medium text-gray-800">Create Customer Record</h2>
+          <h2 className="text-[26px] font-bold text-[#1e293b]">Create Customer Record</h2>
+          <p className="text-[15px] text-slate-500 mt-0.5">Fill in the details below to register a new customer</p>
         </div>
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => { setShowScanModal(true); resetScanModalState(); }}
-            className="scan-card-btn flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-semibold transition-all"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-md bg-[#00b5e2] text-white text-sm font-semibold hover:bg-[#00a0c9] transition-colors shadow-sm"
           >
-            <i className="ph-bold ph-scan text-base"></i>
-            Scan Card
+            <i className="ph-bold ph-scan text-lg"></i> Scan Card
           </button>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-0 w-full max-w-5xl mx-auto">
+      <form onSubmit={handleSubmit} className="relative z-10 w-full flex flex-col flex-1 pb-16">
         {!formReady && (
           <p className="text-sm text-gray-500 mb-4 flex items-center gap-2">
             <i className="ph ph-spinner animate-spin" /> Loading form options…
           </p>
         )}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-6 w-full xl:w-[90%] 2xl:w-[85%]">
 
-          <SectionHeader title="Company Information" />
+          <SectionHeader title="Company Information" icon="ph-buildings" />
 
           <FormField label="Expo Name">
-            <select name="expoId" value={formData.expoId} onChange={handleChange} className="w-full px-3 py-1.5 crm-input">
+            <select name="expoId" value={formData.expoId} onChange={handleChange} className="w-full px-4 py-2.5 rounded-md border border-gray-200 outline-none focus:border-[#00b5e2] focus:ring-1 focus:ring-[#00b5e2]/20 transition-all text-[14px] bg-white text-gray-700">
               <option value="">Other (General)</option>
               {expos.map(expo => (
                 <option key={expo.id} value={expo.id}>{expo.expo_name}</option>
@@ -981,18 +989,19 @@ END:VCARD`;
                 name="referenceSource"
                 value={formData.referenceSource}
                 onChange={(val) => setFormData((prev) => ({ ...prev, referenceSource: val }))}
-                placeholder="Enter source name..."
+                placeholder="Enter Source name..."
                 options={sourceOptions}
+                inputClassName="w-full px-4 py-2.5 rounded-md border border-gray-200 outline-none focus:border-[#00b5e2] focus:ring-1 focus:ring-[#00b5e2]/20 transition-all text-[14px] bg-white"
               />
             </FormField>
           )}
 
           <FormField label="Visit Date" required>
-            <input type="date" name="visitDate" value={formData.visitDate} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
+            <input type="date" name="visitDate" value={formData.visitDate} onChange={handleChange} className="w-full px-4 py-2.5 rounded-md border border-gray-200 outline-none focus:border-[#00b5e2] focus:ring-1 focus:ring-[#00b5e2]/20 transition-all text-[14px] bg-white text-gray-700" />
           </FormField>
 
           <FormField label="Company Name" required>
-            <input type="text" name="companyName" value={formData.companyName} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
+            <input type="text" name="companyName" placeholder="Enter company name" value={formData.companyName} onChange={handleChange} className="w-full px-4 py-2.5 rounded-md border border-gray-200 outline-none focus:border-[#00b5e2] focus:ring-1 focus:ring-[#00b5e2]/20 transition-all text-[14px] bg-white text-gray-700" />
           </FormField>
 
           <FormField label="Industry Type">
@@ -1000,7 +1009,7 @@ END:VCARD`;
               name="industryType"
               value={formData.industryType}
               onChange={handleChange}
-              className="w-full px-3 py-1.5 crm-input"
+              className="w-full px-4 py-2.5 rounded-md border border-gray-200 outline-none focus:border-[#00b5e2] focus:ring-1 focus:ring-[#00b5e2]/20 transition-all text-[14px] bg-white text-gray-700"
             >
               <option value="">— Select —</option>
               {industryOptions.map((item, i) => (
@@ -1016,13 +1025,13 @@ END:VCARD`;
                 value={customIndustry}
                 onChange={(e) => setCustomIndustry(e.target.value)}
                 placeholder="Enter industry type..."
-                className="w-full px-3 py-1.5 crm-input mt-2"
+                className="w-full px-4 py-2.5 rounded-md border border-gray-200 outline-none focus:border-[#00b5e2] focus:ring-1 focus:ring-[#00b5e2]/20 transition-all text-[14px] bg-white text-gray-700 mt-2"
               />
             )}
           </FormField>
 
           <FormField label="Website">
-            <input type="text" name="website" value={formData.website} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
+            <input type="text" name="website" placeholder="Enter website" value={formData.website} onChange={handleChange} className="w-full px-4 py-2.5 rounded-md border border-gray-200 outline-none focus:border-[#00b5e2] focus:ring-1 focus:ring-[#00b5e2]/20 transition-all text-[14px] bg-white text-gray-700" />
           </FormField>
 
           <FormField label="City">
@@ -1031,38 +1040,38 @@ END:VCARD`;
               value={formData.city}
               onChange={(city) => setFormData((prev) => ({ ...prev, city }))}
               placeholder="Type to search city…"
-              inputClassName="w-full px-3 py-1.5 crm-input"
+              inputClassName="w-full px-4 py-2.5 rounded-md border border-gray-200 outline-none focus:border-[#00b5e2] focus:ring-1 focus:ring-[#00b5e2]/20 transition-all text-[14px] bg-white"
             />
           </FormField>
 
           <FormField label="Address / Location">
-            <input type="text" name="location" value={formData.location} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
+            <input type="text" name="location" placeholder="Enter address / location" value={formData.location} onChange={handleChange} className="w-full px-4 py-2.5 rounded-md border border-gray-200 outline-none focus:border-[#00b5e2] focus:ring-1 focus:ring-[#00b5e2]/20 transition-all text-[14px] bg-white text-gray-700" />
           </FormField>
 
 
-          <SectionHeader title="Contact Details" />
+          <SectionHeader title="Contact Information" icon="ph-phone-call" />
 
           <FormField label="Customer Name" required>
-            <input type="text" name="customerName" value={formData.customerName} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
+            <input type="text" name="customerName" placeholder="Enter Customer name..." value={formData.customerName} onChange={handleChange} className="w-full px-4 py-2.5 rounded-md border border-gray-200 outline-none focus:border-[#00b5e2] focus:ring-1 focus:ring-[#00b5e2]/20 transition-all text-[14px] bg-white text-gray-700" />
           </FormField>
 
-          <FormField label="Phone / WhatsApp" required>
+          <FormField label="Phone/WhatsApp" required>
             <PhoneInput
               name="phone1"
               value={formData.phone1}
               onChange={(phone1) => setFormData((prev) => ({ ...prev, phone1 }))}
               required
-              inputClassName="flex-1 px-3 py-1.5 crm-input"
-              selectClassName="w-[2.5rem] shrink-0 px-2 py-1.5 crm-input text-sm"
+              inputClassName="flex-1 px-4 py-2.5 rounded-r-md border border-gray-200 border-l-0 outline-none focus:border-[#00b5e2] focus:ring-1 focus:ring-[#00b5e2]/20 text-[14px]"
+              selectClassName="w-[4.5rem] shrink-0 px-2 py-2.5 rounded-l-md border border-gray-200 outline-none focus:border-[#00b5e2] focus:ring-1 focus:ring-[#00b5e2]/20 bg-white text-[14px] text-gray-700"
             />
           </FormField>
 
           <FormField label="Email Address">
-            <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
+            <input type="email" name="email" placeholder="Enter email address" value={formData.email} onChange={handleChange} className="w-full px-4 py-2.5 rounded-md border border-gray-200 outline-none focus:border-[#00b5e2] focus:ring-1 focus:ring-[#00b5e2]/20 transition-all text-[14px] bg-white text-gray-700" />
           </FormField>
 
           <FormField label="Designation">
-            <input type="text" name="designation" value={formData.designation} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
+            <input type="text" name="designation" placeholder="Enter designation" value={formData.designation} onChange={handleChange} className="w-full px-4 py-2.5 rounded-md border border-gray-200 outline-none focus:border-[#00b5e2] focus:ring-1 focus:ring-[#00b5e2]/20 transition-all text-[14px] bg-white text-gray-700" />
           </FormField>
 
           <FormField label="Secondary Phone">
@@ -1071,16 +1080,16 @@ END:VCARD`;
               value={formData.phone2}
               onChange={(phone2) => setFormData((prev) => ({ ...prev, phone2 }))}
               required={false}
-              inputClassName="flex-1 px-3 py-1.5 crm-input"
-              selectClassName="w-[3rem] shrink-0 px-2 py-1.5 crm-input text-sm"
+              inputClassName="flex-1 px-4 py-2.5 rounded-r-md border border-gray-200 border-l-0 outline-none focus:border-[#00b5e2] focus:ring-1 focus:ring-[#00b5e2]/20 text-[14px]"
+              selectClassName="w-[4.5rem] shrink-0 px-2 py-2.5 rounded-l-md border border-gray-200 outline-none focus:border-[#00b5e2] focus:ring-1 focus:ring-[#00b5e2]/20 bg-white text-[14px] text-gray-700"
             />
           </FormField>
 
 
-          <SectionHeader title="Enquiry & Follow-up Details" />
+          <SectionHeader title="Follow-up Information" icon="ph-arrows-clockwise" />
 
           <FormField label="Enquiry Type" required>
-            <select name="enquiryType" value={formData.enquiryType} onChange={handleChange} className="w-full px-3 py-1.5 crm-input">
+            <select name="enquiryType" value={formData.enquiryType} onChange={handleChange} className="w-full px-4 py-2.5 rounded-md border border-gray-200 outline-none focus:border-[#00b5e2] focus:ring-1 focus:ring-[#00b5e2]/20 transition-all text-[14px] bg-white text-gray-700">
               <option value="">— Select —</option>
               {Array.from(new Map(enquiryList.map(item => [item.name.toLowerCase().trim(), item])).values()).map((item, i) => (
                 <option key={`enq-${i}-${item.name}`} value={item.name}>
@@ -1095,13 +1104,13 @@ END:VCARD`;
                 value={customEnquiry}
                 onChange={(e) => setCustomEnquiry(e.target.value)}
                 placeholder="Enter enquiry type..."
-                className="w-full px-3 py-1.5 crm-input mt-2"
+                className="w-full px-4 py-2.5 rounded-md border border-gray-200 outline-none focus:border-[#00b5e2] focus:ring-1 focus:ring-[#00b5e2]/20 transition-all text-[14px] bg-white text-gray-700 mt-2"
               />
             )}
           </FormField>
 
           <FormField label="Priority Level" required>
-            <select name="priority" value={formData.priority} onChange={handleChange} className="w-full px-3 py-1.5 crm-input">
+            <select name="priority" value={formData.priority} onChange={handleChange} className="w-full px-4 py-2.5 rounded-md border border-gray-200 outline-none focus:border-[#00b5e2] focus:ring-1 focus:ring-[#00b5e2]/20 transition-all text-[14px] bg-white text-gray-700">
               <option value="">— Select —</option>
               <option value="high">High Priority</option>
               <option value="medium">Medium Priority</option>
@@ -1110,7 +1119,7 @@ END:VCARD`;
           </FormField>
 
           <FormField label="Next Follow-up" required>
-            <input type="date" name="nextFollowUpDate" value={formData.nextFollowUpDate} onChange={handleChange} className="w-full px-3 py-1.5 crm-input" />
+            <input type="date" name="nextFollowUpDate" value={formData.nextFollowUpDate} onChange={handleChange} className="w-full px-4 py-2.5 rounded-md border border-gray-200 outline-none focus:border-[#00b5e2] focus:ring-1 focus:ring-[#00b5e2]/20 transition-all text-[14px] bg-white text-gray-700" />
           </FormField>
 
           <FormField label="Reference">
@@ -1120,14 +1129,12 @@ END:VCARD`;
               value={formData.reference}
               onChange={handleChange}
               placeholder="e.g. Employee Name, Friend, etc."
-              className="w-full px-3 py-1.5 crm-input"
+              className="w-full px-4 py-2.5 rounded-md border border-gray-200 outline-none focus:border-[#00b5e2] focus:ring-1 focus:ring-[#00b5e2]/20 transition-all text-[14px] bg-white text-gray-700"
             />
           </FormField>
 
-
-
           <FormField label="Remarks" isFullWidth>
-            <textarea name="remarks" value={formData.remarks} onChange={handleChange} rows="2" className="w-full px-3 py-1.5 crm-input"></textarea>
+            <textarea name="remarks" value={formData.remarks} onChange={handleChange} rows="2" className="w-full px-4 py-2.5 rounded-md border border-gray-200 outline-none focus:border-[#00b5e2] focus:ring-1 focus:ring-[#00b5e2]/20 transition-all text-[14px] bg-white text-gray-700"></textarea>
           </FormField>
 
           <FormField label="WhatsApp Template" isFullWidth>
@@ -1138,7 +1145,7 @@ END:VCARD`;
                   <span className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Choose a Template</span>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                     {matchedTemplates.map(t => (
-                      <label key={t.id} className={`cursor-pointer border rounded-lg px-3 py-2 flex items-center gap-2 transition-all ${selectedTemplateId === String(t.id) ? 'border-crm-primary bg-crm-primary/10 shadow-sm' : 'border-gray-200 hover:bg-white bg-white'}`}>
+                      <label key={t.id} className={`cursor-pointer border rounded-lg px-3 py-2 flex items-center gap-2 transition-all ${selectedTemplateId === String(t.id) ? 'border-[#00b5e2] bg-[#00b5e2]/10 shadow-sm' : 'border-gray-200 hover:bg-white bg-white'}`}>
                         <input
                           type="radio"
                           name="whatsappTemplateSelect"
@@ -1148,14 +1155,14 @@ END:VCARD`;
                             whatsappUserEditedRef.current = false;
                             setSelectedTemplateId(e.target.value);
                           }}
-                          className="text-crm-primary focus:ring-crm-primary h-4 w-4"
+                          className="text-[#00b5e2] focus:ring-[#00b5e2] h-4 w-4"
                         />
-                        <span className={`text-xs font-medium truncate ${selectedTemplateId === String(t.id) ? 'text-crm-primary' : 'text-gray-700'}`}>
+                        <span className={`text-xs font-medium truncate ${selectedTemplateId === String(t.id) ? 'text-[#00b5e2]' : 'text-gray-700'}`}>
                           {t.template_title || 'Untitled Template'}
                         </span>
                       </label>
                     ))}
-                    <label className={`cursor-pointer border rounded-lg px-3 py-2 flex items-center gap-2 transition-all ${selectedTemplateId === 'custom' ? 'border-crm-primary bg-crm-primary/10 shadow-sm' : 'border-gray-200 hover:bg-white bg-white'}`}>
+                    <label className={`cursor-pointer border rounded-lg px-3 py-2 flex items-center gap-2 transition-all ${selectedTemplateId === 'custom' ? 'border-[#00b5e2] bg-[#00b5e2]/10 shadow-sm' : 'border-gray-200 hover:bg-white bg-white'}`}>
                       <input
                         type="radio"
                         name="whatsappTemplateSelect"
@@ -1167,9 +1174,9 @@ END:VCARD`;
                           setSelectedTemplateId('custom');
                           setFormData(prev => ({ ...prev, whatsappMessage: '' }));
                         }}
-                        className="text-crm-primary focus:ring-crm-primary h-4 w-4"
+                        className="text-[#00b5e2] focus:ring-[#00b5e2] h-4 w-4"
                       />
-                      <span className={`text-xs font-medium ${selectedTemplateId === 'custom' ? 'text-crm-primary' : 'text-gray-700'}`}>
+                      <span className={`text-xs font-medium ${selectedTemplateId === 'custom' ? 'text-[#00b5e2]' : 'text-gray-700'}`}>
                         Custom Message (Unselect)
                       </span>
                     </label>
@@ -1187,7 +1194,7 @@ END:VCARD`;
                 </div>
               )}
               {activeTemplate?.template_title && (
-                <div className="font-bold text-crm-textDark text-sm">
+                <div className="font-bold text-gray-800 text-sm">
                   {activeTemplate.template_title}
                 </div>
               )}
@@ -1197,7 +1204,7 @@ END:VCARD`;
                 value={formData.whatsappMessage}
                 onChange={handleChange}
                 rows="4"
-                className="w-full px-3 py-2 crm-input bg-white text-sm"
+                className="w-full px-4 py-2.5 rounded-md border border-gray-200 outline-none focus:border-[#00b5e2] focus:ring-1 focus:ring-[#00b5e2]/20 transition-all text-[14px] bg-white text-gray-700"
                 placeholder="Message content..."
               ></textarea>
 
@@ -1281,7 +1288,7 @@ END:VCARD`;
                       openWhatsappWeb();
                     }
                   }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded text-xs transition-all"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-md text-xs transition-all shadow-sm"
                 >
                   <i className="ph-bold ph-whatsapp-logo text-sm"></i> Send WhatsApp
                 </button>
@@ -1289,7 +1296,7 @@ END:VCARD`;
             </div>
           </FormField>
 
-          <SectionHeader title="Image Upload" />
+          <SectionHeader title="Image Upload" icon="ph-image" />
           <FormField label="Image" isFullWidth>
             <div className="flex items-center gap-4">
               <input
@@ -1297,7 +1304,7 @@ END:VCARD`;
                 type="file"
                 accept="image/*"
                 onChange={handleImageChange}
-                className="w-full px-3 py-1.5 border border-gray-300 outline-none file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 cursor-pointer text-sm"
+                className="w-full px-4 py-2 rounded-md border border-gray-200 outline-none file:mr-4 file:py-1.5 file:px-4 file:rounded file:border-0 file:text-xs file:font-medium file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 cursor-pointer text-[14px]"
               />
               {formData.image && (
                 <div className="flex-shrink-0 relative">
@@ -1319,23 +1326,30 @@ END:VCARD`;
 
         </div>
 
-        <div className="flex flex-col sm:flex-row justify-end items-center gap-3 mt-8 pt-6 border-t border-gray-200">
-          <button
-            type="button"
-            onClick={resetMainForm}
-            className="w-full sm:w-auto px-5 py-2 bg-white border border-gray-300 text-gray-700 rounded text-sm font-medium transition-all hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors"
-          >
-            Cancel
-          </button>
+        <div className="flex flex-col sm:flex-row justify-start items-center gap-4 mt-12 mb-4">
           <button
             type="submit"
             disabled={!formReady}
-            className="w-full sm:w-auto px-6 py-2 bg-crm-primary text-white rounded font-medium shadow-sm hover:bg-crm-primaryDark transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full sm:w-auto px-10 py-2.5 rounded-md bg-[#00b5e2] hover:bg-[#00a0c9] text-white text-[15px] font-medium shadow-md transition-all disabled:opacity-60 text-center min-w-[160px]"
           >
-            Save
+            Register
+          </button>
+          <button
+            type="button"
+            onClick={resetMainForm}
+            className="w-full sm:w-auto px-10 py-2.5 rounded-md border border-[#00b5e2] text-[#00b5e2] hover:bg-[#00b5e2]/5 text-[15px] font-medium transition-all bg-white text-center min-w-[160px]"
+          >
+            Cancel
           </button>
         </div>
       </form>
+
+      {/* Mascot Illustration */}
+      <div className="absolute bottom-0 right-0 z-0 pointer-events-none hidden lg:block">
+        <img src={muscutImage} alt="Mascot" className="w-[380px] object-contain" />
+      </div>
+
+    </div>
 
       {/* OCR SCANNING MODAL */}
       {showScanModal && (
@@ -1632,7 +1646,7 @@ END:VCARD`;
 
       {/* Hidden canvas for capturing photo frames */}
       <canvas ref={canvasRef} className="hidden"></canvas>
-    </div>
+    </>
   );
 };
 

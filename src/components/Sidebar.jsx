@@ -6,45 +6,50 @@ const Sidebar = ({ activeTab, setActiveTab, activeSubTab, setActiveSubTab, onLog
   const [openAccordion, setOpenAccordion] = useState('');
 
   const allMenuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: 'ph-squares-four' },
+    { id: 'dashboard', label: 'Dashboard', icon: 'ph-squares-four', iconColor: 'text-[#00AEEF]' },
     { 
       id: 'master-data', 
       label: 'Master Data', 
       icon: 'ph-database',
       adminOnly: true,
+      iconColor: 'text-[#8B5CF6]',
       subItems: [
-        { id: 'master-expo', label: 'Expo', icon: 'ph-storefront' },
-        { id: 'employee-registration', label: 'Employee Registration', icon: 'ph-user-plus' },
+        { id: 'master-expo', label: 'Expo', icon: 'ph-storefront', iconColor: 'text-[#F97316]' },
+        { id: 'employee-registration', label: 'Employee Registration', icon: 'ph-user-plus', iconColor: 'text-[#10B981]' },
       ]
     },
     { 
       id: 'registration', 
       label: 'Registration', 
       icon: 'ph-user-plus',
+      iconColor: 'text-[#06B6D4]',
       subItems: [
-        { id: 'customer-registration', label: 'Customer Registration', icon: 'ph-user-plus' },
-        { id: 'customer-report', label: 'Customer Data', icon: 'ph-chart-bar' }
+        { id: 'customer-registration', label: 'Customer Registration', icon: 'ph-user-plus', iconColor: 'text-[#06B6D4]' },
+        { id: 'customer-report', label: 'Customer Data', icon: 'ph-chart-bar', iconColor: 'text-[#06B6D4]' }
       ]
     },
     { 
       id: 'follow-up', 
-      label: 'Customer Followup', 
+      label: 'Customer Follow-up', 
       icon: 'ph-phone-call',
+      iconColor: 'text-[#F43F5E]',
       subItems: [
-        { id: 'follow-up-followup', label: 'Follow up', icon: 'ph-phone-call' },
-        { id: 'follow-up-reports', label: 'Followup Reports', icon: 'ph-chart-bar' }
+        { id: 'follow-up-followup', label: 'Follow up', icon: 'ph-phone-call', iconColor: 'text-[#F43F5E]' },
+        { id: 'follow-up-reports', label: 'Followup Reports', icon: 'ph-chart-bar', iconColor: 'text-[#F43F5E]' }
       ]
     },
     { 
       id: 'date-wise-analyse', 
       label: 'Date wise analyse', 
-      icon: 'ph-calendar-blank'
+      icon: 'ph-calendar-blank',
+      iconColor: 'text-[#EAB308]'
     },
     { 
       id: 'allocation', 
       label: 'Allocation', 
       icon: 'ph-arrows-left-right',
-      adminOnly: true
+      adminOnly: true,
+      iconColor: 'text-[#3B82F6]'
     },
   ];
 
@@ -96,7 +101,7 @@ const Sidebar = ({ activeTab, setActiveTab, activeSubTab, setActiveSubTab, onLog
     <aside
       className={`
         fixed lg:relative inset-y-0 left-0 w-80
-        bg-crm-primaryDark text-crm-sidebarText
+        bg-crm-sidebarBg text-crm-sidebarText
         flex flex-col shrink-0 h-full  z-50
         transform transition-transform duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -104,7 +109,7 @@ const Sidebar = ({ activeTab, setActiveTab, activeSubTab, setActiveSubTab, onLog
       `}
     >
       {/* Header */}
-      <div className="h-16 flex items-center justify-center bg-crm-primaryDark border-b border-white/10 shrink-0 w-full relative">
+      <div className="h-16 flex items-center justify-center bg-crm-sidebarBg shrink-0 w-full relative mt-4 mb-2">
         <h1 className="text-white font-semibold tracking-wider">
           <img src={logo} className="h-10 w-auto" style={{ filter: 'brightness(0) invert(1)' }} alt="Logo" />
         </h1>
@@ -125,25 +130,27 @@ const Sidebar = ({ activeTab, setActiveTab, activeSubTab, setActiveSubTab, onLog
             const isActive = activeTab === item.id;
 
             return (
-              <li key={item.id}>
+              <li key={item.id} className={`mb-2 ${isAccordionOpen ? 'bg-crm-sidebarActiveParent rounded-xl py-1' : ''}`}>
                 <button
                   onClick={(e) => handleParentClick(e, item)}
                   className={`
                     w-full flex items-center justify-between px-4 py-3
-                    text-md font-semibold rounded-lg transition-all text-left sidebar-item
-                    ${isActive
-                      ? 'bg-white/10 text-white shadow-inner border-l-4 border-crm-primaryLight'
-                      : 'text-crm-sidebarText hover:bg-white/5 hover:text-white'
+                    text-[15px] font-semibold rounded-lg transition-all text-left sidebar-item
+                    ${(isActive && !item.subItems)
+                      ? 'bg-crm-sidebarActiveSub text-white shadow-inner'
+                      : isAccordionOpen 
+                        ? 'text-white' 
+                        : 'text-crm-sidebarText hover:bg-white/5 hover:text-white'
                     }
                   `}
                 >
-                  <div className="flex items-center gap-3">
-                    <i className={`ph ${item.icon} text-xl shrink-0`}></i>
+                  <div className="flex items-center gap-4">
+                    <i className={`ph ${item.icon} text-[22px] shrink-0 ${item.iconColor || ''}`}></i>
                     <span>{item.label}</span>
                   </div>
                   {item.subItems && (
                     <i
-                      className={`ph-bold ${isAccordionOpen ? 'ph-caret-up' : 'ph-caret-down'} text-sm shrink-0`}
+                      className={`ph-bold ${isAccordionOpen ? 'ph-caret-up' : 'ph-caret-down'} text-[14px] shrink-0`}
                       style={{ transition: 'transform 0.2s ease' }}
                     ></i>
                   )}
@@ -170,15 +177,15 @@ const Sidebar = ({ activeTab, setActiveTab, activeSubTab, setActiveSubTab, onLog
                             <button
                               onClick={(e) => handleSubItemClick(e, item, sub)}
                               className={`
-                                w-full flex items-center gap-3 px-3 py-2
-                                text-sm font-semibold rounded-lg transition-all text-left
+                                w-full flex items-center gap-4 px-4 py-2.5
+                                text-[14px] font-semibold rounded-xl transition-all text-left
                                 ${isSubActive
-                                  ? 'bg-white/20 text-white'
+                                  ? 'bg-crm-sidebarActiveSub text-white shadow-sm'
                                   : 'text-crm-sidebarText hover:bg-white/10 hover:text-white'
                                 }
                               `}
                             >
-                              <i className={`ph ${sub.icon} text-lg shrink-0`}></i>
+                              <i className={`ph ${sub.icon} text-[20px] shrink-0 ${sub.iconColor || ''}`}></i>
                               <span>{sub.label}</span>
                             </button>
                           </li>
@@ -194,12 +201,12 @@ const Sidebar = ({ activeTab, setActiveTab, activeSubTab, setActiveSubTab, onLog
       </div>
 
       {/* Logout */}
-      <div className="p-4 border-t border-white/10 shrink-0 bg-crm-primaryDark">
+      <div className="p-4 shrink-0 bg-crm-sidebarBg pb-6">
         <button
           onClick={onLogout}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-crm-primary hover:bg-white hover:text-crm-primary text-white rounded-lg transition-all font-semibold text-sm border border-transparent shadow-md hover:shadow-lg"
+          className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-crm-sidebarLogout hover:bg-[#00AEEF]/90 text-white rounded-xl transition-all font-semibold text-[15px] border border-transparent shadow-md hover:shadow-lg"
         >
-          <i className="ph-bold ph-sign-out text-lg"></i>
+          <i className="ph-bold ph-sign-out text-[22px]"></i>
           Logout
         </button>
       </div>

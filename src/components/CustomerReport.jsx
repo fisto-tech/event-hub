@@ -427,93 +427,7 @@ const CustomerReport = ({ currentUser, filterSource }) => {
   // Word export intentionally removed as requested.
 
   return (
-    <div className=" pb-12 font-sans animate-in fade-in duration-300">
-      
-      {document.getElementById('top-nav-filters') ? createPortal(
-        <div className="flex items-center gap-2 md:gap-3 w-full justify-start md:justify-center">
-          {/* Expo & Source Filter */}
-          <div className="relative group flex items-center">
-            {/* Mobile: Icon Only */}
-            <div className="md:hidden relative flex items-center justify-center w-10 h-10 rounded-full bg-white border border-emerald-500 shadow-sm hover:bg-emerald-50 overflow-hidden transition-colors">
-              <i className="ph-bold ph-funnel text-emerald-600 text-lg pointer-events-none z-10"></i>
-              <select
-                value={filterExpo}
-                onChange={(e) => setFilterExpo(e.target.value)}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer appearance-none z-20"
-              >
-                <option value="all">All Expos & Sources</option>
-                {expoAndSourceOptions.map(opt => (
-                  <option key={`${opt.type}_${opt.id}`} value={`${opt.type}_${opt.id}`}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {/* Desktop: Full Dropdown */}
-            <div className="hidden md:block relative w-64 group">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10">
-                <i className="ph-bold ph-funnel text-emerald-500 group-hover:text-emerald-600 transition-colors"></i>
-              </div>
-              <select
-                value={filterExpo}
-                onChange={(e) => setFilterExpo(e.target.value)}
-                className="w-full pl-10 pr-10 py-2 text-sm font-medium rounded-full bg-white border border-emerald-500 text-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-600 shadow-sm transition-all cursor-pointer appearance-none hover:bg-emerald-50"
-              >
-                <option value="all">All Expos & Sources</option>
-                {expoAndSourceOptions.map(opt => (
-                  <option key={`${opt.type}_${opt.id}`} value={`${opt.type}_${opt.id}`}>
-                    {opt.label} ({opt.type === 'expo' ? 'Expo' : 'Source'})
-                  </option>
-                ))}
-              </select>
-              <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none z-10">
-                <i className="ph-bold ph-caret-down text-emerald-500 text-xs"></i>
-              </div>
-            </div>
-          </div>
-
-          {/* Employee Filter */}
-          {showAllCustomers && (
-            <div className="relative group flex items-center">
-              {/* Mobile: Icon Only */}
-              <div className="md:hidden relative flex items-center justify-center w-10 h-10 rounded-full bg-white border border-amber-500 shadow-sm hover:bg-amber-50 overflow-hidden transition-colors">
-                <i className="ph-bold ph-users text-amber-600 text-lg pointer-events-none z-10"></i>
-                <select
-                  value={filterEmployee}
-                  onChange={(e) => setFilterEmployee(e.target.value)}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer appearance-none z-20"
-                >
-                  <option value="all">All Employees</option>
-                  {employees
-                    .filter(e => activeEmployeeIds.has(String(e.id)))
-                    .map(e => <option key={e.id} value={e.id}>{e.name || e.username || `User #${e.id}`}</option>)}
-                </select>
-              </div>
-              {/* Desktop: Full Dropdown */}
-              <div className="hidden md:block relative w-56 group">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10">
-                  <i className="ph-bold ph-users text-amber-500 group-hover:text-amber-600 transition-colors"></i>
-                </div>
-                <select
-                  value={filterEmployee}
-                  onChange={(e) => setFilterEmployee(e.target.value)}
-                  className="w-full pl-10 pr-10 py-2 text-sm font-medium rounded-full bg-white border border-amber-500 text-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-600 shadow-sm transition-all cursor-pointer appearance-none hover:bg-amber-50"
-                >
-                  <option value="all">All Employees</option>
-                  {employees
-                    .filter(e => activeEmployeeIds.has(String(e.id)))
-                    .map(e => <option key={e.id} value={e.id}>{e.name || e.username || `User #${e.id}`}</option>)}
-                </select>
-                <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none z-10">
-                  <i className="ph-bold ph-caret-down text-amber-500 text-xs"></i>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>,
-        document.getElementById('top-nav-filters')
-      ) : null}
-
+    <div className="pb-12 max-w-full mx-auto font-sans animate-in fade-in duration-300 p-4 lg:p-6 bg-[#f8fafc] min-h-screen">
 
       {viewingCustomer && (
         <ReportModalShell
@@ -1055,109 +969,53 @@ const CustomerReport = ({ currentUser, filterSource }) => {
       )}
 
 
-      {/* Advanced Filters: Search, Expo, Date Range */}
-      <div className="bg-white mb-5 rounded-xl border border-gray-200 shadow-sm p-5">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-end">
-
-
-
-          <div className="md:col-span-1 lg:col-span-3">
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 tracking-wider">SEARCH</label>
-            <div className="flex rounded-lg border border-gray-300 overflow-hidden focus-within:border-crm-primary">
-              <select
-                value={searchField}
-                onChange={(e) => setSearchField(e.target.value)}
-                className="px-3 py-2.5 bg-gray-50 text-sm outline-none border-r border-gray-300 min-w-[110px]"
-              >
-                <option value="all">All fields</option>
-                <option value="company">Company</option>
-                <option value="phone">Phone</option>
-                <option value="name">Name</option>
-                <option value="city">City</option>
-              </select>
-              <input
-                type="text"
-                placeholder="Type to search..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-3 py-2.5 text-sm outline-none"
-              />
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mt-4">
+        
+        {/* Header Section */}
+        <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="flex items-center gap-4">
+            <div className="bg-[#00b5e2]/10 text-[#00b5e2] rounded-xl h-12 w-12 flex items-center justify-center shrink-0">
+              <i className="ph-bold ph-users text-2xl"></i>
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-[#1e293b]">Customer Reports</h2>
+              <p className="text-sm text-slate-500 mt-0.5">Manage and track all customer data</p>
             </div>
           </div>
-
-          <div className="md:col-span-1 lg:col-span-3">
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 tracking-wider">DATE RANGE</label>
-            <div className="flex items-center gap-2">
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-2 py-2.5 rounded-lg border border-gray-300 text-sm outline-none focus:border-crm-primary"
-              />
-              <span className="text-gray-400 text-xs font-bold">TO</span>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full px-2 py-2.5 rounded-lg border border-gray-300 text-sm outline-none focus:border-crm-primary"
-              />
-            </div>
-          </div>
-
-        </div>
-
-        <div className="mt-4 border-t border-gray-100 pt-4 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
-          <button
-            type="button"
-            onClick={() => {
-              setFilterExpo('all');
-              setFilterEmployee('all');
-              setSearchField('all');
-              setSearchTerm('');
-              setStartDate('');
-              setEndDate('');
-              setSortBy('date-desc');
-            }}
-            className="w-full md:w-auto px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold shadow-sm transition-colors"
-          >
-            Reset All
-          </button>
-
-          {/* Import / Export Buttons */}
-          <div className="w-full md:w-auto flex flex-col md:flex-row gap-3">
+          
+          <div className="flex items-center gap-3 w-full md:w-auto">
             <button
               onClick={() => setShowExcelModal(true)}
-              className="w-full md:w-auto bg-white border border-emerald-500 hover:bg-emerald-50 text-emerald-600 px-6 py-2 rounded-lg text-sm font-semibold shadow-sm flex items-center justify-center gap-2 transition-colors duration-300"
+              className="bg-white border border-emerald-500 hover:bg-emerald-50 text-emerald-600 px-5 py-2.5 rounded-md text-[14px] font-medium shadow-sm flex items-center gap-2 transition-all w-full md:w-auto justify-center"
             >
               <i className="ph-bold ph-upload-simple text-lg"></i>
-              Import from Excel
+              Import
             </button>
 
             {['admin', 'super_admin', 'superadmin'].includes(userRole?.toLowerCase()) && (
-              <div className="relative w-full md:w-auto" ref={dropdownRef}>
+              <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setIsExportDropdownOpen(!isExportDropdownOpen)}
-                  className="w-full md:w-auto bg-gradient-to-r from-crm-primary to-crm-primaryDark hover:from-crm-primaryDark hover:to-crm-primary text-white px-6 py-2 rounded-lg text-sm font-semibold shadow-sm flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-95"
+                  className="bg-[#00b5e2] hover:bg-[#00a0c9] text-white px-5 py-2.5 rounded-md text-[14px] font-medium shadow-sm flex items-center gap-2 transition-all w-full md:w-auto justify-center"
                 >
                   <i className="ph-bold ph-download-simple text-lg"></i>
-                  Export Reports
-                  <i className={`ph-bold ph-caret-down transition-transform duration-300 ${isExportDropdownOpen ? 'rotate-180' : ''}`}></i>
+                  Export
                 </button>
 
                 {isExportDropdownOpen && (
-                  <div className="absolute right-0 left-0 md:left-auto mt-2 w-full md:w-56 bg-white border border-gray-100 rounded-xl shadow-2xl z-30 overflow-hidden divide-y divide-gray-100 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden">
                     <button
                       onClick={handleExportExcel}
-                      className="w-full px-5 py-3.5 text-left text-sm font-semibold text-gray-700 hover:bg-emerald-50/30 flex items-center gap-3 transition-colors group"
+                      className="w-full px-4 py-3 text-left text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
                     >
-                      <i className="ph-fill ph-file-xls text-emerald-600 text-xl group-hover:scale-110 transition-transform"></i>
+                      <i className="ph-fill ph-file-xls text-emerald-600 text-lg"></i>
                       Export to Excel (.csv)
                     </button>
                     <button
                       onClick={handleExportPDF}
-                      className="w-full px-5 py-3.5 text-left text-sm font-semibold text-gray-700 hover:bg-red-50/30 flex items-center gap-3 transition-colors group"
+                      className="w-full px-4 py-3 text-left text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
                     >
-                      <i className="ph-fill ph-file-pdf text-red-600 text-xl group-hover:scale-110 transition-transform"></i>
+                      <i className="ph-fill ph-file-pdf text-red-600 text-lg"></i>
                       Export to PDF (.pdf)
                     </button>
                   </div>
@@ -1166,24 +1024,158 @@ const CustomerReport = ({ currentUser, filterSource }) => {
             )}
           </div>
         </div>
-      </div>
 
-      {!showAllCustomers && (
-        <p className="text-sm text-crm-primary bg-crm-primaryLighter/60 border border-crm-primary/15 rounded-lg px-4 py-2">
-          Showing customers you registered only.
-        </p>
-      )}
+        {/* Statistics Row */}
+        <div className="p-6">
+          <div className="border border-gray-200 rounded-xl flex flex-col md:flex-row overflow-hidden divide-y md:divide-y-0 md:divide-x divide-gray-200">
+            <div className="flex-1 p-5 flex items-center justify-center gap-4">
+              <div className="h-12 w-12 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
+                <i className="ph-fill ph-users-three text-2xl"></i>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-blue-700">{filteredCustomers.length}</div>
+                <div className="text-[13px] font-bold text-gray-800 uppercase mt-1">Total Customers</div>
+              </div>
+            </div>
+            
+            <div className="flex-1 p-5 flex flex-col items-center justify-center border-l-4 border-l-[#00b5e2]/30">
+              <div className="text-3xl font-bold text-emerald-600">{filteredCustomers.filter(c => c.status === 'completed').length}</div>
+              <div className="text-[13px] font-bold text-gray-800 mt-1">Completed</div>
+            </div>
 
-      {loading ? (
-        <LoadingSpinner label="Loading customer report..." />
-      ) : (
-        <div className="report-table-wrap mt-5">
-          <div className="report-table-scroll rounded-xl border border-gray-300 shadow-sm overflow-hidden">
-            <table className="w-full text-left border-collapse whitespace-nowrap text-crm-textDark min-w-[800px]">
+            <div className="flex-1 p-5 flex flex-col items-center justify-center border-l-4 border-l-[#00b5e2]/30">
+              <div className="text-3xl font-bold text-amber-500">{filteredCustomers.filter(c => c.status !== 'completed').length}</div>
+              <div className="text-[13px] font-bold text-gray-800 mt-1">Pending</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Filters Row */}
+        <div className="px-6 pb-6 grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+          
+          <div className="md:col-span-3">
+            <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1.5 tracking-wider">EXPO / SOURCE</label>
+            <select
+              value={filterExpo}
+              onChange={(e) => setFilterExpo(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm outline-none focus:border-[#00b5e2] focus:ring-1 focus:ring-[#00b5e2]/20 bg-white"
+            >
+              <option value="all">All Expos & Sources</option>
+              {expoAndSourceOptions.map(opt => (
+                <option key={`${opt.type}_${opt.id}`} value={`${opt.type}_${opt.id}`}>
+                  {opt.label} ({opt.type === 'expo' ? 'Expo' : 'Source'})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {showAllCustomers && (
+            <div className="md:col-span-3">
+              <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1.5 tracking-wider">EMPLOYEE</label>
+              <select
+                value={filterEmployee}
+                onChange={(e) => setFilterEmployee(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm outline-none focus:border-[#00b5e2] focus:ring-1 focus:ring-[#00b5e2]/20 bg-white"
+              >
+                <option value="all">All Employees</option>
+                {employees
+                  .filter(e => activeEmployeeIds.has(String(e.id)))
+                  .map(e => <option key={e.id} value={e.id}>{e.name || e.username || `User #${e.id}`}</option>)}
+              </select>
+            </div>
+          )}
+
+          <div className={`md:col-span-${showAllCustomers ? '6' : '9'} flex gap-2`}>
+            <div className="w-1/3">
+              <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1.5 tracking-wider">SEARCH FIELD</label>
+              <select
+                value={searchField}
+                onChange={(e) => setSearchField(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm outline-none focus:border-[#00b5e2] focus:ring-1 focus:ring-[#00b5e2]/20 bg-white"
+              >
+                <option value="all">All fields</option>
+                <option value="company">Company</option>
+                <option value="phone">Phone</option>
+                <option value="name">Name</option>
+                <option value="city">City</option>
+              </select>
+            </div>
+            <div className="w-2/3 relative flex items-end">
+               <div className="w-full relative">
+                <i className="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 text-sm outline-none focus:border-[#00b5e2] focus:ring-1 focus:ring-[#00b5e2]/20"
+                />
+               </div>
+            </div>
+          </div>
+
+          <div className="md:col-span-5">
+            <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1.5 tracking-wider">DATE RANGE</label>
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm outline-none focus:border-[#00b5e2]"
+                />
+              </div>
+              <span className="text-gray-500 text-xs font-bold">TO</span>
+              <div className="relative flex-1">
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm outline-none focus:border-[#00b5e2]"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="md:col-span-7 flex justify-end">
+            <button
+              onClick={() => {
+                setFilterExpo('all');
+                setFilterEmployee('all');
+                setSearchField('all');
+                setSearchTerm('');
+                setStartDate('');
+                setEndDate('');
+                setSortBy('date-desc');
+              }}
+              className="px-4 py-2.5 w-full md:w-auto rounded-lg border border-red-200 text-red-500 hover:bg-red-50 text-sm font-medium transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
+            >
+              <i className="ph ph-arrow-counter-clockwise"></i>
+              Reset All
+            </button>
+          </div>
+        </div>
+
+        {!showAllCustomers && (
+          <div className="px-6 pb-2">
+            <p className="text-sm text-[#00b5e2] bg-[#00b5e2]/10 border border-[#00b5e2]/20 rounded-lg px-4 py-2 inline-block">
+              Showing customers you registered only.
+            </p>
+          </div>
+        )}
+
+        {/* Table Data */}
+        {loading ? (
+          <div className="p-10 flex justify-center border-t border-gray-100">
+            <LoadingSpinner label="Loading Report..." />
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse whitespace-nowrap">
               <thead>
-                <tr className="bg-crm-primary border-b border-crm-primary text-white">
+                <tr className="bg-[#00b5e2] text-white">
                   {['admin', 'super_admin', 'superadmin'].includes(userRole?.toLowerCase()) && (
-                    <th className="px-3 py-2 font-semibold text-xs border-r border-white/20 w-10 text-center">
+                    <th className="px-4 py-3.5 font-semibold text-[13px] border-r border-white/20 w-12 text-center">
                       <input
                         type="checkbox"
                         checked={filteredCustomers.length > 0 && selectedIds.length === filteredCustomers.length}
@@ -1194,27 +1186,26 @@ const CustomerReport = ({ currentUser, filterSource }) => {
                             setSelectedIds([]);
                           }
                         }}
-                        className="cursor-pointer"
-                        title="Select All"
+                        className="cursor-pointer rounded border-white/30 text-[#00b5e2] focus:ring-white"
                       />
                     </th>
                   )}
-                  <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20 w-14">S.No</th>
-                  <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Date</th>
-                  <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Expo / Source</th>
-                  <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Company</th>
-                  <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Contact Person</th>
-                  <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Phone</th>
-                  <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Registered By</th>
-                  <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider border-r border-white/20">Status</th>
-                  <th className="px-3 py-2 font-semibold text-xs uppercase tracking-wider text-right">Actions</th>
+                  <th className="px-4 py-3.5 font-semibold text-[13px] border-r border-white/20 text-center w-16">S.No</th>
+                  <th className="px-4 py-3.5 font-semibold text-[13px] border-r border-white/20 text-center">Date</th>
+                  <th className="px-4 py-3.5 font-semibold text-[13px] border-r border-white/20 text-center">Expo / Source</th>
+                  <th className="px-4 py-3.5 font-semibold text-[13px] border-r border-white/20 text-center">Company</th>
+                  <th className="px-4 py-3.5 font-semibold text-[13px] border-r border-white/20 text-center">Contact Person</th>
+                  <th className="px-4 py-3.5 font-semibold text-[13px] border-r border-white/20 text-center">Phone</th>
+                  <th className="px-4 py-3.5 font-semibold text-[13px] border-r border-white/20 text-center">Registered By</th>
+                  <th className="px-4 py-3.5 font-semibold text-[13px] border-r border-white/20 text-center">Status</th>
+                  <th className="px-4 py-3.5 font-semibold text-[13px] text-center">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {paginatedCustomers.map((cust, index) => (
-                  <tr key={cust.id} className="border-b border-gray-300 hover:bg-crm-primaryLighter/40 transition-colors duration-150">
+                  <tr key={cust.id} className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors bg-white">
                     {['admin', 'super_admin', 'superadmin'].includes(userRole?.toLowerCase()) && (
-                      <td className="px-3 py-2 text-sm text-gray-600 border-r border-gray-300 text-center">
+                      <td className="px-4 py-3 text-[13px] text-center border-r border-gray-100">
                         <input
                           type="checkbox"
                           checked={selectedIds.includes(cust.id)}
@@ -1225,47 +1216,52 @@ const CustomerReport = ({ currentUser, filterSource }) => {
                               setSelectedIds(prev => prev.filter(id => id !== cust.id));
                             }
                           }}
-                          className="cursor-pointer"
+                          className="cursor-pointer text-[#00b5e2] focus:ring-[#00b5e2] rounded border-gray-300"
                         />
                       </td>
                     )}
-                    <td className="px-3 py-2 text-sm text-gray-600 border-r border-gray-300 text-center">{(currentPage - 1) * itemsPerPage + index + 1}</td>
-                    <td className="px-3 py-2 text-sm text-gray-600 border-r border-gray-300">{formatDateTime(cust.visit_date)}</td>
-                    <td className="px-3 py-2 border-r border-gray-300">
+                    <td className="px-4 py-3 text-[13px] font-semibold text-gray-800 text-center border-r border-gray-100">
+                      {(currentPage - 1) * itemsPerPage + index + 1}
+                    </td>
+                    <td className="px-4 py-3 text-[13px] font-medium text-gray-800 text-center border-r border-gray-100">
+                      {cust.visit_date ? formatDateTime(cust.visit_date).split(' ')[0] : '-'}
+                    </td>
+                    <td className="px-4 py-3 border-r border-gray-100 text-center">
                       {cust.expo_id || cust.linked_expo || cust.manual_expo_name ? (
-                        <div className="font-semibold text-crm-primary text-sm leading-tight">
+                        <div className="font-semibold text-[#00b5e2] text-[13px]">
                           {expoLabel(cust)}
                         </div>
                       ) : (
-                        <div className="text-purple-600 text-sm font-semibold leading-tight">
+                        <div className="text-purple-600 text-[13px] font-semibold">
                           {cust.reference_source || ''}
                         </div>
                       )}
                     </td>
-                    <td className="px-3 py-2 font-semibold text-sm text-gray-900 border-r border-gray-300">{cust.company_name}</td>
-                    <td className="px-3 py-2 text-sm text-gray-700 border-r border-gray-300">{cust.customer_name}</td>
-                    <td className="px-3 py-2 text-sm text-gray-600 font-mono border-r border-gray-300">{cust.phone_1}</td>
-                    <td className="px-3 py-2 text-sm text-gray-700 border-r border-gray-300">{registeredByLabel(cust)}</td>
-                    <td className="px-3 py-2 text-sm border-r border-gray-300">
+                    <td className="px-4 py-3 font-semibold text-[13px] text-gray-900 border-r border-gray-100 text-center">{cust.company_name}</td>
+                    <td className="px-4 py-3 text-[13px] font-medium text-gray-600 border-r border-gray-100 text-center">{cust.customer_name}</td>
+                    <td className="px-4 py-3 text-[13px] font-bold text-gray-800 border-r border-gray-100 text-center">{cust.phone_1}</td>
+                    <td className="px-4 py-3 text-[13px] font-medium text-gray-800 border-r border-gray-100 text-center">{registeredByLabel(cust)}</td>
+                    <td className="px-4 py-3 text-[13px] text-center border-r border-gray-100">
                       {cust.isOffline ? (
-                        <div className="flex flex-col gap-1">
-                          <span className="px-3 py-1 rounded-full text-xs font-semibold border bg-amber-50 text-amber-700 border-amber-200/50">
-                            <i className="ph-bold ph-wifi-slash mr-1 text-xs"></i>
+                        <div className="flex flex-col gap-1 items-center">
+                          <span className="px-3 py-1 rounded border border-white/0 font-medium bg-amber-50 text-amber-600 capitalize inline-flex items-center text-[12px]">
+                            <i className="ph-bold ph-wifi-slash mr-1"></i>
                             {cust.syncStatus === 'failed' ? 'Sync Failed' : 'Pending Sync'}
                           </span>
                         </div>
                       ) : (
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${cust.status === 'completed'
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200/50'
-                          : 'bg-amber-50 text-amber-700 border-amber-200/50'
-                          }`}>
-                          <i className={`ph-bold ${cust.status === 'completed' ? 'ph-check-circle' : 'ph-clock'} mr-1 text-xs`}></i>
+                        <span className={`px-3 py-1 rounded border border-white/0 font-medium capitalize inline-flex items-center text-[12px] ${
+                          cust.status === 'completed'
+                            ? 'bg-green-50 text-green-600'
+                            : 'bg-amber-50 text-amber-500'
+                        }`}>
+                          <i className={`ph-bold ${cust.status === 'completed' ? 'ph-check-circle' : 'ph-clock'} mr-1`}></i>
                           {cust.status === 'completed' ? 'Completed' : 'Pending'}
                         </span>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-sm text-right whitespace-nowrap">
-                      <div className="flex justify-end items-center gap-1">
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex justify-center items-center gap-1">
                         {cust.image_path && (
                           <button
                             type="button"
@@ -1275,16 +1271,19 @@ const CustomerReport = ({ currentUser, filterSource }) => {
                                 title: 'Image',
                               })
                             }
-                            className="text-gray-500 hover:text-gray-700 p-1.5 rounded-lg hover:bg-gray-100"
+                            className="text-[#00b5e2] hover:bg-[#00b5e2]/10 p-1.5 rounded-full transition-colors inline-flex items-center justify-center"
                             title="View Image"
                           >
-                            <i className="ph-bold ph-image text-lg"></i>
+                            <i className="ph-bold ph-image text-[16px]"></i>
                           </button>
                         )}
-
-                        <button onClick={() => setEditingCustomer({ ...cust })} className="text-crm-primary hover:text-crm-primaryDark p-1.5 rounded-lg hover:bg-crm-primaryLighter" title="Edit"><i className="ph-bold ph-pencil-simple text-lg"></i></button>
+                        <button onClick={() => setEditingCustomer({ ...cust })} className="text-[#00b5e2] hover:bg-[#00b5e2]/10 p-1.5 rounded-full transition-colors inline-flex items-center justify-center" title="Edit">
+                          <i className="ph-bold ph-pencil-simple text-[16px]"></i>
+                        </button>
                         {showAllCustomers && (
-                          <button onClick={() => handleDelete(cust.id, cust.company_name)} className="text-red-600 hover:text-red-800 p-1.5 rounded-lg hover:bg-red-50" title="Delete"><i className="ph-bold ph-trash text-lg"></i></button>
+                          <button onClick={() => handleDelete(cust.id, cust.company_name)} className="text-red-500 hover:bg-red-50 p-1.5 rounded-full transition-colors inline-flex items-center justify-center" title="Delete">
+                            <i className="ph-bold ph-trash text-[16px]"></i>
+                          </button>
                         )}
                       </div>
                     </td>
@@ -1292,11 +1291,10 @@ const CustomerReport = ({ currentUser, filterSource }) => {
                 ))}
                 {filteredCustomers.length === 0 && (
                   <tr>
-                    <td colSpan={12} className="px-5 py-12 text-center text-gray-400">
+                    <td colSpan={10} className="px-4 py-12 text-center text-gray-500">
                       <div className="flex flex-col items-center justify-center space-y-2">
-                        <i className="ph-bold ph-tray text-4xl text-gray-300"></i>
-                        <p className="font-semibold text-gray-500">No customers found matching these filters</p>
-                        <p className="text-xs text-gray-400">Try adjusting your search query, status tabs, or date range.</p>
+                        <i className="ph ph-magnifying-glass text-3xl text-gray-300"></i>
+                        <p className="font-semibold">No customers found matching these filters</p>
                       </div>
                     </td>
                   </tr>
@@ -1304,30 +1302,33 @@ const CustomerReport = ({ currentUser, filterSource }) => {
               </tbody>
             </table>
           </div>
+        )}
 
-          {/* Pagination Controls */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4 bg-white p-4 rounded-xl border border-gray-200/80 shadow-sm">
-              <div className="text-sm text-gray-600">
-                Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredCustomers.length)} of {filteredCustomers.length} entries
-              </div>
+        {/* Pagination Controls */}
+        {!loading && (
+          <div className="p-4 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4 bg-white">
+            <div className="text-[13px] font-bold text-gray-800">
+              Showing {filteredCustomers.length > 0 ? ((currentPage - 1) * itemsPerPage) + 1 : 0} to {Math.min(currentPage * itemsPerPage, filteredCustomers.length)} of {filteredCustomers.length} records
+            </div>
+            {totalPages > 1 && (
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="px-3 py-1.5 rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                  className="w-8 h-8 rounded border border-gray-200 text-gray-400 hover:text-gray-600 hover:border-gray-300 disabled:opacity-50 flex items-center justify-center transition-colors bg-white"
                 >
-                  Previous
+                  <i className="ph-bold ph-caret-left"></i>
                 </button>
                 <div className="flex items-center gap-1">
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                     <button
                       key={page}
                       onClick={() => setCurrentPage(page)}
-                      className={`w-8 h-8 rounded flex items-center justify-center text-sm font-medium transition-colors ${currentPage === page
-                          ? 'bg-crm-primary text-white border-crm-primary'
-                          : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
-                        }`}
+                      className={`w-8 h-8 rounded flex items-center justify-center text-[13px] font-bold transition-colors ${
+                        currentPage === page
+                          ? 'bg-[#00b5e2] text-white border border-[#00b5e2]'
+                          : 'border border-gray-200 text-gray-600 hover:border-gray-300 bg-white'
+                      }`}
                     >
                       {page}
                     </button>
@@ -1336,15 +1337,20 @@ const CustomerReport = ({ currentUser, filterSource }) => {
                 <button
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
-                  className="px-3 py-1.5 rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                  className="w-8 h-8 rounded border border-gray-200 text-gray-400 hover:text-gray-600 hover:border-gray-300 disabled:opacity-50 flex items-center justify-center transition-colors bg-white"
                 >
-                  Next
+                  <i className="ph-bold ph-caret-right"></i>
                 </button>
               </div>
+            )}
+            <div className="hidden md:flex items-center gap-2">
+              <select className="border border-gray-200 rounded px-2 py-1 text-[13px] font-bold text-gray-600 outline-none">
+                <option>{itemsPerPage} per page</option>
+              </select>
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
 
       {showExcelModal && (
         <ExcelImportModal

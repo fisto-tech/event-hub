@@ -331,144 +331,45 @@ const FollowupReport = ({ currentUser }) => {
   };
 
   return (
-    <div className=" pb-10 max-w-[1600px] mx-auto fade-in">
-      {/* 1. TOP STATISTICS CARD */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-md p-6 lg:p-8 mx-auto max-w-4xl">
-        <h2 className="text-center font-bold text-gray-800 text-lg mb-6">
-          Total Followup Taken : <span className="text-red-600 text-2xl ml-1">{stats.total}</span>
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-4 gap-x-12 text-sm font-semibold text-gray-600">
-          <div className="flex justify-between items-center pb-2 border-b border-gray-100">
-            <span>Followup / Lead / Quotation</span>
-            <span className="text-purple-600 font-bold">{stats.followupLeadQuotation}</span>
-          </div>
-          <div className="flex justify-between items-center pb-2 border-b border-gray-100">
-            <span>Proposal</span>
-            <span className="text-blue-500 font-bold">{stats.proposal}</span>
-          </div>
-          <div className="flex justify-between items-center pb-2 border-b border-gray-100">
-            <span>Project Onboard</span>
-            <span className="text-emerald-600 font-bold">{stats.projectOnboard}</span>
-          </div>
-          <div className="flex justify-between items-center pb-2 border-b border-gray-100">
-            <span>Dropped</span>
-            <span className="text-red-500 font-bold">{stats.dropped}</span>
-          </div>
-          <div className="flex justify-between items-center pb-2 border-b border-gray-100">
-            <span>Appointment</span>
-            <span className="text-amber-600 font-bold">{stats.appointment}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. FILTERS CONTAINER */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 mt-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 items-end">
-
-          <div className="lg:col-span-1">
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 tracking-wider">EXPO NAME</label>
-            <select
-              value={filterExpo}
-              onChange={(e) => setFilterExpo(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm outline-none focus:border-crm-primary"
-            >
-              <option value="all">All Expos</option>
-              {expos.map(e => <option key={e.id} value={e.id}>{e.expo_name}</option>)}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 tracking-wider">EMPLOYEE</label>
-            <select
-              value={filterEmployee}
-              onChange={(e) => setFilterEmployee(e.target.value)}
-              disabled={!showAll}
-              className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm outline-none focus:border-crm-primary disabled:bg-gray-100"
-            >
-              <option value="all">All Employees</option>
-              {employees.map(e => <option key={e.id} value={e.id}>{e.name || e.username}</option>)}
-            </select>
-          </div>
-
-          <div className="lg:col-span-2">
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 tracking-wider">SEARCH</label>
-            <div className="flex rounded-lg border border-gray-300 overflow-hidden focus-within:border-crm-primary">
-              <select
-                value={searchField}
-                onChange={(e) => setSearchField(e.target.value)}
-                className="px-3 py-2.5 bg-gray-50 text-sm outline-none border-r border-gray-300 min-w-[110px]"
-              >
-                <option value="all">All fields</option>
-                <option value="company">Company</option>
-                <option value="phone">Phone</option>
-                <option value="name">Name</option>
-              </select>
-              <input
-                type="text"
-                placeholder="Type to search..."
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                className="w-full px-3 py-2.5 text-sm outline-none"
-              />
+    <div className="pb-10 max-w-full mx-auto fade-in p-4 lg:p-6 bg-[#f8fafc] min-h-screen">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        
+        {/* Header Section */}
+        <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="flex items-center gap-4">
+            <div className="bg-[#00b5e2]/10 text-[#00b5e2] rounded-xl h-12 w-12 flex items-center justify-center shrink-0">
+              <i className="ph-bold ph-chart-line-up text-2xl"></i>
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-[#1e293b]">Follow Up</h2>
+              <p className="text-sm text-slate-500 mt-0.5">Manage all your follow-ups and track progress</p>
             </div>
           </div>
-
-          <div className="lg:col-span-2">
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-1.5 tracking-wider">DATE RANGE</label>
-            <div className="flex items-center gap-2">
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-2 py-2.5 rounded-lg border border-gray-300 text-sm outline-none focus:border-crm-primary"
-              />
-              <span className="text-gray-400 text-xs font-bold">TO</span>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full px-2 py-2.5 rounded-lg border border-gray-300 text-sm outline-none focus:border-crm-primary"
-              />
-            </div>
-          </div>
-
-        </div>
-
-        <div className="mt-4 border-t border-gray-100 pt-4 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3">
-          <button
-            type="button"
-            onClick={resetAll}
-            className="w-full md:w-auto px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold shadow-sm transition-colors"
-          >
-            Reset All
-          </button>
-
+          
           {['admin', 'super_admin', 'superadmin'].includes(userRole?.toLowerCase()) && (
-            <div className="relative w-full md:w-auto" ref={dropdownRef}>
+            <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setIsExportDropdownOpen(!isExportDropdownOpen)}
-                className="w-full md:w-auto bg-gradient-to-r from-crm-primary to-crm-primaryDark hover:from-crm-primaryDark hover:to-crm-primary text-white px-6 py-2 rounded-lg text-sm font-semibold shadow-sm flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-95"
+                className="bg-[#00b5e2] hover:bg-[#00a0c9] text-white px-5 py-2.5 rounded-md text-[14px] font-medium shadow-sm flex items-center gap-2 transition-all"
               >
                 <i className="ph-bold ph-download-simple text-lg"></i>
                 Export Reports
-                <i className={`ph-bold ph-caret-down transition-transform duration-300 ${isExportDropdownOpen ? 'rotate-180' : ''}`}></i>
               </button>
 
               {isExportDropdownOpen && (
-                <div className="absolute right-0 left-0 md:left-auto bottom-full mb-2 w-full md:w-56 bg-white border border-gray-100 rounded-xl shadow-2xl z-30 overflow-hidden divide-y divide-gray-100 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden">
                   <button
                     onClick={handleExportCSV}
-                    className="w-full px-5 py-3.5 text-left text-sm font-semibold text-gray-700 hover:bg-emerald-50/30 flex items-center gap-3 transition-colors group"
+                    className="w-full px-4 py-3 text-left text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
                   >
-                    <i className="ph-fill ph-file-xls text-emerald-600 text-xl group-hover:scale-110 transition-transform"></i>
+                    <i className="ph-fill ph-file-xls text-emerald-600 text-lg"></i>
                     Export to Excel (.csv)
                   </button>
                   <button
                     onClick={handleExportPDF}
-                    className="w-full px-5 py-3.5 text-left text-sm font-semibold text-gray-700 hover:bg-red-50/30 flex items-center gap-3 transition-colors group"
+                    className="w-full px-4 py-3 text-left text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
                   >
-                    <i className="ph-fill ph-file-pdf text-red-600 text-xl group-hover:scale-110 transition-transform"></i>
+                    <i className="ph-fill ph-file-pdf text-red-600 text-lg"></i>
                     Export to PDF (.pdf)
                   </button>
                 </div>
@@ -476,105 +377,214 @@ const FollowupReport = ({ currentUser }) => {
             </div>
           )}
         </div>
-      </div>
 
-      {/* 3. DATA TABLE */}
-      <div>
-        <h3 className="font-bold text-sm text-gray-800 mb-2 mt-2">
-          Total records : <span className="text-red-500">{filteredData.length}</span>
-        </h3>
+        {/* Statistics Row */}
+        <div className="p-6">
+          <div className="border border-gray-200 rounded-xl flex flex-col md:flex-row overflow-hidden divide-y md:divide-y-0 md:divide-x divide-gray-200">
+            <div className="flex-1 p-5 flex items-center justify-center gap-4">
+              <div className="h-12 w-12 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
+                <i className="ph-fill ph-phone-call text-2xl"></i>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-blue-700">{stats.total}</div>
+                <div className="text-[13px] font-bold text-gray-800 uppercase mt-1">Total Follow-up Taken</div>
+              </div>
+            </div>
+            
+            <div className="flex-1 p-5 flex flex-col items-center justify-center border-l-4 border-l-[#00b5e2]/30">
+              <div className="text-3xl font-bold text-amber-500">{stats.followupLeadQuotation}</div>
+              <div className="text-[13px] font-bold text-gray-800 mt-1">Follow up / Lead / Quotation</div>
+            </div>
+            
+            <div className="flex-1 p-5 flex flex-col items-center justify-center border-l-4 border-l-[#00b5e2]/30">
+              <div className="text-3xl font-bold text-red-500">{stats.dropped}</div>
+              <div className="text-[13px] font-bold text-gray-800 mt-1">Dropped</div>
+            </div>
+            
+            <div className="flex-1 p-5 flex flex-col items-center justify-center border-l-4 border-l-[#00b5e2]/30">
+              <div className="text-3xl font-bold text-purple-500">{stats.proposal}</div>
+              <div className="text-[13px] font-bold text-gray-800 mt-1">Proposal</div>
+            </div>
+            
+            <div className="flex-1 p-5 flex flex-col items-center justify-center border-l-4 border-l-[#00b5e2]/30">
+              <div className="text-3xl font-bold text-orange-500">{stats.appointment}</div>
+              <div className="text-[13px] font-bold text-gray-800 mt-1">Appointment</div>
+            </div>
+            
+            <div className="flex-1 p-5 flex flex-col items-center justify-center border-l-4 border-l-[#00b5e2]/30">
+              <div className="text-3xl font-bold text-emerald-600">{stats.projectOnboard}</div>
+              <div className="text-[13px] font-bold text-gray-800 mt-1">Project Onboard</div>
+            </div>
+          </div>
+        </div>
 
+        {/* Filters Row */}
+        <div className="px-6 pb-6 grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+          <div className="md:col-span-4 relative">
+            <i className="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+            <input
+              type="text"
+              placeholder="Search by employee, company, contact or mobile..."
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 text-sm outline-none focus:border-[#00b5e2] focus:ring-1 focus:ring-[#00b5e2]/20"
+            />
+          </div>
+
+          <div className="md:col-span-3">
+            <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1.5 tracking-wider">FOLLOW-UP TYPE</label>
+            <select
+              value={searchField}
+              onChange={(e) => setSearchField(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm outline-none focus:border-[#00b5e2] focus:ring-1 focus:ring-[#00b5e2]/20 bg-white"
+            >
+              <option value="all">All fields</option>
+              <option value="company">Company</option>
+              <option value="phone">Mobile</option>
+              <option value="name">Contact Person</option>
+            </select>
+          </div>
+
+          <div className="md:col-span-4">
+            <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1.5 tracking-wider">DATE RANGE</label>
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm outline-none focus:border-[#00b5e2]"
+                />
+              </div>
+              <span className="text-gray-500 text-xs font-bold">TO</span>
+              <div className="relative flex-1">
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm outline-none focus:border-[#00b5e2]"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="md:col-span-1 flex justify-end">
+            <button
+              onClick={resetAll}
+              className="px-4 py-2.5 w-full md:w-auto rounded-lg border border-red-200 text-red-500 hover:bg-red-50 text-sm font-medium transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
+            >
+              <i className="ph ph-arrow-counter-clockwise"></i>
+              Reset All
+            </button>
+          </div>
+        </div>
+
+        {/* Table Data */}
         {loading ? (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-10 flex justify-center">
+          <div className="p-10 flex justify-center border-t border-gray-100">
             <LoadingSpinner label="Loading Report..." />
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden overflow-x-auto">
+          <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse whitespace-nowrap">
               <thead>
-                <tr className="bg-crm-primary text-white">
+                <tr className="bg-[#00b5e2] text-white">
                   {['admin', 'super_admin', 'superadmin'].includes(userRole?.toLowerCase()) && (
-                    <th className="px-4 py-3 font-semibold text-sm border-r border-white/20 w-10 text-center">
+                    <th className="px-4 py-3.5 font-semibold text-[13px] border-r border-white/20 w-12 text-center">
                       <input
                         type="checkbox"
                         checked={filteredData.length > 0 && selectedIds.length === filteredData.length}
                         onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedIds(filteredData.map(f => f.id));
-                          } else {
-                            setSelectedIds([]);
-                          }
+                          if (e.target.checked) setSelectedIds(filteredData.map(f => f.id));
+                          else setSelectedIds([]);
                         }}
-                        className="cursor-pointer"
-                        title="Select All"
+                        className="cursor-pointer rounded border-white/30 text-[#00b5e2] focus:ring-white"
                       />
                     </th>
                   )}
-                  <th className="px-4 py-3 font-semibold text-sm border-r border-white/20">S.No.</th>
-                  <th className="px-4 py-3 font-semibold text-sm border-r border-white/20">Details</th>
-                  <th className="px-4 py-3 font-semibold text-sm border-r border-white/20">Followup Date</th>
-                  <th className="px-4 py-3 font-semibold text-sm border-r border-white/20">Employee</th>
-                  <th className="px-4 py-3 font-semibold text-sm border-r border-white/20">Company Name</th>
-                  <th className="px-4 py-3 font-semibold text-sm border-r border-white/20">Contact Person</th>
-                  <th className="px-4 py-3 font-semibold text-sm border-r border-white/20">Mobile</th>
-                  <th className="px-4 py-3 font-semibold text-sm text-center">History</th>
+                  <th className="px-4 py-3.5 font-semibold text-[13px] border-r border-white/20 text-center w-16">S. No</th>
+                  <th className="px-4 py-3.5 font-semibold text-[13px] border-r border-white/20 text-center">Details</th>
+                  <th className="px-4 py-3.5 font-semibold text-[13px] border-r border-white/20 text-center">Follow-up Date</th>
+                  <th className="px-4 py-3.5 font-semibold text-[13px] border-r border-white/20 text-center">Employee</th>
+                  <th className="px-4 py-3.5 font-semibold text-[13px] border-r border-white/20 text-center">Company Name</th>
+                  <th className="px-4 py-3.5 font-semibold text-[13px] border-r border-white/20 text-center">Contact Person</th>
+                  <th className="px-4 py-3.5 font-semibold text-[13px] border-r border-white/20 text-center">Mobile</th>
+                  <th className="px-4 py-3.5 font-semibold text-[13px] text-center">History</th>
                 </tr>
               </thead>
               <tbody>
                 {paginatedData.length > 0 ? (
-                  paginatedData.map((row, i) => (
-                    <tr key={row.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                      {['admin', 'super_admin', 'superadmin'].includes(userRole?.toLowerCase()) && (
-                        <td className="px-4 py-3 text-sm text-gray-700 text-center">
-                          <input
-                            type="checkbox"
-                            checked={selectedIds.includes(row.id)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedIds(prev => [...prev, row.id]);
-                              } else {
-                                setSelectedIds(prev => prev.filter(id => id !== row.id));
-                              }
-                            }}
-                            className="cursor-pointer"
-                          />
-                        </td>
-                      )}
-                      <td className="px-4 py-3 text-sm text-gray-700">{((currentPage - 1) * itemsPerPage) + i + 1}</td>
-                      <td className="px-4 py-3 text-sm text-gray-700 capitalize">
-                        {row.isOffline ? (
-                          <div className="flex flex-col gap-1">
-                            <span className="px-2 py-1 rounded-full text-xs font-semibold border bg-amber-50 text-amber-700 border-amber-200/50 inline-block w-max">
-                              <i className="ph-bold ph-wifi-slash mr-1"></i>
-                              {row.syncStatus === 'failed' ? 'Sync Failed' : 'Pending Sync'}
-                            </span>
-                            <span>{row.followup_reason || row.status || '—'}</span>
-                          </div>
-                        ) : (
-                          row.followup_reason || row.status || '—'
+                  paginatedData.map((row, i) => {
+                    const statusText = row.followup_reason || row.status || '—';
+                    const s = String(statusText).toLowerCase().trim();
+                    let bg = 'bg-gray-50'; let textC = 'text-gray-600';
+                    if (s.includes('allocation')) { bg = 'bg-blue-50'; textC = 'text-blue-500'; }
+                    else if (s.includes('onboard')) { bg = 'bg-green-50'; textC = 'text-green-600'; }
+                    else if (s.includes('appointment')) { bg = 'bg-orange-50'; textC = 'text-orange-500'; }
+                    else if (s.includes('proposal')) { bg = 'bg-cyan-50'; textC = 'text-cyan-500'; }
+                    else if (s.includes('dropped') || s.includes('drop')) { bg = 'bg-red-50'; textC = 'text-red-500'; }
+                    else if (s.includes('quotation')) { bg = 'bg-purple-50'; textC = 'text-purple-500'; }
+                    else if (s.includes('meeting')) { bg = 'bg-amber-50'; textC = 'text-amber-500'; }
+                    else if (s.includes('demo')) { bg = 'bg-teal-50'; textC = 'text-teal-500'; }
+                    else if (s.includes('first') || s.includes('follow')) { bg = 'bg-blue-50'; textC = 'text-blue-500'; }
+
+                    return (
+                      <tr key={row.id} className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors bg-white">
+                        {['admin', 'super_admin', 'superadmin'].includes(userRole?.toLowerCase()) && (
+                          <td className="px-4 py-3 text-[13px] text-center border-r border-gray-100">
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.includes(row.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) setSelectedIds(prev => [...prev, row.id]);
+                                else setSelectedIds(prev => prev.filter(id => id !== row.id));
+                              }}
+                              className="cursor-pointer text-[#00b5e2] focus:ring-[#00b5e2] rounded border-gray-300"
+                            />
+                          </td>
                         )}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{formatDateTime(row.follow_up_date)}</td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{row.registered_by_name || '—'}</td>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">{row.company_name || '—'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 font-medium">{row.display_contact_person || row.customer_name || '—'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-700">{row.display_contact_phone || row.phone_1 || '—'}</td>
-                      <td className="px-4 py-3 text-sm text-center">
-                        <button
-                          type="button"
-                          onClick={() => openHistory(row)}
-                          title="View History"
-                          className="text-crm-primary hover:text-crm-primaryDark transition-colors"
-                        >
-                          <i className="ph-bold ph-clock-counter-clockwise text-lg" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
+                        <td className="px-4 py-3 text-[13px] font-semibold text-gray-800 text-center border-r border-gray-100">
+                          {((currentPage - 1) * itemsPerPage) + i + 1}
+                        </td>
+                        <td className="px-4 py-3 text-[13px] text-center border-r border-gray-100">
+                          <span className={`px-3 py-1 rounded border border-white/0 font-medium ${bg} ${textC} capitalize inline-block text-[12px]`}>
+                            {statusText}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-[13px] font-medium text-gray-800 text-center border-r border-gray-100">
+                          {row.follow_up_date ? formatDateTime(row.follow_up_date).split(' ')[0] : '-'}
+                        </td>
+                        <td className="px-4 py-3 text-[13px] font-medium text-gray-800 text-center border-r border-gray-100">
+                          {row.registered_by_name || '-'}
+                        </td>
+                        <td className="px-4 py-3 text-[13px] font-medium text-gray-600 text-center border-r border-gray-100">
+                          {row.company_name || '-'}
+                        </td>
+                        <td className="px-4 py-3 text-[13px] font-medium text-gray-800 text-center border-r border-gray-100">
+                          {row.display_contact_person || row.customer_name || '-'}
+                        </td>
+                        <td className="px-4 py-3 text-[13px] font-bold text-gray-800 text-center border-r border-gray-100">
+                          {row.display_contact_phone || row.phone_1 || '-'}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            type="button"
+                            onClick={() => openHistory(row)}
+                            className="text-[#00b5e2] hover:bg-[#00b5e2]/10 p-1.5 rounded-full transition-colors inline-flex items-center justify-center"
+                          >
+                            <i className="ph ph-clock-counter-clockwise text-[16px]" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
                 ) : (
                   <tr>
-                    <td colSpan="7" className="px-4 py-8 text-center text-gray-500">
-                      No matching records found.
+                    <td colSpan="9" className="px-4 py-12 text-center text-gray-500">
+                      <div className="flex flex-col items-center gap-2">
+                        <i className="ph ph-magnifying-glass text-3xl text-gray-300"></i>
+                        <p>No matching records found.</p>
+                      </div>
                     </td>
                   </tr>
                 )}
@@ -582,46 +592,57 @@ const FollowupReport = ({ currentUser }) => {
             </table>
           </div>
         )}
-      </div>
-
-      {/* Pagination Controls */}
-      {!loading && totalPages > 1 && (
-        <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-gray-200/80 shadow-sm mt-4">
-          <div className="text-sm text-gray-600">
-            Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredData.length)} of {filteredData.length} entries
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className="px-3 py-1.5 rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-            >
-              Previous
-            </button>
-            <div className="flex items-center gap-1">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`w-8 h-8 rounded flex items-center justify-center text-sm font-medium transition-colors ${currentPage === page
-                      ? 'bg-crm-primary text-white border-crm-primary'
-                      : 'border border-gray-200 text-gray-600 hover:bg-gray-50'
-                    }`}
-                >
-                  {page}
-                </button>
-              ))}
+        
+        {/* Pagination Controls */}
+        {!loading && (
+          <div className="p-4 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4 bg-white">
+            <div className="text-[13px] font-bold text-gray-800">
+              Showing {filteredData.length > 0 ? ((currentPage - 1) * itemsPerPage) + 1 : 0} to {Math.min(currentPage * itemsPerPage, filteredData.length)} of {filteredData.length} records
             </div>
-            <button
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className="px-3 py-1.5 rounded border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-            >
-              Next
-            </button>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="w-8 h-8 rounded border border-gray-200 text-gray-400 hover:text-gray-600 hover:border-gray-300 disabled:opacity-50 flex items-center justify-center transition-colors bg-white"
+                >
+                  <i className="ph-bold ph-caret-left"></i>
+                </button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`w-8 h-8 rounded flex items-center justify-center text-[13px] font-bold transition-colors ${
+                        currentPage === page
+                          ? 'bg-[#00b5e2] text-white border border-[#00b5e2]'
+                          : 'border border-gray-200 text-gray-600 hover:border-gray-300 bg-white'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="w-8 h-8 rounded border border-gray-200 text-gray-400 hover:text-gray-600 hover:border-gray-300 disabled:opacity-50 flex items-center justify-center transition-colors bg-white"
+                >
+                  <i className="ph-bold ph-caret-right"></i>
+                </button>
+              </div>
+            )}
+            
+            {/* Optional items per page selector could go here if needed, but left empty to match layout flex */}
+            <div className="hidden md:flex items-center gap-2">
+              <select className="border border-gray-200 rounded px-2 py-1 text-[13px] font-bold text-gray-600 outline-none">
+                <option>{itemsPerPage} per page</option>
+              </select>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+
+      </div>
 
       {historyModal && (
         <FollowupHistoryModal

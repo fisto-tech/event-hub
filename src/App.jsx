@@ -286,17 +286,7 @@ const App = () => {
       }
       switch (activeSubTab) {
         case 'employee-registration':
-          return (
-            <MasterPageShell
-              title="Employee Registration"
-              subtitle="Add and manage staff accounts"
-              icon="ph-user-plus"
-            >
-              <div className="flex-1 p-6 overflow-y-auto">
-                <EmployeeRegistration currentUser={currentUser} />
-              </div>
-            </MasterPageShell>
-          );
+          return <EmployeeRegistration currentUser={currentUser} />;
         default:
           return <MasterExpoHub activeSubTab="sources" setActiveSubTab={handleSubTabChange} currentUser={currentUser} />;
       }
@@ -362,7 +352,7 @@ const App = () => {
             >
               <i className="ph-bold ph-list text-2xl" />
             </button>
-            <h2 className="text-base lg:text-xl font-medium capitalize text-crm-primary whitespace-nowrap overflow-hidden text-ellipsis">
+            <h2 className="text-base lg:text-[22px] font-bold uppercase tracking-wide text-[#00b5e2] whitespace-nowrap overflow-hidden text-ellipsis">
               {getPageTitle()}
             </h2>
           </div>
@@ -419,7 +409,7 @@ const App = () => {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto custom-scrollbar p-3 lg:p-6 xl:p-8 bg-gray-50 tab-content">
+        <main className="flex-1 overflow-y-auto custom-scrollbar bg-white tab-content relative">
           {renderContent()}
         </main>
       </div>
