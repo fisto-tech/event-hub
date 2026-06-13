@@ -174,7 +174,7 @@ const EmployeeReport = () => {
   };
 
   return (
-    <div className="pb-12 max-w-full mx-auto font-sans animate-in fade-in duration-300 p-4 lg:p-6 bg-[#f8fafc] min-h-screen">
+    <div className="max-w-full mx-auto font-sans animate-in fade-in duration-300 p-2 lg:px-4 lg:py-2 bg-[#f8fafc] h-[calc(100vh-64px)] flex flex-col">
 
       {/* View Modal */}
       {viewingEmployee && (
@@ -270,10 +270,10 @@ const EmployeeReport = () => {
       )}
 
       {/* Main Report UI */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mt-4">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 mt-2 flex flex-col flex-1 min-h-0">
         
         {/* Header Section */}
-        <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="px-4 py-3 border-b border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-3 shrink-0">
           <div className="flex items-center gap-4">
             <div className="bg-[#00b5e2]/10 text-[#00b5e2] rounded-xl h-12 w-12 flex items-center justify-center shrink-0">
               <i className="ph-bold ph-identification-card text-2xl"></i>
@@ -297,35 +297,31 @@ const EmployeeReport = () => {
           </div>
         </div>
 
-        {/* Statistics Row */}
-        <div className="p-6">
-          <div className="border border-gray-200 rounded-xl flex flex-col md:flex-row overflow-hidden divide-y md:divide-y-0 md:divide-x divide-gray-200">
-            <div className="flex-1 p-5 flex items-center justify-center gap-4">
-              <div className="h-12 w-12 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
-                <i className="ph-fill ph-users-three text-2xl"></i>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-blue-700">{filteredEmployees.length}</div>
-                <div className="text-[13px] font-bold text-gray-800 uppercase mt-1">Total Staff</div>
-              </div>
+        {/* Statistics Row - Single Line Theme */}
+        <div className="px-4 py-3 border-b border-gray-100 bg-white overflow-x-auto shrink-0">
+          <div className="flex items-center justify-between min-w-[700px] divide-x-[3px] divide-[#00b5e2]">
+            
+            <div className="flex-1 flex flex-col items-center justify-center px-4">
+              <span className="text-[28px] font-bold text-blue-700 leading-none mb-2">{filteredEmployees.length}</span>
+              <span className="text-[13px] font-bold text-black">Total Staff</span>
             </div>
             
-            <div className="flex-1 p-5 flex flex-col items-center justify-center border-l-4 border-l-[#00b5e2]/30">
-              <div className="text-3xl font-bold text-emerald-600">{filteredEmployees.filter(e => e.role === 'admin' || e.role === 'super_admin' || e.role === 'superadmin').length}</div>
-              <div className="text-[13px] font-bold text-gray-800 mt-1">Admins</div>
+            <div className="flex-1 flex flex-col items-center justify-center px-4">
+              <span className="text-[28px] font-bold text-emerald-600 leading-none mb-2">{filteredEmployees.filter(e => e.role === 'admin' || e.role === 'super_admin' || e.role === 'superadmin').length}</span>
+              <span className="text-[13px] font-medium text-black">Admins</span>
             </div>
-
-            <div className="flex-1 p-5 flex flex-col items-center justify-center border-l-4 border-l-[#00b5e2]/30">
-              <div className="text-3xl font-bold text-amber-500">{filteredEmployees.filter(e => e.role !== 'admin' && e.role !== 'super_admin' && e.role !== 'superadmin').length}</div>
-              <div className="text-[13px] font-bold text-gray-800 mt-1">Employees / Managers</div>
+            
+            <div className="flex-1 flex flex-col items-center justify-center px-4">
+              <span className="text-[28px] font-bold text-amber-500 leading-none mb-2">{filteredEmployees.filter(e => e.role !== 'admin' && e.role !== 'super_admin' && e.role !== 'superadmin').length}</span>
+              <span className="text-[13px] font-medium text-black">Employees / Managers</span>
             </div>
+            
           </div>
         </div>
 
         {/* Filters Row */}
-        <div className="px-6 pb-6 grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-          
-          <div className="md:col-span-3">
+        <div className="px-4 pb-3 flex flex-wrap gap-3 items-end mt-3 shrink-0">
+          <div className="w-full md:w-[200px]">
             <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1.5 tracking-wider">ROLE</label>
             <select
               value={filterRole}
@@ -339,7 +335,7 @@ const EmployeeReport = () => {
             </select>
           </div>
 
-          <div className="md:col-span-6 flex gap-2">
+          <div className="flex-1 min-w-[300px] flex gap-2">
             <div className="w-1/3">
               <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1.5 tracking-wider">SEARCH FIELD</label>
               <select
@@ -369,7 +365,7 @@ const EmployeeReport = () => {
             </div>
           </div>
 
-          <div className="md:col-span-5">
+          <div className="w-full md:w-[320px]">
             <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1.5 tracking-wider">REGISTRATION DATE</label>
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
@@ -392,7 +388,7 @@ const EmployeeReport = () => {
             </div>
           </div>
 
-          <div className="md:col-span-7 flex justify-end">
+          <div className="w-full md:w-auto flex shrink-0 justify-end">
             <button
               onClick={() => {
                 setFilterRole('all');
@@ -401,7 +397,7 @@ const EmployeeReport = () => {
                 setStartDate('');
                 setEndDate('');
               }}
-              className="px-4 py-2.5 w-full md:w-auto rounded-lg border border-red-200 text-red-500 hover:bg-red-50 text-sm font-medium transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
+              className="px-4 py-2.5 w-full rounded-lg border border-red-200 text-red-500 hover:bg-red-50 text-sm font-medium transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
             >
               <i className="ph ph-arrow-counter-clockwise"></i>
               Reset All
@@ -410,9 +406,9 @@ const EmployeeReport = () => {
         </div>
 
         {/* Table Data */}
-        <div className="overflow-x-auto border-t border-gray-100">
+        <div className="flex-1 overflow-auto custom-scrollbar border-t border-gray-100 relative">
           <table className="w-full text-left border-collapse whitespace-nowrap">
-            <thead>
+            <thead className="sticky top-0 z-10 shadow-sm">
               <tr className="bg-[#00b5e2] text-white">
                 {['admin', 'super_admin', 'superadmin'].includes(filterRole?.toLowerCase()) && (
                   <th className="px-4 py-3.5 font-semibold text-[13px] border-r border-white/20 w-12 text-center">

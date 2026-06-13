@@ -154,10 +154,27 @@ const DateWiseAnalysis = ({ currentUser }) => {
     return label;
   };
 
+  const getBadgeColor = (statusText) => {
+    const text = statusText.toLowerCase();
+    if (text === 'appointment') return 'bg-[#db7070]';
+    if (text === 'project onboard' || text === 'completed') return 'bg-emerald-500';
+    if (text === 'dropped' || text === 'missed' || text === 'droped') return 'bg-red-500';
+    if (text === 'first followup' || text === 'followup') return 'bg-blue-500';
+    if (text === 'demo shared') return 'bg-purple-500';
+    if (text === 'quotation') return 'bg-orange-500';
+    if (text === 'proposal') return 'bg-indigo-500';
+    if (text === 'not interested') return 'bg-gray-500';
+    if (text === 'not picking') return 'bg-slate-500';
+    if (text === 'inprogress') return 'bg-yellow-500';
+    if (text === 'upcoming') return 'bg-sky-500';
+    if (text === 'confirmed') return 'bg-lime-600';
+    return 'bg-amber-500';
+  };
+
   return (
-    <div className="pb-12">
+    <div className="px-4 md:px-6 lg:px-8 pb-4 pt-6 h-[calc(100vh-64px)] flex flex-col">
       {/* Top row: Date (left) + Filters + Stage buttons (center-ish) */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex flex-col gap-3">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex flex-col gap-3 shrink-0">
         <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
           <div className="flex flex-col md:flex-row md:items-center gap-3 w-full md:w-auto">
             {document.getElementById('top-nav-filters') ? createPortal(
@@ -410,10 +427,13 @@ const DateWiseAnalysis = ({ currentUser }) => {
       </div>
 
       {loading ? (
-        <LoadingSpinner label="Loading analysis..." />
+        <div className="flex-1 flex items-center justify-center min-h-0 mt-5">
+          <LoadingSpinner label="Loading analysis..." />
+        </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-5">
-          {cards.map((c) => {
+        <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0 mt-5 pb-8 pr-2 -mr-2">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {cards.map((c) => {
             // Determine border color based on Missed tab logic
             let borderColor = 'border-gray-200';
             if (activeTab === 'missed') {
@@ -427,14 +447,12 @@ const DateWiseAnalysis = ({ currentUser }) => {
             return (
               <div key={c.id} className={`bg-white rounded-2xl border shadow-sm p-6 relative ${borderColor}`}>
                 <div className="absolute top-4 right-4 flex items-center gap-2">
-                  <span className="bg-crm-primary/10 text-crm-primary px-2.5 py-1 rounded-md text-xs font-bold whitespace-nowrap border border-crm-primary/20">
+                  <span className="bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-md text-xs font-bold whitespace-nowrap border border-indigo-200">
                     {c.expo_name || c.manual_expo_name || c.reference_source || '—'}
                   </span>
                   {stageBadge(c) && (
                     <span
-                      className={`px-3 py-1 rounded-full text-white text-xs font-semibold capitalize flex-shrink-0 ${stageBadge(c).toLowerCase() === 'appointment' ? '' : 'bg-crm-primaryDark'
-                        }`}
-                      style={stageBadge(c).toLowerCase() === 'appointment' ? { backgroundColor: '#db7070' } : {}}
+                      className={`px-3 py-1 rounded-full text-white text-xs font-semibold capitalize flex-shrink-0 shadow-sm ${getBadgeColor(stageBadge(c))}`}
                     >
                       {stageBadge(c)}
                     </span>
@@ -477,7 +495,7 @@ const DateWiseAnalysis = ({ currentUser }) => {
                   <button
                     type="button"
                     onClick={() => openHistory(c)}
-                    className="text-sm font-bold text-crm-primary hover:text-crm-primaryDark inline-flex items-center gap-2 bg-crm-primary/10 px-4 py-2 rounded-lg"
+                    className="text-sm font-bold text-crm-sidebarBg hover:opacity-80 inline-flex items-center gap-2 bg-crm-sidebarBg/10 px-4 py-2 rounded-lg transition-opacity"
                   >
                     <i className="ph-bold ph-clock-counter-clockwise" />
                     View History
@@ -485,7 +503,7 @@ const DateWiseAnalysis = ({ currentUser }) => {
                   <button
                     type="button"
                     onClick={() => setFormModal({ card: c })}
-                    className="px-6 py-2 rounded bg-crm-primary hover:bg-crm-primaryDark text-white text-sm font-semibold shadow"
+                    className="px-6 py-2 rounded bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold shadow transition-colors"
                   >
                     Follow Up
                   </button>
@@ -498,6 +516,7 @@ const DateWiseAnalysis = ({ currentUser }) => {
               No tasks found for the selected criteria.
             </div>
           )}
+          </div>
         </div>
       )}
 

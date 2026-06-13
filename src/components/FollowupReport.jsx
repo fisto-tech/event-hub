@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { fetchApi } from '../utils/api';
 import { isPrivilegedRole } from '../utils/roles';
 import LoadingSpinner from './common/LoadingSpinner';
@@ -331,7 +332,96 @@ const FollowupReport = ({ currentUser }) => {
   };
 
   return (
-    <div className="pb-10 max-w-full mx-auto fade-in p-4 lg:p-6 bg-[#f8fafc] min-h-screen">
+    <div className="pb-8 max-w-full mx-auto fade-in p-2 lg:p-4 bg-[#f8fafc] min-h-screen">
+      
+      {document.getElementById('top-nav-filters') ? createPortal(
+        <div className="flex items-center gap-2 md:gap-3 w-full justify-start md:justify-center">
+          {/* Expo & Source Filter */}
+          <div className="relative group flex items-center">
+            {/* Mobile: Icon Only */}
+            <div className="md:hidden relative flex items-center justify-center w-10 h-10 rounded-full bg-white border border-[#00b5e2] shadow-sm hover:bg-[#00b5e2]/10 overflow-hidden transition-colors">
+              <i className="ph-bold ph-funnel text-[#00b5e2] text-lg pointer-events-none z-10"></i>
+              <select
+                value={filterExpo}
+                onChange={(e) => setFilterExpo(e.target.value)}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer appearance-none z-20"
+              >
+                <option value="all">All Expos & Sources</option>
+                {expos.map(opt => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt.expo_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {/* Desktop: Full Dropdown */}
+            <div className="hidden md:block relative w-64 group">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10">
+                <i className="ph-bold ph-funnel text-[#00b5e2] group-hover:text-[#00a0c9] transition-colors"></i>
+              </div>
+              <select
+                value={filterExpo}
+                onChange={(e) => setFilterExpo(e.target.value)}
+                className="w-full pl-10 pr-10 py-2 text-sm font-medium rounded-full bg-white border border-[#00b5e2] text-[#00a0c9] focus:outline-none focus:ring-2 focus:ring-[#00b5e2]/50 focus:border-[#00b5e2] shadow-sm transition-all cursor-pointer appearance-none hover:bg-[#00b5e2]/5"
+              >
+                <option value="all">All Expos & Sources</option>
+                {expos.map(opt => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt.expo_name}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none z-10">
+                <i className="ph-bold ph-caret-down text-[#00b5e2] text-xs"></i>
+              </div>
+            </div>
+          </div>
+
+          {/* Employee Filter */}
+          {showAll && (
+            <div className="relative group flex items-center">
+              {/* Mobile: Icon Only */}
+              <div className="md:hidden relative flex items-center justify-center w-10 h-10 rounded-full bg-white border border-[#00b5e2] shadow-sm hover:bg-[#00b5e2]/10 overflow-hidden transition-colors">
+                <i className="ph-bold ph-users text-[#00b5e2] text-lg pointer-events-none z-10"></i>
+                <select
+                  value={filterEmployee}
+                  onChange={(e) => setFilterEmployee(e.target.value)}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer appearance-none z-20"
+                >
+                  <option value="all">All Employees</option>
+                  {employees.map(opt => (
+                    <option key={opt.id} value={opt.id}>
+                      {opt.name || opt.username}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {/* Desktop: Full Dropdown */}
+              <div className="hidden md:block relative w-48 group">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10">
+                  <i className="ph-bold ph-users text-[#00b5e2] group-hover:text-[#00a0c9] transition-colors"></i>
+                </div>
+                <select
+                  value={filterEmployee}
+                  onChange={(e) => setFilterEmployee(e.target.value)}
+                  className="w-full pl-10 pr-10 py-2 text-sm font-medium rounded-full bg-white border border-[#00b5e2] text-[#00a0c9] focus:outline-none focus:ring-2 focus:ring-[#00b5e2]/50 focus:border-[#00b5e2] shadow-sm transition-all cursor-pointer appearance-none hover:bg-[#00b5e2]/5"
+                >
+                  <option value="all">All Employees</option>
+                  {employees.map(opt => (
+                    <option key={opt.id} value={opt.id}>
+                      {opt.name || opt.username}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none z-10">
+                  <i className="ph-bold ph-caret-down text-[#00b5e2] text-xs"></i>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      , document.getElementById('top-nav-filters')) : null}
+
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         
         {/* Header Section */}
@@ -378,49 +468,46 @@ const FollowupReport = ({ currentUser }) => {
           )}
         </div>
 
-        {/* Statistics Row */}
-        <div className="p-6">
-          <div className="border border-gray-200 rounded-xl flex flex-col md:flex-row overflow-hidden divide-y md:divide-y-0 md:divide-x divide-gray-200">
-            <div className="flex-1 p-5 flex items-center justify-center gap-4">
-              <div className="h-12 w-12 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600">
-                <i className="ph-fill ph-phone-call text-2xl"></i>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-blue-700">{stats.total}</div>
-                <div className="text-[13px] font-bold text-gray-800 uppercase mt-1">Total Follow-up Taken</div>
-              </div>
+        {/* Statistics Row - Single Line Theme */}
+        <div className="px-6 py-5 border-b border-gray-100 bg-white overflow-x-auto">
+          <div className="flex items-center justify-between min-w-[900px] divide-x-[3px] divide-[#00b5e2]">
+            
+            <div className="flex-1 flex flex-col items-center justify-center px-4">
+              <span className="text-[28px] font-bold text-blue-700 leading-none mb-2">{stats.total}</span>
+              <span className="text-[13px] font-bold text-black">Total Follow-up Taken</span>
             </div>
             
-            <div className="flex-1 p-5 flex flex-col items-center justify-center border-l-4 border-l-[#00b5e2]/30">
-              <div className="text-3xl font-bold text-amber-500">{stats.followupLeadQuotation}</div>
-              <div className="text-[13px] font-bold text-gray-800 mt-1">Follow up / Lead / Quotation</div>
+            <div className="flex-1 flex flex-col items-center justify-center px-4">
+              <span className="text-[28px] font-bold text-amber-500 leading-none mb-2">{stats.followupLeadQuotation}</span>
+              <span className="text-[13px] font-medium text-black">Follow up / Lead / Quotation</span>
             </div>
             
-            <div className="flex-1 p-5 flex flex-col items-center justify-center border-l-4 border-l-[#00b5e2]/30">
-              <div className="text-3xl font-bold text-red-500">{stats.dropped}</div>
-              <div className="text-[13px] font-bold text-gray-800 mt-1">Dropped</div>
+            <div className="flex-1 flex flex-col items-center justify-center px-4">
+              <span className="text-[28px] font-bold text-red-500 leading-none mb-2">{stats.dropped}</span>
+              <span className="text-[13px] font-medium text-black">Dropped</span>
             </div>
             
-            <div className="flex-1 p-5 flex flex-col items-center justify-center border-l-4 border-l-[#00b5e2]/30">
-              <div className="text-3xl font-bold text-purple-500">{stats.proposal}</div>
-              <div className="text-[13px] font-bold text-gray-800 mt-1">Proposal</div>
+            <div className="flex-1 flex flex-col items-center justify-center px-4">
+              <span className="text-[28px] font-bold text-[#a855f7] leading-none mb-2">{stats.proposal}</span>
+              <span className="text-[13px] font-medium text-black">Proposal</span>
             </div>
             
-            <div className="flex-1 p-5 flex flex-col items-center justify-center border-l-4 border-l-[#00b5e2]/30">
-              <div className="text-3xl font-bold text-orange-500">{stats.appointment}</div>
-              <div className="text-[13px] font-bold text-gray-800 mt-1">Appointment</div>
+            <div className="flex-1 flex flex-col items-center justify-center px-4">
+              <span className="text-[28px] font-bold text-orange-500 leading-none mb-2">{stats.appointment}</span>
+              <span className="text-[13px] font-medium text-black">Appointment</span>
             </div>
             
-            <div className="flex-1 p-5 flex flex-col items-center justify-center border-l-4 border-l-[#00b5e2]/30">
-              <div className="text-3xl font-bold text-emerald-600">{stats.projectOnboard}</div>
-              <div className="text-[13px] font-bold text-gray-800 mt-1">Project Onboard</div>
+            <div className="flex-1 flex flex-col items-center justify-center px-4">
+              <span className="text-[28px] font-bold text-emerald-600 leading-none mb-2">{stats.projectOnboard}</span>
+              <span className="text-[13px] font-medium text-black">Project Onboard</span>
             </div>
+            
           </div>
         </div>
 
         {/* Filters Row */}
-        <div className="px-6 pb-6 grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-          <div className="md:col-span-4 relative">
+        <div className="px-6 pb-6 flex flex-wrap gap-4 items-end">
+          <div className="flex-1 min-w-[250px] relative">
             <i className="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
             <input
               type="text"
@@ -431,7 +518,7 @@ const FollowupReport = ({ currentUser }) => {
             />
           </div>
 
-          <div className="md:col-span-3">
+          <div className="w-full md:w-[200px]">
             <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1.5 tracking-wider">FOLLOW-UP TYPE</label>
             <select
               value={searchField}
@@ -445,7 +532,7 @@ const FollowupReport = ({ currentUser }) => {
             </select>
           </div>
 
-          <div className="md:col-span-4">
+          <div className="w-full md:w-[320px]">
             <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1.5 tracking-wider">DATE RANGE</label>
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
@@ -468,10 +555,10 @@ const FollowupReport = ({ currentUser }) => {
             </div>
           </div>
 
-          <div className="md:col-span-1 flex justify-end">
+          <div className="w-full md:w-auto flex shrink-0">
             <button
               onClick={resetAll}
-              className="px-4 py-2.5 w-full md:w-auto rounded-lg border border-red-200 text-red-500 hover:bg-red-50 text-sm font-medium transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
+              className="px-4 py-2.5 w-full rounded-lg border border-red-200 text-red-500 hover:bg-red-50 text-sm font-medium transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
             >
               <i className="ph ph-arrow-counter-clockwise"></i>
               Reset All

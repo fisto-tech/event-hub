@@ -387,7 +387,7 @@ const EmployeeRegistration = ({ currentUser }) => {
   return (
     <div className="">
       {view === 'register' ? (
-        <div className="relative bg-white min-h-[800px] w-full p-8 lg:p-12 overflow-hidden flex flex-col flex-1">
+        <div className="relative bg-white h-[calc(100vh-64px)] w-full p-4 lg:px-8 lg:py-6 overflow-hidden flex flex-col flex-1">
           {/* Decorative Circles */}
           <div className="absolute top-10 right-[35%] w-24 h-24 bg-amber-100/60 rounded-full blur-xl pointer-events-none" />
           <div className="absolute top-20 right-[5%] w-32 h-32 bg-cyan-100/60 rounded-full blur-xl pointer-events-none" />
@@ -396,7 +396,7 @@ const EmployeeRegistration = ({ currentUser }) => {
           <div className="absolute -bottom-16 -left-16 w-64 h-64 bg-cyan-100/50 rounded-full blur-2xl pointer-events-none" />
           
           {/* Header Row */}
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
             <div>
               <h2 className="text-[26px] font-bold text-[#1e293b]">Create New Employee</h2>
               <p className="text-[15px] text-slate-500 mt-0.5">Add and manage staff accounts</p>
@@ -426,7 +426,7 @@ const EmployeeRegistration = ({ currentUser }) => {
             )}
             
             <form onSubmit={handleSubmit} className="w-full flex flex-col flex-1">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-8 w-full xl:w-[85%] 2xl:w-[75%]">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-6 w-full xl:w-[85%] 2xl:w-[75%]">
                 
                 {/* Row 1 */}
                 <div>
@@ -513,7 +513,7 @@ const EmployeeRegistration = ({ currentUser }) => {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-4 mt-12 mb-4 w-full md:w-[66%] lg:w-[40%] justify-center md:justify-start lg:pl-10">
+              <div className="flex gap-4 mt-8 mb-4 w-full md:w-[66%] lg:w-[40%] justify-center md:justify-start lg:pl-10">
                 <button type="submit" disabled={loading} className="px-10 py-2.5 rounded-md bg-[#00b5e2] hover:bg-[#00a0c9] text-white text-[15px] font-medium shadow-md transition-all disabled:opacity-60 flex-1 max-w-[160px] text-center">
                   {loading ? 'Saving...' : 'Register'}
                 </button>
@@ -525,13 +525,13 @@ const EmployeeRegistration = ({ currentUser }) => {
           </div>
           
           {/* Illustration image on the bottom right */}
-          <div className="absolute bottom-0 right-0 z-0 pointer-events-none hidden lg:block">
+          <div className="fixed bottom-0 right-0 z-0 pointer-events-none hidden lg:block">
             <img src={empImage} alt="Illustration" className="w-[450px] object-contain" />
           </div>
         </div>
       ) : (
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
+        <div className="p-2 lg:px-4 lg:py-2 bg-[#f8fafc] h-[calc(100vh-64px)] flex flex-col gap-2">
+          <div className="flex justify-between items-center shrink-0 mt-1 mb-1 px-2">
             <button
               type="button"
               onClick={() => setView('register')}
@@ -541,19 +541,21 @@ const EmployeeRegistration = ({ currentUser }) => {
               Back to Registration
             </button>
           </div>
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-end gap-4">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-6 py-4 flex flex-col sm:flex-row sm:items-end gap-4 shrink-0 mb-3">
               <div className="flex-1">
-                <h3 className="text-lg font-semibold text-crm-primary flex items-center gap-2">
-                  <i className="ph-fill ph-users-three" /> Employee Report
+                <h3 className="text-xl font-bold text-[#1e293b] flex items-center gap-3">
+                  <div className="bg-[#00b5e2]/10 text-[#00b5e2] rounded-xl h-10 w-10 flex items-center justify-center shrink-0">
+                    <i className="ph-fill ph-users-three text-xl" />
+                  </div>
+                  Employee Report
                 </h3>
-                <p className="text-sm text-gray-500 mt-1">View all registered staff accounts</p>
+                <p className="text-sm text-gray-500 mt-1 ml-[52px]">View all registered staff accounts</p>
               </div>
               <div className="flex flex-1 max-w-lg gap-2">
                 <select
                   value={searchField}
                   onChange={(e) => setSearchField(e.target.value)}
-                  className="px-3 py-2 rounded-lg outline-none crm-input w-36 shrink-0 text-sm"
+                  className="px-3 py-2 rounded-lg outline-none border border-gray-200 focus:border-[#00b5e2] focus:ring-1 focus:ring-[#00b5e2]/20 w-36 shrink-0 text-sm"
                 >
                   <option value="all">All Fields</option>
                   <option value="name">Name</option>
@@ -569,7 +571,7 @@ const EmployeeRegistration = ({ currentUser }) => {
                     placeholder="Search..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 rounded-lg outline-none crm-input"
+                    className="w-full pl-10 pr-4 py-2 rounded-lg outline-none border border-gray-200 focus:border-[#00b5e2] focus:ring-1 focus:ring-[#00b5e2]/20"
                   />
                 </div>
                 {['admin', 'super_admin', 'superadmin'].includes(currentUser?.role?.toLowerCase()) && (
@@ -577,7 +579,7 @@ const EmployeeRegistration = ({ currentUser }) => {
                     <button
                       type="button"
                       onClick={() => setIsExportDropdownOpen(!isExportDropdownOpen)}
-                      className="h-full bg-gradient-to-r from-crm-primary to-crm-primaryDark hover:from-crm-primaryDark hover:to-crm-primary text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-95"
+                      className="h-full bg-[#00b5e2] hover:bg-[#00a0c9] text-white px-5 py-2 rounded-lg text-sm font-semibold shadow-sm flex items-center justify-center gap-2 transition-all duration-300 transform active:scale-95"
                     >
                       <i className="ph-bold ph-download-simple"></i> Export
                       <i className={`ph-bold ph-caret-down transition-transform duration-300 ${isExportDropdownOpen ? 'rotate-180' : ''}`}></i>
@@ -606,18 +608,21 @@ const EmployeeRegistration = ({ currentUser }) => {
                   </div>
                 )}
               </div>
-            </div>
+          </div>
 
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col flex-1 min-h-0 overflow-hidden">
             {listLoading ? (
-              <LoadingSpinner label="Loading employees..." />
+              <div className="flex-1 flex items-center justify-center">
+                <LoadingSpinner label="Loading employees..." />
+              </div>
             ) : (
-              <div className="report-table-wrap">
-                <div className="report-table-scroll">
-                  <table className="w-full text-left border-collapse text-crm-textDark min-w-[900px] border border-gray-300">
-                    <thead>
-                      <tr className="bg-crm-primary border-b border-crm-primary text-white">
+              <div className="report-table-wrap flex-1 flex flex-col min-h-0">
+                <div className="report-table-scroll flex-1 overflow-auto custom-scrollbar relative">
+                  <table className="w-full text-left border-collapse min-w-[900px]">
+                    <thead className="sticky top-0 z-10 shadow-sm">
+                      <tr className="bg-[#00b5e2] text-white">
                         {['admin', 'super_admin', 'superadmin'].includes(currentUser?.role?.toLowerCase()) && (
-                          <th className="px-4 py-3 font-normal border-r border-white/20 w-10 text-center">
+                          <th className="px-4 py-3.5 font-semibold text-[13px] border-r border-white/20 w-10 text-center">
                             <input
                               type="checkbox"
                               checked={filteredEmployees.length > 0 && selectedIds.length === filteredEmployees.length}
@@ -628,19 +633,19 @@ const EmployeeRegistration = ({ currentUser }) => {
                                   setSelectedIds([]);
                                 }
                               }}
-                              className="cursor-pointer"
+                              className="cursor-pointer rounded border-white/30 text-[#00b5e2] focus:ring-white"
                               title="Select All"
                             />
                           </th>
                         )}
-                        <th className="px-4 py-3 font-normal border-r border-white/20 w-14 text-center">S.No</th>
-                        <th className="px-4 py-3 font-normal border-r border-white/20">Employee ID</th>
-                        <th className="px-4 py-3 font-normal border-r border-white/20">Name</th>
-                        <th className="px-4 py-3 font-normal border-r border-white/20">Email / Phone</th>
-                        <th className="px-4 py-3 font-normal border-r border-white/20">Department</th>
-                        <th className="px-4 py-3 font-normal border-r border-white/20">Role</th>
-                        <th className="px-4 py-3 font-normal border-r border-white/20">Status</th>
-                        <th className="px-4 py-3 font-normal text-right">Actions</th>
+                        <th className="px-4 py-3.5 font-semibold text-[13px] border-r border-white/20 w-14 text-center">S.No</th>
+                        <th className="px-4 py-3.5 font-semibold text-[13px] border-r border-white/20">Employee ID</th>
+                        <th className="px-4 py-3.5 font-semibold text-[13px] border-r border-white/20">Name</th>
+                        <th className="px-4 py-3.5 font-semibold text-[13px] border-r border-white/20">Email / Phone</th>
+                        <th className="px-4 py-3.5 font-semibold text-[13px] border-r border-white/20">Department</th>
+                        <th className="px-4 py-3.5 font-semibold text-[13px] border-r border-white/20">Role</th>
+                        <th className="px-4 py-3.5 font-semibold text-[13px] border-r border-white/20">Status</th>
+                        <th className="px-4 py-3.5 font-semibold text-[13px] text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white">
@@ -670,9 +675,9 @@ const EmployeeRegistration = ({ currentUser }) => {
                             <br />
                             <span className="text-gray-500 text-xs">{emp.phone || '-'}</span>
                           </td>
-                          <td className="px-4 py-3 text-sm border-r border-gray-300">{emp.department || '-'}</td>
-                          <td className="px-4 py-3 text-sm font-medium text-crm-primary border-r border-gray-300">{roleLabel(emp.role)}</td>
-                          <td className="px-4 py-3 text-sm border-r border-gray-300">
+                          <td className="px-4 py-3 text-sm border-r border-gray-100">{emp.department || '-'}</td>
+                          <td className="px-4 py-3 text-sm font-medium text-[#00b5e2] border-r border-gray-100">{roleLabel(emp.role)}</td>
+                          <td className="px-4 py-3 text-sm border-r border-gray-100">
                             <span
                               className={`px-2.5 py-1 rounded-full text-xs font-medium ${emp.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-800'
                                 }`}
