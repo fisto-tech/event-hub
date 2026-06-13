@@ -1298,7 +1298,7 @@ const FollowupFormModal = ({ card, currentUser, onClose, onSaved }) => {
                     const val = e.target.value;
                     setForm((p) => {
                       const updates = { followup_reason: val };
-                      if (val === 'Project Onboard') {
+                      if (val === 'Project Onboard' || val === 'project onboard') {
                         updates.followup_status = 'confirmed';
                       }
                       return { ...p, ...updates };

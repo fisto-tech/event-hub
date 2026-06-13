@@ -88,8 +88,8 @@ const MasterExpoHub = ({ activeSubTab, setActiveSubTab, currentUser }) => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <div className="flex items-start gap-4 mb-6">
+    <div className="max-w-6xl mx-auto ">
+      {/* <div className="flex items-start gap-4 mb-6">
         <div className="h-12 w-12 rounded-xl bg-crm-primaryLighter flex items-center justify-center shrink-0">
           <i className="ph-fill ph-gear text-2xl text-crm-primary" />
         </div>
@@ -97,7 +97,7 @@ const MasterExpoHub = ({ activeSubTab, setActiveSubTab, currentUser }) => {
           <h1 className="text-2xl font-bold text-crm-textDark">Master Data</h1>
           <p className="text-sm text-crm-textMuted mt-0.5">Manage lookup data used across the application</p>
         </div>
-      </div>
+      </div> */}
 
       <MasterDataTabs tabs={EXPO_TABS} activeId={tab} onChange={setActiveSubTab} />
       {renderPanel()}

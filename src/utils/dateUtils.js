@@ -20,10 +20,10 @@ export const formatDateTime = (dateString) => {
       parseStr = parseStr.replace(' ', 'T');
     }
 
-    // Convert server UTC time to local time by appending 'Z'
-    // Do not append 'Z' to date-only values to prevent them from shifting backwards in negative timezones
+    // The server is already returning India Time (IST) but without timezone info.
+    // We append '+05:30' instead of 'Z' so it parses as IST explicitly.
     if (!isDateOnly && parseStr.includes('T') && !parseStr.endsWith('Z') && !parseStr.includes('+')) {
-      parseStr += 'Z';
+      parseStr += '+05:30';
     }
 
     const d = new Date(parseStr);
@@ -37,13 +37,30 @@ export const formatDateTime = (dateString) => {
       return `${day}/${month}/${year}`;
     }
 
-    let hours = d.getHours();
-    const minutes = String(d.getMinutes()).padStart(2, '0');
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12;
-    hours = hours ? hours : 12; // the hour '0' should be '12'
+    // Convert to India Time (IST)
+    const options = {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    };
+    const formatter = new Intl.DateTimeFormat('en-GB', options);
+    const parts = formatter.formatToParts(d);
+    
+    let istDay, istMonth, istYear, istHour, istMinute, istAmpm;
+    parts.forEach(p => {
+      if (p.type === 'day') istDay = p.value;
+      if (p.type === 'month') istMonth = p.value;
+      if (p.type === 'year') istYear = p.value;
+      if (p.type === 'hour') istHour = p.value;
+      if (p.type === 'minute') istMinute = p.value;
+      if (p.type === 'dayPeriod') istAmpm = p.value.toUpperCase();
+    });
 
-    return `${day}/${month}/${year} ${hours}:${minutes} ${ampm}`;
+    return `${istDay}/${istMonth}/${istYear} ${istHour}:${istMinute} ${istAmpm}`;
   } catch {
     return dateString;
   }

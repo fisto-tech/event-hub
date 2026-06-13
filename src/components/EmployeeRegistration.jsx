@@ -525,7 +525,7 @@ const EmployeeRegistration = ({ currentUser }) => {
           </div>
           
           {/* Illustration image on the bottom right */}
-          <div className="fixed bottom-0 right-0 z-0 pointer-events-none hidden lg:block">
+          <div className="fixed w-[20%] bottom-0 right-0 z-0 pointer-events-none hidden lg:block">
             <img src={empImage} alt="Illustration" className="w-[450px] object-contain" />
           </div>
         </div>
